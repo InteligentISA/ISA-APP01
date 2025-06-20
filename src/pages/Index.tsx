@@ -4,10 +4,13 @@ import Preloader from "@/components/Preloader";
 import Welcome from "@/components/Welcome";
 import AuthModal from "@/components/AuthModal";
 import Dashboard from "@/components/Dashboard";
+import AskISA from "@/components/AskISA";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth' | 'dashboard'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth' | 'dashboard' | 'askisa'>('preloader');
   const [user, setUser] = useState<any>(null);
+  const [likedItems, setLikedItems] = useState<string[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
   useEffect(() => {
     // Simulate preloader
@@ -32,6 +35,26 @@ const Index = () => {
     setCurrentView('welcome');
   };
 
+  const handleNavigateToAskISA = () => {
+    setCurrentView('askisa');
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentView('dashboard');
+  };
+
+  const handleAddToCart = (product: any) => {
+    setCartItems(prev => [...prev, product]);
+  };
+
+  const handleToggleLike = (productId: string) => {
+    setLikedItems(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
@@ -44,7 +67,20 @@ const Index = () => {
         />
       )}
       {currentView === 'dashboard' && (
-        <Dashboard user={user} onLogout={handleLogout} />
+        <Dashboard 
+          user={user} 
+          onLogout={handleLogout} 
+          onNavigateToAskISA={handleNavigateToAskISA}
+        />
+      )}
+      {currentView === 'askisa' && (
+        <AskISA
+          user={user}
+          onBack={handleBackToDashboard}
+          onAddToCart={handleAddToCart}
+          onToggleLike={handleToggleLike}
+          likedItems={likedItems}
+        />
       )}
     </div>
   );

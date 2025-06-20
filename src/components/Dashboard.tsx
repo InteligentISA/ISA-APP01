@@ -5,16 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ShoppingCart, Search, LogOut, Menu, Star } from "lucide-react";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProductGrid from "@/components/ProductGrid";
 
 interface DashboardProps {
   user: any;
   onLogout: () => void;
+  onNavigateToAskISA: () => void;
 }
 
-const Dashboard = ({ user, onLogout }: DashboardProps) => {
+const Dashboard = ({ user, onLogout, onNavigateToAskISA }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<number[]>([]);
@@ -69,6 +70,15 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative isa-gold-bg text-black rounded-full"
+                onClick={onNavigateToAskISA}
+              >
+                <MessageCircle className="w-5 h-5" />
+              </Button>
+              
               <Button variant="ghost" size="icon" className="relative">
                 <Heart className="w-5 h-5" />
                 {likedItems.length > 0 && (
@@ -118,6 +128,14 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
                 {category}
               </Button>
             ))}
+            <Button
+              variant="outline"
+              onClick={onNavigateToAskISA}
+              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Ask ISA
+            </Button>
           </div>
         </div>
 
