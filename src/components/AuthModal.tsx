@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { X, Mail, Lock, User, Chrome } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X, Mail, Lock, User, Chrome, MapPin, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
@@ -15,7 +16,19 @@ interface AuthModalProps {
 
 const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    nickname: "",
+    email: "",
+    password: "",
+    dob: "",
+    location: "",
+    gender: ""
+  });
   const { toast } = useToast();
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
@@ -28,11 +41,24 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
         title: type === 'login' ? "Welcome back!" : "Account created!",
         description: "You've been successfully authenticated.",
       });
-      onAuthSuccess({
+      
+      const userData = type === 'register' ? {
+        name: formData.nickname || "John Doe",
+        email: formData.email || "john@example.com",
+        dob: formData.dob,
+        location: formData.location,
+        gender: formData.gender,
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + (formData.nickname || "John")
+      } : {
         name: "John Doe",
         email: "john@example.com",
+        dob: "1990-01-01",
+        location: "Nairobi, Kenya",
+        gender: "male",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-      });
+      };
+      
+      onAuthSuccess(userData);
     }, 1000);
   };
 
@@ -47,6 +73,9 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
       onAuthSuccess({
         name: "John Doe",
         email: "john@gmail.com",
+        dob: "1990-01-01",
+        location: "Nairobi, Kenya",
+        gender: "male",
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Google"
       });
     }, 1000);
@@ -56,7 +85,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20">
+      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20 max-h-[90vh] overflow-y-auto">
         <CardHeader className="text-center relative">
           <Button
             variant="ghost"
@@ -95,19 +124,73 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
             
             <TabsContent value="register" className="space-y-4">
               <form onSubmit={(e) => handleSubmit(e, 'register')} className="space-y-4">
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="relative">
                     <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input type="text" placeholder="Full Name" className="pl-10" required />
+                    <Input 
+                      type="text" 
+                      placeholder="Nickname" 
+                      className="pl-10" 
+                      value={formData.nickname}
+                      onChange={(e) => handleInputChange('nickname', e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input type="email" placeholder="Email" className="pl-10" required />
+                    <Input 
+                      type="email" 
+                      placeholder="Email" 
+                      className="pl-10" 
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input type="password" placeholder="Password" className="pl-10" required />
+                    <Input 
+                      type="password" 
+                      placeholder="Password" 
+                      className="pl-10" 
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      required 
+                    />
                   </div>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="date" 
+                      placeholder="Date of Birth" 
+                      className="pl-10" 
+                      value={formData.dob}
+                      onChange={(e) => handleInputChange('dob', e.target.value)}
+                      required 
+                    />
+                  </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="text" 
+                      placeholder="Location" 
+                      className="pl-10" 
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      required 
+                    />
+                  </div>
+                  <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Creating account..." : "Create Account"}

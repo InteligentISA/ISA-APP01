@@ -5,21 +5,24 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle } from "lucide-react";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ProductGrid from "@/components/ProductGrid";
+import ProfileModal from "@/components/ProfileModal";
 
 interface DashboardProps {
   user: any;
   onLogout: () => void;
   onNavigateToAskISA: () => void;
+  onUserUpdate?: (updatedUser: any) => void;
 }
 
-const Dashboard = ({ user, onLogout, onNavigateToAskISA }: DashboardProps) => {
+const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<number[]>([]);
   const [likedItems, setLikedItems] = useState<number[]>([]);
+  const [showProfile, setShowProfile] = useState(false);
   const { toast } = useToast();
 
   const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
@@ -38,6 +41,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA }: DashboardProps) => {
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     );
+  };
+
+  const handleUserUpdate = (updatedUser: any) => {
+    if (onUserUpdate) {
+      onUserUpdate(updatedUser);
+    }
   };
 
   return (
@@ -97,13 +106,17 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA }: DashboardProps) => {
                 )}
               </Button>
               
-              <div className="flex items-center space-x-2">
+              <Button 
+                variant="ghost" 
+                className="flex items-center space-x-2"
+                onClick={() => setShowProfile(true)}
+              >
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={user.avatar} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="text-sm font-medium text-gray-700">{user.name}</span>
-              </div>
+              </Button>
               
               <Button variant="ghost" size="icon" onClick={onLogout}>
                 <LogOut className="w-4 h-4" />
@@ -149,6 +162,13 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA }: DashboardProps) => {
           cartItems={cartItems}
         />
       </div>
+
+      <ProfileModal 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        onUserUpdate={handleUserUpdate}
+      />
     </div>
   );
 };

@@ -55,6 +55,10 @@ const Index = () => {
     );
   };
 
+  const handleUserUpdate = (updatedUser: any) => {
+    setUser(updatedUser);
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
@@ -71,6 +75,7 @@ const Index = () => {
           user={user} 
           onLogout={handleLogout} 
           onNavigateToAskISA={handleNavigateToAskISA}
+          onUserUpdate={handleUserUpdate}
         />
       )}
       {currentView === 'askisa' && (
