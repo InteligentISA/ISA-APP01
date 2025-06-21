@@ -110,8 +110,8 @@ const ProductGrid = ({
                 variant="ghost"
                 size="icon"
                 className={`absolute top-2 right-2 ${
-                  likedItems.includes(product.id) ? 'text-red-500' : 'text-gray-400'
-                } hover:text-red-500 bg-white/80 backdrop-blur-sm`}
+                  likedItems.includes(product.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-300'
+                } hover:text-red-500 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm`}
                 onClick={() => onToggleLike(product.id)}
               >
                 <Heart className={`w-4 h-4 ${likedItems.includes(product.id) ? 'fill-current' : ''}`} />
@@ -121,7 +121,7 @@ const ProductGrid = ({
             <div className="p-4 space-y-3">
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">{product.name}</h3>
-                <Badge variant="secondary" className="text-xs mt-1">
+                <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200">
                   {product.category}
                 </Badge>
               </div>
@@ -141,7 +141,7 @@ const ProductGrid = ({
                   size="sm"
                   onClick={() => onAddToCart(product.id)}
                   disabled={cartItems.includes(product.id)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 >
                   {cartItems.includes(product.id) ? (
                     "Added"

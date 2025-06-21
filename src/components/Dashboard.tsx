@@ -59,7 +59,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white dark:bg-slate-800 shadow-sm border-b sticky top-0 z-40">
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
@@ -74,13 +74,13 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             {/* Search */}
             <div className="flex-1 max-w-lg mx-8">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <Input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 w-full"
+                  className="pl-10 w-full bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
             </div>
@@ -90,6 +90,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
               >
                 {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               </Button>
@@ -97,7 +98,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 animate-pulse"
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg"
                 onClick={onNavigateToAskISA}
               >
                 <MessageCircle className="w-5 h-5" />
@@ -107,7 +108,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative isa-gold-bg text-black rounded-full hover:bg-yellow-500"
+                className="relative isa-gold-bg text-black rounded-full hover:bg-yellow-500 shadow-lg"
                 onClick={onNavigateToGifts}
               >
                 <Gift className="w-5 h-5" />
@@ -116,12 +117,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative"
+                className="relative text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
                 onClick={() => setShowLikedItems(true)}
               >
                 <Heart className="w-5 h-5" />
                 {likedItems.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
                     {likedItems.length}
                   </Badge>
                 )}
@@ -130,12 +131,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative"
+                className="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400"
                 onClick={() => setShowCart(true)}
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cartItems.length > 0 && (
-                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
+                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-500 text-white">
                     {cartItems.length}
                   </Badge>
                 )}
@@ -143,17 +144,22 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               
               <Button 
                 variant="ghost" 
-                className="flex items-center space-x-2"
+                className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                 onClick={() => setShowProfile(true)}
               >
                 <Avatar className="w-8 h-8">
                   <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user.name}</span>
+                <span className="text-sm font-medium">{user.name}</span>
               </Button>
               
-              <Button variant="ghost" size="icon" onClick={onLogout}>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onLogout}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
@@ -171,7 +177,11 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 onClick={() => setSelectedCategory(category)}
-                className="rounded-full"
+                className={`rounded-full ${
+                  selectedCategory === category 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
+                }`}
               >
                 {category}
               </Button>
@@ -179,7 +189,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             <Button
               variant="outline"
               onClick={onNavigateToAskISA}
-              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse"
+              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
               <Sparkles className="w-4 h-4 mr-1" />
@@ -188,7 +198,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             <Button
               variant="outline"
               onClick={onNavigateToGifts}
-              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500"
+              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500 border-none shadow-lg"
             >
               <Gift className="w-4 h-4 mr-2" />
               Gifts

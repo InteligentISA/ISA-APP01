@@ -61,7 +61,7 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
   if (orderPlaced) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md bg-white dark:bg-slate-800">
+        <Card className="w-full max-w-md bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
           <CardContent className="p-8 text-center">
             <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-white" />
@@ -76,12 +76,12 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 max-h-[90vh] overflow-y-auto">
-        <CardHeader className="relative">
+      <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <CardHeader className="relative border-b border-gray-200 dark:border-slate-700">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             onClick={onClose}
           >
             <X className="w-4 h-4" />
@@ -90,7 +90,7 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
             {showCheckout ? "Checkout" : "Shopping Cart"}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-6">
           {!showCheckout ? (
             <>
               {cartProducts.length === 0 ? (
@@ -101,7 +101,7 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
                 <>
                   <div className="space-y-4">
                     {cartProducts.map((product) => (
-                      <div key={product.id} className="flex items-center space-x-4 p-4 border rounded-lg dark:border-slate-600">
+                      <div key={product.id} className="flex items-center space-x-4 p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700">
                         <img
                           src={product.image}
                           alt={product.name}
@@ -115,18 +115,18 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
                           variant="ghost"
                           size="icon"
                           onClick={() => onRemoveFromCart(product.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t pt-4 dark:border-slate-600">
+                  <div className="border-t border-gray-200 dark:border-slate-600 pt-4">
                     <div className="flex justify-between items-center mb-4">
                       <span className="text-xl font-bold text-gray-900 dark:text-white">Total: ${total.toFixed(2)}</span>
                     </div>
-                    <Button onClick={handleCheckout} className="w-full">
+                    <Button onClick={handleCheckout} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                       Proceed to Checkout
                     </Button>
                   </div>
@@ -145,41 +145,45 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
                     placeholder="Street Address"
                     value={billingAddress.street}
                     onChange={(e) => setBillingAddress(prev => ({ ...prev, street: e.target.value }))}
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <Input
                     placeholder="City"
                     value={billingAddress.city}
                     onChange={(e) => setBillingAddress(prev => ({ ...prev, city: e.target.value }))}
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <Input
                     placeholder="State"
                     value={billingAddress.state}
                     onChange={(e) => setBillingAddress(prev => ({ ...prev, state: e.target.value }))}
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <Input
                     placeholder="ZIP Code"
                     value={billingAddress.zip}
                     onChange={(e) => setBillingAddress(prev => ({ ...prev, zip: e.target.value }))}
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                   <Input
                     placeholder="Country"
                     value={billingAddress.country}
                     onChange={(e) => setBillingAddress(prev => ({ ...prev, country: e.target.value }))}
-                    className="md:col-span-2"
+                    className="md:col-span-2 bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                   />
                 </div>
               </div>
 
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Order Summary</h3>
-                <div className="space-y-2">
+                <div className="space-y-2 bg-gray-50 dark:bg-slate-700 p-4 rounded-lg border border-gray-200 dark:border-slate-600">
                   {cartProducts.map((product) => (
                     <div key={product.id} className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-300">{product.name}</span>
                       <span className="font-semibold text-gray-900 dark:text-white">${product.price}</span>
                     </div>
                   ))}
-                  <div className="border-t pt-2 dark:border-slate-600">
+                  <div className="border-t border-gray-300 dark:border-slate-500 pt-2 mt-2">
                     <div className="flex justify-between text-xl font-bold">
                       <span className="text-gray-900 dark:text-white">Total:</span>
                       <span className="text-gray-900 dark:text-white">${total.toFixed(2)}</span>
@@ -189,10 +193,17 @@ const CartModal = ({ isOpen, onClose, user, cartItems, onRemoveFromCart }: CartM
               </div>
 
               <div className="flex gap-4">
-                <Button variant="outline" onClick={() => setShowCheckout(false)} className="flex-1">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowCheckout(false)} 
+                  className="flex-1 border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
                   Back to Cart
                 </Button>
-                <Button onClick={handleConfirmOrder} className="flex-1">
+                <Button 
+                  onClick={handleConfirmOrder} 
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                >
                   <CreditCard className="w-4 h-4 mr-2" />
                   Confirm Order
                 </Button>

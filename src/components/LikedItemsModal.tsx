@@ -28,12 +28,12 @@ const LikedItemsModal = ({ isOpen, onClose, likedItems, onAddToCart, onRemoveFro
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 max-h-[90vh] overflow-y-auto">
-        <CardHeader className="relative">
+      <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <CardHeader className="relative border-b border-gray-200 dark:border-slate-700">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2"
+            className="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
             onClick={onClose}
           >
             <X className="w-4 h-4" />
@@ -43,7 +43,7 @@ const LikedItemsModal = ({ isOpen, onClose, likedItems, onAddToCart, onRemoveFro
             Liked Items
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-6">
           {likedProducts.length === 0 ? (
             <div className="text-center py-8">
               <Heart className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -52,7 +52,7 @@ const LikedItemsModal = ({ isOpen, onClose, likedItems, onAddToCart, onRemoveFro
           ) : (
             <div className="space-y-4">
               {likedProducts.map((product) => (
-                <div key={product.id} className="flex items-center space-x-4 p-4 border rounded-lg dark:border-slate-600">
+                <div key={product.id} className="flex items-center space-x-4 p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700">
                   <img
                     src={product.image}
                     alt={product.name}
@@ -67,6 +67,7 @@ const LikedItemsModal = ({ isOpen, onClose, likedItems, onAddToCart, onRemoveFro
                       variant="outline"
                       size="sm"
                       onClick={() => onAddToCart(product.id)}
+                      className="border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-600"
                     >
                       <ShoppingCart className="w-4 h-4 mr-2" />
                       Add to Cart
@@ -75,7 +76,7 @@ const LikedItemsModal = ({ isOpen, onClose, likedItems, onAddToCart, onRemoveFro
                       variant="ghost"
                       size="sm"
                       onClick={() => onRemoveFromLiked(product.id)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 dark:hover:text-red-400"
                     >
                       <Heart className="w-4 h-4 fill-current" />
                     </Button>
