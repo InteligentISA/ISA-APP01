@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, Heart, Sparkles, Users } from "lucide-react";
 
@@ -12,7 +11,7 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
       <div className="max-w-4xl mx-auto text-center space-y-12 animate-fade-in-up">
         <div className="space-y-6">
           <img 
-            src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png" 
+            src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
             alt="ISA Logo" 
             className="w-32 h-32 mx-auto mb-8"
           />

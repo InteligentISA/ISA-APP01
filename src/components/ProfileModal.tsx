@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, User, Mail, MapPin, Calendar, Edit3, Save } from "lucide-react";
+import { X, User, Mail, MapPin, Calendar, Edit3, Save, Camera, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProfileModalProps {
@@ -23,12 +23,25 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
     email: user?.email || "",
     dob: user?.dob || "",
     location: user?.location || "",
-    gender: user?.gender || ""
+    gender: user?.gender || "",
+    avatar: user?.avatar || ""
   });
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setFormData(prev => ({ ...prev, avatar: result }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSave = async () => {
@@ -59,7 +72,8 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
       email: user?.email || "",
       dob: user?.dob || "",
       location: user?.location || "",
-      gender: user?.gender || ""
+      gender: user?.gender || "",
+      avatar: user?.avatar || ""
     });
     setIsEditing(false);
   };
@@ -79,10 +93,23 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
             <X className="w-4 h-4" />
           </Button>
           <div className="flex flex-col items-center space-y-4">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={user?.avatar} />
-              <AvatarFallback className="text-lg">{user?.name?.charAt(0)}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="w-20 h-20">
+                <AvatarImage src={formData.avatar} />
+                <AvatarFallback className="text-lg">{formData.name?.charAt(0)}</AvatarFallback>
+              </Avatar>
+              {isEditing && (
+                <label className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer hover:bg-primary/90">
+                  <Camera className="w-3 h-3" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleAvatarChange}
+                    className="hidden" 
+                  />
+                </label>
+              )}
+            </div>
             <CardTitle className="text-2xl font-bold">My Profile</CardTitle>
           </div>
         </CardHeader>

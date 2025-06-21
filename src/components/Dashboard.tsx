@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User } from "lucide-react";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "@/components/ThemeProvider";
 import ProductGrid from "@/components/ProductGrid";
 import ProfileModal from "@/components/ProfileModal";
 
@@ -14,16 +15,18 @@ interface DashboardProps {
   user: any;
   onLogout: () => void;
   onNavigateToAskISA: () => void;
+  onNavigateToGifts: () => void;
   onUserUpdate?: (updatedUser: any) => void;
 }
 
-const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: DashboardProps) => {
+const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<number[]>([]);
   const [likedItems, setLikedItems] = useState<number[]>([]);
   const [showProfile, setShowProfile] = useState(false);
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
 
   const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
 
@@ -50,18 +53,18 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: Dashboa
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
               <img 
-                src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png" 
+                src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
                 alt="ISA Logo" 
                 className="w-8 h-8"
               />
-              <h1 className="text-xl font-bold text-gray-900">ISA</h1>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">ISA</h1>
             </div>
             
             {/* Search */}
@@ -79,13 +82,31 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: Dashboa
             </div>
             
             <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+              >
+                {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              </Button>
+
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="relative isa-gold-bg text-black rounded-full"
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 animate-pulse"
                 onClick={onNavigateToAskISA}
               >
                 <MessageCircle className="w-5 h-5" />
+                <Sparkles className="absolute -top-1 -right-1 w-3 h-3" />
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative isa-gold-bg text-black rounded-full hover:bg-yellow-500"
+                onClick={onNavigateToGifts}
+              >
+                <Gift className="w-5 h-5" />
               </Button>
               
               <Button variant="ghost" size="icon" className="relative">
@@ -115,7 +136,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: Dashboa
                   <AvatarImage src={user.avatar} />
                   <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700">{user.name}</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{user.name}</span>
               </Button>
               
               <Button variant="ghost" size="icon" onClick={onLogout}>
@@ -129,7 +150,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: Dashboa
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Categories */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Shop by Category</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Shop by Category</h2>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
               <Button
@@ -144,10 +165,19 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onUserUpdate }: Dashboa
             <Button
               variant="outline"
               onClick={onNavigateToAskISA}
-              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500"
+              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse"
             >
               <MessageCircle className="w-4 h-4 mr-2" />
+              <Sparkles className="w-4 h-4 mr-1" />
               Ask ISA
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onNavigateToGifts}
+              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500"
+            >
+              <Gift className="w-4 h-4 mr-2" />
+              Gifts
             </Button>
           </div>
         </div>

@@ -5,7 +5,7 @@ const Preloader = () => {
       <div className="text-center">
         <div className="mb-8 animate-float">
           <img 
-            src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png" 
+            src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
             alt="ISA Logo" 
             className="w-48 h-48 mx-auto animate-pulse-glow"
           />

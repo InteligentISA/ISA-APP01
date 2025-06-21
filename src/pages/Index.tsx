@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from "react";
 import Preloader from "@/components/Preloader";
 import Welcome from "@/components/Welcome";
 import AuthModal from "@/components/AuthModal";
 import Dashboard from "@/components/Dashboard";
 import AskISA from "@/components/AskISA";
+import GiftsSection from "@/components/GiftsSection";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth' | 'dashboard' | 'askisa'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth' | 'dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -59,6 +59,10 @@ const Index = () => {
     setUser(updatedUser);
   };
 
+  const handleNavigateToGifts = () => {
+    setCurrentView('gifts');
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
@@ -75,6 +79,7 @@ const Index = () => {
           user={user} 
           onLogout={handleLogout} 
           onNavigateToAskISA={handleNavigateToAskISA}
+          onNavigateToGifts={handleNavigateToGifts}
           onUserUpdate={handleUserUpdate}
         />
       )}
@@ -85,6 +90,13 @@ const Index = () => {
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
           likedItems={likedItems}
+        />
+      )}
+      {currentView === 'gifts' && (
+        <GiftsSection
+          user={user}
+          onBack={handleBackToDashboard}
+          onAddToCart={handleAddToCart}
         />
       )}
     </div>

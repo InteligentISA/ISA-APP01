@@ -128,7 +128,7 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <img 
-              src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png" 
+              src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
               alt="ISA Logo" 
               className="w-8 h-8"
             />
