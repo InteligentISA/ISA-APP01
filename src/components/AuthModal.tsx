@@ -85,142 +85,145 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20 max-h-[90vh] overflow-y-auto">
-        <CardHeader className="text-center relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2"
-            onClick={onClose}
-          >
-            <X className="w-4 h-4" />
-          </Button>
-          <CardTitle className="text-2xl font-bold">Welcome to ISA</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login" className="space-y-4">
-              <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input type="email" placeholder="Email" className="pl-10" required />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input type="password" placeholder="Password" className="pl-10" required />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            <TabsContent value="register" className="space-y-4">
-              <form onSubmit={(e) => handleSubmit(e, 'register')} className="space-y-4">
-                <div className="space-y-3">
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="text" 
-                      placeholder="Nickname" 
-                      className="pl-10" 
-                      value={formData.nickname}
-                      onChange={(e) => handleInputChange('nickname', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="email" 
-                      placeholder="Email" 
-                      className="pl-10" 
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="password" 
-                      placeholder="Password" 
-                      className="pl-10" 
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="date" 
-                      placeholder="Date of Birth" 
-                      className="pl-10" 
-                      value={formData.dob}
-                      onChange={(e) => handleInputChange('dob', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="text" 
-                      placeholder="Location" 
-                      className="pl-10" 
-                      value={formData.location}
-                      onChange={(e) => handleInputChange('location', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                      <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create Account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-          
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">Or continue with</span>
-              </div>
-            </div>
-            
+      {/* Force light mode by removing dark mode classes and using light theme colors */}
+      <div className="light">
+        <Card className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
+          <CardHeader className="text-center relative">
             <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={handleGoogleAuth}
-              disabled={isLoading}
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+              onClick={onClose}
             >
-              <Chrome className="w-4 h-4 mr-2" />
-              Continue with Google
+              <X className="w-4 h-4" />
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="login" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+                <TabsTrigger value="login" className="text-gray-900 data-[state=active]:bg-white data-[state=active]:text-gray-900">Login</TabsTrigger>
+                <TabsTrigger value="register" className="text-gray-900 data-[state=active]:bg-white data-[state=active]:text-gray-900">Register</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login" className="space-y-4">
+                <form onSubmit={(e) => handleSubmit(e, 'login')} className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input type="email" placeholder="Email" className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" required />
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input type="password" placeholder="Password" className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" required />
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+                    {isLoading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              <TabsContent value="register" className="space-y-4">
+                <form onSubmit={(e) => handleSubmit(e, 'register')} className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="text" 
+                        placeholder="Nickname" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={formData.nickname}
+                        onChange={(e) => handleInputChange('nickname', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="email" 
+                        placeholder="Email" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="password" 
+                        placeholder="Password" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="date" 
+                        placeholder="Date of Birth" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={formData.dob}
+                        onChange={(e) => handleInputChange('dob', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="text" 
+                        placeholder="Location" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={formData.location}
+                        onChange={(e) => handleInputChange('location', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Select Gender" className="text-gray-500" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-300">
+                        <SelectItem value="male" className="text-gray-900 hover:bg-gray-100">Male</SelectItem>
+                        <SelectItem value="female" className="text-gray-900 hover:bg-gray-100">Female</SelectItem>
+                        <SelectItem value="other" className="text-gray-900 hover:bg-gray-100">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say" className="text-gray-900 hover:bg-gray-100">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
+                    {isLoading ? "Creating account..." : "Create Account"}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+            
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                </div>
+              </div>
+              
+              <Button
+                variant="outline"
+                className="w-full mt-4 bg-white border-gray-300 text-gray-900 hover:bg-gray-50"
+                onClick={handleGoogleAuth}
+                disabled={isLoading}
+              >
+                <Chrome className="w-4 h-4 mr-2" />
+                Continue with Google
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

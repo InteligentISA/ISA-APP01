@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -232,38 +231,40 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
         )}
       </div>
 
-      {/* Search Area - Fixed at Bottom */}
-      <div className="bg-white border-t shadow-lg p-4 sticky bottom-0">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex space-x-2">
-            <Textarea
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder='Ask ISA: "Find me HP laptop below 20000ks" or "Show me smartphones under 15000"'
-              className="flex-1 min-h-[50px] resize-none"
-              onKeyPress={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSearch();
-                }
-              }}
-            />
-            <Button 
-              onClick={handleSearch}
-              disabled={isSearching || !query.trim()}
-              className="isa-gold-bg text-black hover:bg-yellow-500 self-end"
-              size="lg"
-            >
-              {isSearching ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                <Send className="w-5 h-5" />
-              )}
-            </Button>
+      {/* Search Area - Fixed at Bottom - Always Light Mode */}
+      <div className="light">
+        <div className="bg-white border-t border-gray-200 shadow-lg p-4 sticky bottom-0">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex space-x-2">
+              <Textarea
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder='Ask ISA: "Find me HP laptop below 20000ks" or "Show me smartphones under 15000"'
+                className="flex-1 min-h-[50px] resize-none bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSearch();
+                  }
+                }}
+              />
+              <Button 
+                onClick={handleSearch}
+                disabled={isSearching || !query.trim()}
+                className="isa-gold-bg text-black hover:bg-yellow-500 self-end"
+                size="lg"
+              >
+                {isSearching ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Press Enter to search • Powered by Jumia scraping
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-2 text-center">
-            Press Enter to search • Powered by Jumia scraping
-          </p>
         </div>
       </div>
     </div>
