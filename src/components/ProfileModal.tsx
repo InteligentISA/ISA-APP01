@@ -82,7 +82,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-white/20">
+      <Card className="w-full max-w-md bg-white dark:bg-slate-800">
         <CardHeader className="text-center relative">
           <Button
             variant="ghost"
@@ -110,13 +110,13 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
                 </label>
               )}
             </div>
-            <CardTitle className="text-2xl font-bold">My Profile</CardTitle>
+            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Nickname</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Nickname</label>
               <div className="relative">
                 <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input 
@@ -130,7 +130,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input 
@@ -144,7 +144,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Date of Birth</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Date of Birth</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input 
@@ -158,7 +158,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Location</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input 
@@ -172,7 +172,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
             </div>
             
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Gender</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gender</label>
               <Select 
                 value={formData.gender} 
                 onValueChange={(value) => handleInputChange('gender', value)}

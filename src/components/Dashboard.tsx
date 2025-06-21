@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
 import ProductGrid from "@/components/ProductGrid";
 import ProfileModal from "@/components/ProfileModal";
+import CartModal from "@/components/CartModal";
+import LikedItemsModal from "@/components/LikedItemsModal";
 
 interface DashboardProps {
   user: any;
@@ -25,6 +27,8 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   const [cartItems, setCartItems] = useState<number[]>([]);
   const [likedItems, setLikedItems] = useState<number[]>([]);
   const [showProfile, setShowProfile] = useState(false);
+  const [showCart, setShowCart] = useState(false);
+  const [showLikedItems, setShowLikedItems] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -109,7 +113,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 <Gift className="w-5 h-5" />
               </Button>
               
-              <Button variant="ghost" size="icon" className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative"
+                onClick={() => setShowLikedItems(true)}
+              >
                 <Heart className="w-5 h-5" />
                 {likedItems.length > 0 && (
                   <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
@@ -118,7 +127,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 )}
               </Button>
               
-              <Button variant="ghost" size="icon" className="relative">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative"
+                onClick={() => setShowCart(true)}
+              >
                 <ShoppingCart className="w-5 h-5" />
                 {cartItems.length > 0 && (
                   <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs">
@@ -198,6 +212,22 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onClose={() => setShowProfile(false)}
         user={user}
         onUserUpdate={handleUserUpdate}
+      />
+
+      <CartModal
+        isOpen={showCart}
+        onClose={() => setShowCart(false)}
+        user={user}
+        cartItems={cartItems}
+        onRemoveFromCart={(productId) => setCartItems(prev => prev.filter(id => id !== productId))}
+      />
+
+      <LikedItemsModal
+        isOpen={showLikedItems}
+        onClose={() => setShowLikedItems(false)}
+        likedItems={likedItems}
+        onAddToCart={handleAddToCart}
+        onRemoveFromLiked={(productId) => setLikedItems(prev => prev.filter(id => id !== productId))}
       />
     </div>
   );

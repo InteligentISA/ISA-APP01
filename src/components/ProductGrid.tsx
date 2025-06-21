@@ -98,7 +98,7 @@ const ProductGrid = ({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {filteredProducts.map((product) => (
-        <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+        <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
           <CardContent className="p-0">
             <div className="relative overflow-hidden rounded-t-lg">
               <img
@@ -120,7 +120,7 @@ const ProductGrid = ({
             
             <div className="p-4 space-y-3">
               <div>
-                <h3 className="font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">{product.name}</h3>
                 <Badge variant="secondary" className="text-xs mt-1">
                   {product.category}
                 </Badge>
@@ -128,13 +128,13 @@ const ProductGrid = ({
               
               <div className="flex items-center space-x-1">
                 <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-gray-600 dark:text-gray-300">
                   {product.rating} ({product.reviews})
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-gray-900">
+                <span className="text-xl font-bold text-gray-900 dark:text-white">
                   ${product.price}
                 </span>
                 <Button
