@@ -87,7 +87,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       {/* Force light mode by removing dark mode classes and using light theme colors */}
       <div className="light">
-        <Card className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
+        <Card className="w-full max-w-lg bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
           <CardHeader className="text-center relative">
             <Button
               variant="ghost"
@@ -99,7 +99,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
             </Button>
             <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-8">
             <Tabs defaultValue="login" className="space-y-4">
               <TabsList className="grid w-full grid-cols-2 bg-gray-100">
                 <TabsTrigger value="login" className="text-gray-900 data-[state=active]:bg-white data-[state=active]:text-gray-900">Login</TabsTrigger>

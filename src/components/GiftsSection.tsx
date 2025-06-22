@@ -62,20 +62,20 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16 space-x-4">
             <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5 text-gray-900 dark:text-white" />
             </Button>
             <img 
               src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
               alt="ISA Logo" 
               className="w-8 h-8"
             />
-            <h1 className="text-xl font-bold text-gray-900">Gifts & Surprises</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">Gifts & Surprises</h1>
           </div>
         </div>
       </header>
@@ -83,16 +83,16 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             <Gift className="inline w-8 h-8 mr-2 text-yellow-500" />
             Perfect Gifts for Every Occasion
           </h2>
-          <p className="text-gray-600">Let ISA help you find the perfect surprise for your loved ones</p>
+          <p className="text-gray-600 dark:text-gray-300">Let ISA help you find the perfect surprise for your loved ones</p>
         </div>
 
         {/* Gift Categories */}
         <div className="mb-8">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Choose Occasion</h3>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Choose Occasion</h3>
           <div className="flex flex-wrap gap-3">
             {giftCategories.map((category) => (
               <Button
@@ -111,18 +111,18 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
         {/* Surprise Gifts Grid */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-bold text-gray-900">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
               <Sparkles className="inline w-6 h-6 mr-2 text-yellow-500" />
               Surprise Packages
             </h3>
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
               ISA Curated
             </Badge>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {surpriseGifts.map((gift) => (
-              <Card key={gift.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+              <Card key={gift.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
                 <CardContent className="p-0">
                   <div className="relative overflow-hidden rounded-t-lg">
                     <img
@@ -139,17 +139,17 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
                   
                   <div className="p-4 space-y-3">
                     <div>
-                      <h3 className="font-semibold text-gray-900">{gift.name}</h3>
-                      <p className="text-sm text-gray-600 mt-1">{gift.description}</p>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{gift.name}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{gift.description}</p>
                     </div>
                     
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-gray-600">{gift.rating}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">{gift.rating}</span>
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-gray-900">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
                         {gift.price}
                       </span>
                       <Button
@@ -170,22 +170,34 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
 
         {/* Custom Gift Builder */}
         <div className="mt-12">
-          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700">
             <CardHeader>
-              <CardTitle className="text-center">
-                <Sparkles className="inline w-6 h-6 mr-2 text-purple-600" />
+              <CardTitle className="text-center text-gray-900 dark:text-white">
+                <Sparkles className="inline w-6 h-6 mr-2 text-purple-600 dark:text-purple-400" />
                 Create Custom Surprise
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-center text-gray-600 mb-4">
+              <p className="text-center text-gray-600 dark:text-gray-300 mb-4">
                 Tell ISA about the person and let AI create the perfect surprise package
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input placeholder="Recipient's age" />
-                <Input placeholder="Budget range (e.g., 5000-10000)" />
-                <Input placeholder="Their interests/hobbies" className="md:col-span-2" />
-                <Input placeholder="Special occasion details" className="md:col-span-2" />
+                <Input 
+                  placeholder="Recipient's age" 
+                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+                <Input 
+                  placeholder="Budget range (e.g., 5000-10000)" 
+                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+                <Input 
+                  placeholder="Their interests/hobbies" 
+                  className="md:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
+                <Input 
+                  placeholder="Special occasion details" 
+                  className="md:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                />
               </div>
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
                 <Sparkles className="w-4 h-4 mr-2" />
