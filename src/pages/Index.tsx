@@ -1,13 +1,16 @@
+
 import { useState, useEffect } from "react";
 import Preloader from "@/components/Preloader";
 import Welcome from "@/components/Welcome";
-import AuthModal from "@/components/AuthModal";
+import AuthWelcome from "@/components/AuthWelcome";
+import AuthSignUp from "@/components/AuthSignUp";
+import AuthSignIn from "@/components/AuthSignIn";
 import Dashboard from "@/components/Dashboard";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth' | 'dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -22,7 +25,7 @@ const Index = () => {
   }, []);
 
   const handleGetStarted = () => {
-    setCurrentView('auth');
+    setCurrentView('auth-welcome');
   };
 
   const handleAuthSuccess = (userData: any) => {
@@ -67,10 +70,23 @@ const Index = () => {
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
       {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
-      {currentView === 'auth' && (
-        <AuthModal 
-          isOpen={true} 
+      {currentView === 'auth-welcome' && (
+        <AuthWelcome 
           onClose={() => setCurrentView('welcome')}
+          onAuthSuccess={handleAuthSuccess}
+          onNavigateToSignIn={() => setCurrentView('auth-signin')}
+          onNavigateToSignUp={() => setCurrentView('auth-signup')}
+        />
+      )}
+      {currentView === 'auth-signup' && (
+        <AuthSignUp 
+          onBack={() => setCurrentView('auth-welcome')}
+          onAuthSuccess={handleAuthSuccess}
+        />
+      )}
+      {currentView === 'auth-signin' && (
+        <AuthSignIn 
+          onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
         />
       )}
