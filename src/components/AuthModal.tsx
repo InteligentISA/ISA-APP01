@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +84,6 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      {/* Force light mode by removing dark mode classes and using light theme colors */}
       <div className="light">
         <Card className="w-full max-w-lg bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
           <CardHeader className="text-center relative">

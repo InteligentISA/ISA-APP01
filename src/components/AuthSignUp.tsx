@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +30,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     lastName: "",
     company: "",
     businessType: "",
+    phoneNumber: "",
     email: "",
     password: "",
     confirmPassword: ""
@@ -82,6 +82,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
         email: vendorData.email,
         company: vendorData.company,
         businessType: vendorData.businessType,
+        phoneNumber: vendorData.phoneNumber,
         userType: userType,
         avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + vendorData.firstName
       };
@@ -281,6 +282,18 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
                       value={vendorData.businessType}
                       onChange={(e) => handleVendorInputChange('businessType', e.target.value)}
+                      required 
+                    />
+                  </div>
+                  
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input 
+                      type="tel" 
+                      placeholder="Phone Number" 
+                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                      value={vendorData.phoneNumber}
+                      onChange={(e) => handleVendorInputChange('phoneNumber', e.target.value)}
                       required 
                     />
                   </div>
