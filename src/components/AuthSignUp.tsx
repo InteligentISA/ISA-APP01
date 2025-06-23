@@ -93,7 +93,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="light">
-        <Card className="w-full max-w-5xl bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
+        <Card className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto">
           <CardHeader className="text-center relative">
             <Button
               variant="ghost"
@@ -103,41 +103,27 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
             >
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <CardTitle className="text-2xl font-bold text-gray-900">Create Your Account</CardTitle>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              {userType === 'customer' ? 'Create Your Account' : 'Apply as Vendor'}
+            </CardTitle>
+            {userType === 'customer' && (
+              <div className="flex items-center justify-center mt-2">
+                <ShoppingBag className="w-5 h-5 mr-2 text-blue-600" />
+                <span className="text-gray-600">Join as a Customer</span>
+              </div>
+            )}
+            {userType === 'vendor' && (
+              <div className="flex items-center justify-center mt-2">
+                <Store className="w-5 h-5 mr-2 text-blue-600" />
+                <span className="text-gray-600">Apply to Sell Products</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="px-8">
-            <div className="grid md:grid-cols-2 gap-8 mb-8">
-              {/* Customer Sign Up */}
-              <div className={`p-6 rounded-lg border-2 transition-all cursor-pointer ${
-                userType === 'customer' 
-                  ? 'border-blue-600 bg-blue-50' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`} onClick={() => setUserType('customer')}>
-                <div className="text-center mb-4">
-                  <ShoppingBag className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-                  <h3 className="text-xl font-semibold text-gray-900">Sign up as Customer</h3>
-                  <p className="text-gray-600 text-sm mt-1">Shop with AI-powered recommendations</p>
-                </div>
-              </div>
-
-              {/* Vendor Sign Up */}
-              <div className={`p-6 rounded-lg border-2 transition-all cursor-pointer ${
-                userType === 'vendor' 
-                  ? 'border-blue-600 bg-blue-50' 
-                  : 'border-gray-200 hover:border-gray-300'
-              }`} onClick={() => setUserType('vendor')}>
-                <div className="text-center mb-4">
-                  <Store className="w-12 h-12 mx-auto mb-3 text-blue-600" />
-                  <h3 className="text-xl font-semibold text-gray-900">Sign up as Vendor</h3>
-                  <p className="text-gray-600 text-sm mt-1">Sell your products with smart tools</p>
-                </div>
-              </div>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {userType === 'customer' ? (
                 <>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
@@ -174,7 +160,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     />
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
@@ -223,7 +209,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     />
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
@@ -250,7 +236,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                 </>
               ) : (
                 <>
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
@@ -311,7 +297,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     />
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
@@ -341,6 +327,32 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
               <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12" disabled={isLoading}>
                 {isLoading ? "Creating account..." : `Create ${userType} account`}
               </Button>
+
+              {userType === 'customer' && (
+                <div className="text-center pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-sm text-gray-600 hover:text-gray-800"
+                    onClick={() => setUserType('vendor')}
+                  >
+                    Apply to be a vendor instead
+                  </Button>
+                </div>
+              )}
+
+              {userType === 'vendor' && (
+                <div className="text-center pt-4">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-sm text-gray-600 hover:text-gray-800"
+                    onClick={() => setUserType('customer')}
+                  >
+                    Sign up as customer instead
+                  </Button>
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
