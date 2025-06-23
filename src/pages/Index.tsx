@@ -6,11 +6,12 @@ import AuthWelcome from "@/components/AuthWelcome";
 import AuthSignUp from "@/components/AuthSignUp";
 import AuthSignIn from "@/components/AuthSignIn";
 import Dashboard from "@/components/Dashboard";
+import VendorDashboard from "@/components/VendorDashboard";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -30,7 +31,11 @@ const Index = () => {
 
   const handleAuthSuccess = (userData: any) => {
     setUser(userData);
-    setCurrentView('dashboard');
+    if (userData.userType === 'vendor') {
+      setCurrentView('vendor-dashboard');
+    } else {
+      setCurrentView('dashboard');
+    }
   };
 
   const handleLogout = () => {
@@ -43,7 +48,11 @@ const Index = () => {
   };
 
   const handleBackToDashboard = () => {
-    setCurrentView('dashboard');
+    if (user?.userType === 'vendor') {
+      setCurrentView('vendor-dashboard');
+    } else {
+      setCurrentView('dashboard');
+    }
   };
 
   const handleAddToCart = (product: any) => {
@@ -97,6 +106,12 @@ const Index = () => {
           onNavigateToAskISA={handleNavigateToAskISA}
           onNavigateToGifts={handleNavigateToGifts}
           onUserUpdate={handleUserUpdate}
+        />
+      )}
+      {currentView === 'vendor-dashboard' && (
+        <VendorDashboard 
+          user={user} 
+          onLogout={handleLogout}
         />
       )}
       {currentView === 'askisa' && (
