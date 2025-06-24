@@ -12,6 +12,7 @@ import ProductGrid from "@/components/ProductGrid";
 import ProfileModal from "@/components/ProfileModal";
 import CartModal from "@/components/CartModal";
 import LikedItemsModal from "@/components/LikedItemsModal";
+import WelcomeChatbot from "@/components/WelcomeChatbot";
 
 interface DashboardProps {
   user: any;
@@ -29,6 +30,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   const [showProfile, setShowProfile] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showLikedItems, setShowLikedItems] = useState(false);
+  const [showWelcomeChatbot, setShowWelcomeChatbot] = useState(true);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -54,6 +56,16 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     if (onUserUpdate) {
       onUserUpdate(updatedUser);
     }
+  };
+
+  const handleNavigateToAskISAWithQuery = (query?: string) => {
+    setShowWelcomeChatbot(false);
+    onNavigateToAskISA();
+  };
+
+  const handleNavigateToGiftsFromChatbot = () => {
+    setShowWelcomeChatbot(false);
+    onNavigateToGifts();
   };
 
   return (
@@ -238,6 +250,14 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         likedItems={likedItems}
         onAddToCart={handleAddToCart}
         onRemoveFromLiked={(productId) => setLikedItems(prev => prev.filter(id => id !== productId))}
+      />
+
+      <WelcomeChatbot
+        isOpen={showWelcomeChatbot}
+        onClose={() => setShowWelcomeChatbot(false)}
+        user={user}
+        onNavigateToGifts={handleNavigateToGiftsFromChatbot}
+        onNavigateToAskISA={handleNavigateToAskISAWithQuery}
       />
     </div>
   );
