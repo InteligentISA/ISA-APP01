@@ -37,7 +37,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
         <div className="flex justify-between items-center mb-4">
           <Button
             onClick={onNavigateToGifts}
-            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg"
+            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg px-8 py-3"
           >
             <Gift className="w-4 h-4 mr-2" />
             Gift someone
@@ -45,7 +45,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
           <Button
             onClick={onClose}
             variant="outline"
-            className="bg-white/90 border-gray-300 text-gray-700 hover:bg-white"
+            className="bg-white/90 border-gray-300 text-gray-700 hover:bg-white px-8 py-3"
           >
             <Home className="w-4 h-4 mr-2" />
             Proceed to app
@@ -89,8 +89,10 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
                   Ready? What are you looking for today?
                 </p>
               </div>
+            </div>
 
-              {/* Search Input */}
+            {/* Chat Input at Bottom */}
+            <div className="mt-auto pt-4 border-t border-gray-200">
               <div className="relative">
                 <Input
                   type="text"
@@ -98,12 +100,12 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="pr-12 py-3 text-lg border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white"
+                  className="pr-12 py-4 text-lg border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white shadow-sm"
                 />
                 <Button
                   onClick={handleSearch}
                   size="icon"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-lg h-10 w-10"
                   disabled={!query.trim()}
                 >
                   <Send className="w-4 h-4" />

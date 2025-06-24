@@ -26,10 +26,10 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     confirmPassword: ""
   });
   const [vendorData, setVendorData] = useState({
-    firstName: "",
-    lastName: "",
     company: "",
     businessType: "",
+    firstName: "",
+    lastName: "",
     phoneNumber: "",
     email: "",
     password: "",
@@ -237,31 +237,6 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                 </>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        type="text" 
-                        placeholder="First Name" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.firstName}
-                        onChange={(e) => handleVendorInputChange('firstName', e.target.value)}
-                        required 
-                      />
-                    </div>
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        type="text" 
-                        placeholder="Last Name" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.lastName}
-                        onChange={(e) => handleVendorInputChange('lastName', e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  
                   <div className="relative">
                     <Building className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <Input 
@@ -284,6 +259,31 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       onChange={(e) => handleVendorInputChange('businessType', e.target.value)}
                       required 
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="text" 
+                        placeholder="Rep First Name" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={vendorData.firstName}
+                        onChange={(e) => handleVendorInputChange('firstName', e.target.value)}
+                        required 
+                      />
+                    </div>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input 
+                        type="text" 
+                        placeholder="Rep Last Name" 
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        value={vendorData.lastName}
+                        onChange={(e) => handleVendorInputChange('lastName', e.target.value)}
+                        required 
+                      />
+                    </div>
                   </div>
                   
                   <div className="relative">
