@@ -11,19 +11,23 @@ import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'auth-reset' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate preloader
+    // Simulate preloader - let it run until user is ready
     const timer = setTimeout(() => {
-      setCurrentView('welcome');
+      // Don't auto-advance, let user click continue
     }, 3000);
     
     return () => clearTimeout(timer);
   }, []);
+
+  const handlePreloaderComplete = () => {
+    setCurrentView('welcome');
+  };
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
@@ -75,9 +79,13 @@ const Index = () => {
     setCurrentView('gifts');
   };
 
+  const handleForgotPassword = () => {
+    setCurrentView('auth-reset');
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
-      {currentView === 'preloader' && <Preloader />}
+      {currentView === 'preloader' && <Preloader onContinue={handlePreloaderComplete} />}
       {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
       {currentView === 'auth-welcome' && (
         <AuthWelcome 
@@ -97,6 +105,7 @@ const Index = () => {
         <AuthSignIn 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
+          onForgotPassword={handleForgotPassword}
         />
       )}
       {currentView === 'dashboard' && (

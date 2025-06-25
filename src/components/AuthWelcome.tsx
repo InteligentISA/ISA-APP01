@@ -41,52 +41,50 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="light">
-        <Card className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200">
-          <CardHeader className="text-center relative">
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
-            <p className="text-gray-600 mt-2">Your Intelligent Shopping Assistant</p>
-          </CardHeader>
-          <CardContent className="px-8 pb-8">
-            <div className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
-                onClick={handleGoogleAuth}
-                disabled={isLoading}
-              >
-                <Chrome className="w-5 h-5 mr-3" />
-                {isLoading ? "Connecting..." : "Continue with Google"}
-              </Button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">OR</span>
-                </div>
+    <div className="fixed inset-0 bg-white flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-md bg-white shadow-xl border border-gray-200">
+        <CardHeader className="text-center relative">
+          <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
+          <p className="text-gray-600 mt-2">Your Intelligent Shopping Assistant</p>
+        </CardHeader>
+        <CardContent className="px-8 pb-8">
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
+              onClick={handleGoogleAuth}
+              disabled={isLoading}
+            >
+              <Chrome className="w-5 h-5 mr-3" />
+              {isLoading ? "Connecting..." : "Continue with Google"}
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
               </div>
-
-              <Button
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12"
-                onClick={onNavigateToSignUp}
-              >
-                Sign up
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
-                onClick={onNavigateToSignIn}
-              >
-                Log in
-              </Button>
+              <div className="relative flex justify-center text-sm">
+                <span className="bg-white px-2 text-gray-500">OR</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12"
+              onClick={onNavigateToSignUp}
+            >
+              Sign up
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
+              onClick={onNavigateToSignIn}
+            >
+              Log in
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
