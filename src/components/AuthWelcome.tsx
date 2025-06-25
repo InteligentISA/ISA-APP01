@@ -2,6 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Chrome } from "lucide-react";
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthWelcomeProps {
@@ -12,23 +14,30 @@ interface AuthWelcomeProps {
 }
 
 const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToSignUp }: AuthWelcomeProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
-  const handleGoogleAuth = () => {
-    setTimeout(() => {
+  const handleGoogleAuth = async () => {
+    setIsLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        toast({
+          title: "Google Sign In Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Welcome!",
-        description: "You've been signed in with Google.",
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
       });
-      onAuthSuccess({
-        name: "John Doe",
-        email: "john@gmail.com",
-        dob: "1990-01-01",
-        location: "Nairobi, Kenya",
-        gender: "male",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Google"
-      });
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -45,9 +54,10 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
                 variant="outline"
                 className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
                 onClick={handleGoogleAuth}
+                disabled={isLoading}
               >
                 <Chrome className="w-5 h-5 mr-3" />
-                Continue with Google
+                {isLoading ? "Connecting..." : "Continue with Google"}
               </Button>
               
               <div className="relative">

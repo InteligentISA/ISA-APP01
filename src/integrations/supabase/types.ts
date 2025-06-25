@@ -9,7 +9,200 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          first_name: string | null
+          gender: string | null
+          id: string
+          last_name: string | null
+          location: string | null
+          phone_number: string | null
+          preferences: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id: string
+          last_name?: string | null
+          location?: string | null
+          phone_number?: string | null
+          preferences?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          first_name?: string | null
+          gender?: string | null
+          id?: string
+          last_name?: string | null
+          location?: string | null
+          phone_number?: string | null
+          preferences?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_cart_items: {
+        Row: {
+          added_at: string | null
+          id: string
+          price: number | null
+          product_category: string | null
+          product_id: string
+          product_name: string | null
+          quantity: number | null
+          removed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          added_at?: string | null
+          id?: string
+          price?: number | null
+          product_category?: string | null
+          product_id: string
+          product_name?: string | null
+          quantity?: number | null
+          removed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          added_at?: string | null
+          id?: string
+          price?: number | null
+          product_category?: string | null
+          product_id?: string
+          product_name?: string | null
+          quantity?: number | null
+          removed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cart_items_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_likes: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_category: string | null
+          product_id: string
+          product_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_category?: string | null
+          product_id: string
+          product_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_category?: string | null
+          product_id?: string
+          product_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_purchases: {
+        Row: {
+          id: string
+          price: number | null
+          product_category: string | null
+          product_id: string
+          product_name: string | null
+          purchase_date: string | null
+          quantity: number | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          price?: number | null
+          product_category?: string | null
+          product_id: string
+          product_name?: string | null
+          purchase_date?: string | null
+          quantity?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          price?: number | null
+          product_category?: string | null
+          product_id?: string
+          product_name?: string | null
+          purchase_date?: string | null
+          quantity?: number | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_searches: {
+        Row: {
+          created_at: string | null
+          id: string
+          search_category: string | null
+          search_query: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          search_category?: string | null
+          search_query: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          search_category?: string | null
+          search_query?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_searches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

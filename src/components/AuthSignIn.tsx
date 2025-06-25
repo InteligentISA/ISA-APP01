@@ -4,19 +4,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Mail, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthSignInProps {
   onBack: () => void;
   onAuthSuccess: (user: any) => void;
+  onForgotPassword: () => void;
 }
 
-const AuthSignIn = ({ onBack, onAuthSuccess }: AuthSignInProps) => {
+const AuthSignIn = ({ onBack, onAuthSuccess, onForgotPassword }: AuthSignInProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
+  const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleInputChange = (field: string, value: string) => {
@@ -27,25 +30,31 @@ const AuthSignIn = ({ onBack, onAuthSuccess }: AuthSignInProps) => {
     e.preventDefault();
     setIsLoading(true);
     
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        toast({
+          title: "Sign In Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You've been successfully signed in."
+        });
+        onAuthSuccess({ email: formData.email });
+      }
+    } catch (error) {
       toast({
-        title: "Welcome back!",
-        description: "You've been successfully signed in.",
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
       });
-      
-      const userData = {
-        name: "John Doe",
-        email: formData.email || "john@example.com",
-        dob: "1990-01-01",
-        location: "Nairobi, Kenya",
-        gender: "male",
-        userType: "customer",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-      };
-      
-      onAuthSuccess(userData);
-    }, 1000);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -95,9 +104,13 @@ const AuthSignIn = ({ onBack, onAuthSuccess }: AuthSignInProps) => {
               </Button>
               
               <div className="text-center">
-                <a href="#" className="text-sm text-blue-600 hover:underline">
+                <button
+                  type="button"
+                  className="text-sm text-blue-600 hover:underline"
+                  onClick={onForgotPassword}
+                >
                   Forgot your password?
-                </a>
+                </button>
               </div>
             </form>
           </CardContent>
