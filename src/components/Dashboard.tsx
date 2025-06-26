@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/components/ThemeProvider";
+import { useTheme } from "next-themes";
 import ProductGrid from "@/components/ProductGrid";
 import ProfileModal from "@/components/ProfileModal";
 import CartModal from "@/components/CartModal";
