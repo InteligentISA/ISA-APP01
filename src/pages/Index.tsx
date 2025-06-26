@@ -9,31 +9,21 @@ import Dashboard from "@/components/Dashboard";
 import VendorDashboard from "@/components/VendorDashboard";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
-import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'auth-reset' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
-  const { user: authUser, loading } = useAuth();
 
-  // Handle authentication state changes
   useEffect(() => {
-    if (!loading && authUser) {
-      setUser(authUser);
-      // Check if user has vendor role in metadata
-      if (authUser.user_metadata?.userType === 'vendor') {
-        setCurrentView('vendor-dashboard');
-      } else {
-        setCurrentView('dashboard');
-      }
-    }
-  }, [authUser, loading]);
-
-  const handlePreloaderComplete = () => {
-    setCurrentView('welcome');
-  };
+    // Simulate preloader
+    const timer = setTimeout(() => {
+      setCurrentView('welcome');
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
@@ -41,7 +31,7 @@ const Index = () => {
 
   const handleAuthSuccess = (userData: any) => {
     setUser(userData);
-    if (userData.userType === 'vendor' || userData.user_metadata?.userType === 'vendor') {
+    if (userData.userType === 'vendor') {
       setCurrentView('vendor-dashboard');
     } else {
       setCurrentView('dashboard');
@@ -58,7 +48,7 @@ const Index = () => {
   };
 
   const handleBackToDashboard = () => {
-    if (user?.userType === 'vendor' || user?.user_metadata?.userType === 'vendor') {
+    if (user?.userType === 'vendor') {
       setCurrentView('vendor-dashboard');
     } else {
       setCurrentView('dashboard');
@@ -85,28 +75,9 @@ const Index = () => {
     setCurrentView('gifts');
   };
 
-  const handleForgotPassword = () => {
-    setCurrentView('auth-reset');
-  };
-
-  // If user is authenticated, show dashboard directly
-  if (!loading && authUser && currentView === 'preloader') {
-    return authUser.user_metadata?.userType === 'vendor' ? (
-      <VendorDashboard user={authUser} onLogout={handleLogout} />
-    ) : (
-      <Dashboard 
-        user={authUser} 
-        onLogout={handleLogout} 
-        onNavigateToAskISA={handleNavigateToAskISA}
-        onNavigateToGifts={handleNavigateToGifts}
-        onUserUpdate={handleUserUpdate}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen isa-gradient">
-      {currentView === 'preloader' && <Preloader onContinue={handlePreloaderComplete} />}
+      {currentView === 'preloader' && <Preloader />}
       {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
       {currentView === 'auth-welcome' && (
         <AuthWelcome 
@@ -126,7 +97,6 @@ const Index = () => {
         <AuthSignIn 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
-          onForgotPassword={handleForgotPassword}
         />
       )}
       {currentView === 'dashboard' && (
