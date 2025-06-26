@@ -12,7 +12,7 @@ import GiftsSection from "@/components/GiftsSection";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'auth-reset' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -85,6 +85,10 @@ const Index = () => {
     setCurrentView('gifts');
   };
 
+  const handleForgotPassword = () => {
+    setCurrentView('auth-reset');
+  };
+
   // If user is authenticated, show dashboard directly
   if (!loading && authUser && currentView === 'preloader') {
     return authUser.user_metadata?.userType === 'vendor' ? (
@@ -122,10 +126,7 @@ const Index = () => {
         <AuthSignIn 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
-          onForgotPassword={() => {
-            // Handle forgot password - could show a modal or navigate to reset page
-            console.log('Forgot password clicked - implement password reset');
-          }}
+          onForgotPassword={handleForgotPassword}
         />
       )}
       {currentView === 'dashboard' && (
