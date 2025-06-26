@@ -15,6 +15,7 @@ interface AuthWelcomeProps {
 
 const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToSignUp }: AuthWelcomeProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState<'customer' | 'vendor'>('customer');
   const { signInWithGoogle } = useAuth();
   const { toast } = useToast();
 
@@ -28,6 +29,9 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
           description: error.message,
           variant: "destructive"
         });
+      } else {
+        // Google auth successful, user will be redirected
+        onAuthSuccess({ userType: 'customer' });
       }
     } catch (error) {
       toast({
@@ -47,33 +51,62 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
           <CardHeader className="text-center relative">
             <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
             <p className="text-gray-600 mt-2">Your Intelligent Shopping Assistant</p>
+            
+            {/* User Type Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1 mt-4">
+              <button
+                onClick={() => setUserType('customer')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  userType === 'customer' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Customer
+              </button>
+              <button
+                onClick={() => setUserType('vendor')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                  userType === 'vendor' 
+                    ? 'bg-white text-gray-900 shadow-sm' 
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Vendor
+              </button>
+            </div>
           </CardHeader>
           <CardContent className="px-8 pb-8">
             <div className="space-y-4">
-              <Button
-                variant="outline"
-                className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
-                onClick={handleGoogleAuth}
-                disabled={isLoading}
-              >
-                <Chrome className="w-5 h-5 mr-3" />
-                {isLoading ? "Connecting..." : "Continue with Google"}
-              </Button>
-              
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-white px-2 text-gray-500">OR</span>
-                </div>
-              </div>
+              {/* Google Sign In - Only for customers */}
+              {userType === 'customer' && (
+                <>
+                  <Button
+                    variant="outline"
+                    className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
+                    onClick={handleGoogleAuth}
+                    disabled={isLoading}
+                  >
+                    <Chrome className="w-5 h-5 mr-3" />
+                    {isLoading ? "Connecting..." : "Continue with Google"}
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="bg-white px-2 text-gray-500">OR</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
               <Button
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12"
                 onClick={onNavigateToSignUp}
               >
-                Sign up
+                Sign up as {userType}
               </Button>
               
               <Button
@@ -81,7 +114,7 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
                 className="w-full bg-white border-gray-300 text-gray-900 hover:bg-gray-50 h-12"
                 onClick={onNavigateToSignIn}
               >
-                Log in
+                Log in as {userType}
               </Button>
             </div>
           </CardContent>

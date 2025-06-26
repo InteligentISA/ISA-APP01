@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Mail, Lock, User, MapPin, Calendar, Store, ShoppingBag, Phone, Building } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthSignUpProps {
@@ -35,6 +37,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     password: "",
     confirmPassword: ""
   });
+  const { signUp } = useAuth();
   const { toast } = useToast();
 
   const handleCustomerInputChange = (field: string, value: string) => {
@@ -61,34 +64,71 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
       return;
     }
     
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: "Account created!",
-        description: `Welcome to ISA as a ${userType}!`,
-      });
-      
+    try {
       const userData = userType === 'customer' ? {
-        name: `${customerData.firstName} ${customerData.lastName}`,
-        email: customerData.email,
-        dob: customerData.dob,
+        first_name: customerData.firstName,
+        last_name: customerData.lastName,
+        date_of_birth: customerData.dob,
         location: customerData.location,
         gender: customerData.gender,
-        phoneNumber: customerData.phoneNumber,
-        userType: userType,
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + customerData.firstName
+        phone_number: customerData.phoneNumber,
+        user_type: userType,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customerData.firstName}`
       } : {
-        name: `${vendorData.firstName} ${vendorData.lastName}`,
-        email: vendorData.email,
+        first_name: vendorData.firstName,
+        last_name: vendorData.lastName,
         company: vendorData.company,
-        businessType: vendorData.businessType,
-        phoneNumber: vendorData.phoneNumber,
-        userType: userType,
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=" + vendorData.firstName
+        business_type: vendorData.businessType,
+        phone_number: vendorData.phoneNumber,
+        user_type: userType,
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
       };
+
+      const { error } = await signUp(currentData.email, currentData.password, userData);
       
-      onAuthSuccess(userData);
-    }, 1000);
+      if (error) {
+        toast({
+          title: "Sign Up Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Account created!",
+          description: `Welcome to ISA as a ${userType}! Please check your email to verify your account.`,
+        });
+        
+        // Create user object for the app
+        const appUser = userType === 'customer' ? {
+          name: `${customerData.firstName} ${customerData.lastName}`,
+          email: customerData.email,
+          dob: customerData.dob,
+          location: customerData.location,
+          gender: customerData.gender,
+          phoneNumber: customerData.phoneNumber,
+          userType: userType,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customerData.firstName}`
+        } : {
+          name: `${vendorData.firstName} ${vendorData.lastName}`,
+          email: vendorData.email,
+          company: vendorData.company,
+          businessType: vendorData.businessType,
+          phoneNumber: vendorData.phoneNumber,
+          userType: userType,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
+        };
+        
+        onAuthSuccess(appUser);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

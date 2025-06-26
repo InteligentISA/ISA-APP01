@@ -44,7 +44,16 @@ const AuthSignIn = ({ onBack, onAuthSuccess, onForgotPassword }: AuthSignInProps
           title: "Welcome back!",
           description: "You've been successfully signed in."
         });
-        onAuthSuccess({ email: formData.email });
+        
+        // Create a basic user object for the app
+        const appUser = {
+          email: formData.email,
+          userType: 'customer', // Default to customer, this should be determined from the database
+          name: formData.email.split('@')[0],
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.email}`
+        };
+        
+        onAuthSuccess(appUser);
       }
     } catch (error) {
       toast({

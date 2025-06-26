@@ -75,6 +75,11 @@ const Index = () => {
     setCurrentView('gifts');
   };
 
+  const handleForgotPassword = () => {
+    // For now, just show a toast or alert
+    alert('Password reset functionality will be implemented soon.');
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
@@ -97,6 +102,7 @@ const Index = () => {
         <AuthSignIn 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
+          onForgotPassword={handleForgotPassword}
         />
       )}
       {currentView === 'dashboard' && (
