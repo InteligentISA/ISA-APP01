@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,56 @@ interface AuthSignUpProps {
   onAuthSuccess: (user: any) => void;
 }
 
+const countyConstituencyData = {
+  "Nairobi County": ["Westlands", "Dagoretti North", "Dagoretti South", "Langata", "Kibra", "Roysambu", "Kasarani", "Ruaraka", "Embakasi South", "Embakasi North", "Embakasi Central", "Embakasi East", "Embakasi West", "Makadara", "Kamukunji", "Starehe", "Mathare"],
+  "Kiambu County": ["Gatundu South", "Gatundu North", "Juja", "Thika Town", "Ruiru", "Githunguri", "Kiambu", "Kiambaa", "Kabete", "Kikuyu", "Limuru", "Lari"],
+  "Nakuru County": ["Nakuru Town East", "Nakuru Town West", "Bahati", "Subukia", "Rongai", "Kuresoi North", "Kuresoi South", "Molo", "Njoro", "Gilgil", "Naivasha"],
+  "Kakamega County": ["Lugari", "Likuyani", "Malava", "Lurambi", "Navakholo", "Mumias East", "Mumias West", "Butere", "Khwisero", "Matungu", "Ikolomani", "Shinyalu"],
+  "Bungoma County": ["Mount Elgon", "Sirisia", "Kabuchai", "Webuye West", "Webuye East", "Bungoma", "Kanduyi", "Bumula", "Butula"],
+  "Meru County": ["Igembe South", "Igembe Central", "Igembe North", "Tigania West", "Tigania East", "North Imenti", "Buuri", "Central Imenti", "South Imenti"],
+  "Kilifi County": ["Kilifi North", "Kilifi South", "Kaloleni", "Rabai", "Ganze", "Malindi", "Magarini"],
+  "Machakos County": ["Masinga", "Yatta", "Kangundo", "Matungulu", "Kathiani", "Mavoko", "Machakos Town", "Mwala"],
+  "Kisii County": ["Bonchari", "South Mugirango", "Bomachoge Borabu", "Bomachoge Chache", "Bobasi", "Nyaribari Masaba", "Nyaribari Chache", "Kitutu Chache North", "Kitutu Chache South"],
+  "Mombasa County": ["Changamwe", "Jomvu", "Kisauni", "Nyali", "Likoni", "Mvita"],
+  "Narok County": ["Kilgoris", "Emurua Dikirr", "Loita", "Narok North", "Narok East", "Narok South", "Narok West"],
+  "Kajiado County": ["Kajiado North", "Kajiado East", "Kajiado South", "Kajiado Central", "Kajiado West"],
+  "Uasin Gishu County": ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"],
+  "Kisumu County": ["Kisumu West", "Kisumu East", "Kisumu Central", "Seme", "Nyando", "Muhoroni", "Nyakach"],
+  "Migori County": ["Rongo", "Awendo", "Suna East", "Suna West", "Uriri", "Nyatike", "Kuria West", "Kuria East"],
+  "Homa Bay County": ["Kasipul", "Kabondo Kasipul", "Karachuonyo", "Rachuonyo North", "Rachuonyo East", "Homa Bay Town", "Rangwe", "Suba North", "Suba South"],
+  "Kitui County": ["Mwingi North", "Mwingi West", "Mwingi Central", "Kitui West", "Kitui Rural", "Kitui Central", "Kitui East", "Kitui South"],
+  "Murang'a County": ["Kangema", "Mathioya", "Kiharu", "Kigumo", "Maragwa", "Kandara", "Gatanga"],
+  "Trans-Nzoia County": ["Cherangany", "Endebess", "Kwanza", "Saboti", "Kiminini"],
+  "Siaya County": ["Ugenya", "Ugunja", "Alego Usonga", "Gem", "Bondo", "Rarieda"],
+  "Makueni County": ["Mbooni", "Kilome", "Kaiti", "Makueni", "Kibwezi West", "Kibwezi East"],
+  "Turkana County": ["Turkana North", "Turkana West", "Turkana Central", "Loima", "Turkana South", "Turkana East"],
+  "Busia County": ["Nambale", "Butula", "Funyula", "Samia", "Bunyala", "Budalang'i", "Teso North", "Teso South"],
+  "Mandera County": ["Mandera West", "Banissa", "Mandera North", "Mandera South", "Mandera East", "Lafey"],
+  "Kericho County": ["Kipkelion East", "Kipkelion West", "Ainamoi", "Bureti", "Belgut", "Sigowet/Soin"],
+  "Nandi County": ["Aldai", "Chesumei", "Emgwen", "Mosop", "Nandi Hills", "Tinderet"],
+  "Kwale County": ["Msambweni", "Lunga Lunga", "Matuga", "Kinango"],
+  "Bomet County": ["Sotik", "Chepalungu", "Bomet Central", "Bomet East", "Konoin"],
+  "Garissa County": ["Garissa Township", "Balambala", "Lagdera", "Dadaab", "Fafi", "Ijara"],
+  "Wajir County": ["Wajir North", "Wajir East", "Tarbaj", "Wajir West", "Eldas", "Wajir South"],
+  "Nyeri County": ["Tetu", "Kieni", "Mathira", "Othaya", "Mukurweini", "Nyeri Town"],
+  "Baringo County": ["Mogotio", "Eldama Ravine", "Baringo Central", "Baringo North", "Baringo South", "Tiaty"],
+  "Nyandarua County": ["Kinangop", "Kipipiri", "Ol Kalou", "Ol Jorok", "Ndaragwa"],
+  "West Pokot County": ["Kapenguria", "Sigor", "Kacheliba", "Pokot South"],
+  "Nyamira County": ["Kitutu Masaba", "North Mugirango", "West Mugirango", "Borabu"],
+  "Kirinyaga County": ["Mwea", "Gichugu", "Ndia", "Kirinyaga Central"],
+  "Embu County": ["Manyatta", "Runyenjes", "Mbeere South", "Mbeere North"],
+  "Vihiga County": ["Vihiga", "Emuhaya", "Luanda", "Hamisi", "Sabatia"],
+  "Laikipia County": ["Laikipia West", "Laikipia East", "Laikipia North"],
+  "Marsabit County": ["Moyale", "North Horr", "Saku", "Laisamis"],
+  "Elgeyo-Marakwet County": ["Keiyo North", "Keiyo South", "Marakwet East", "Marakwet West"],
+  "Tharaka-Nithi County": ["Maara", "Chuka/Igambang'ombe", "Tharaka"],
+  "Taita–Taveta County": ["Taveta", "Wundanyi", "Mwatate", "Voi"],
+  "Tana River County": ["Garsen", "Galole", "Bura"],
+  "Samburu County": ["Samburu West", "Samburu North", "Samburu East"],
+  "Isiolo County": ["Isiolo North", "Isiolo South"],
+  "Lamu County": ["Lamu East", "Lamu West"]
+};
+
 const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [userType, setUserType] = useState<'customer' | 'vendor'>('customer');
@@ -20,7 +69,8 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     firstName: "",
     lastName: "",
     dob: "",
-    location: "",
+    county: "",
+    constituency: "",
     gender: "",
     phoneNumber: "",
     email: "",
@@ -41,7 +91,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   const { toast } = useToast();
 
   const handleCustomerInputChange = (field: string, value: string) => {
-    setCustomerData(prev => ({ ...prev, [field]: value }));
+    setCustomerData(prev => {
+      const newData = { ...prev, [field]: value };
+      // Reset constituency when county changes
+      if (field === 'county') {
+        newData.constituency = "";
+      }
+      return newData;
+    });
   };
 
   const handleVendorInputChange = (field: string, value: string) => {
@@ -69,7 +126,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
         first_name: customerData.firstName,
         last_name: customerData.lastName,
         date_of_birth: customerData.dob,
-        location: customerData.location,
+        location: `${customerData.constituency}, ${customerData.county}`,
         gender: customerData.gender,
         phone_number: customerData.phoneNumber,
         user_type: userType,
@@ -103,7 +160,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
           name: `${customerData.firstName} ${customerData.lastName}`,
           email: customerData.email,
           dob: customerData.dob,
-          location: customerData.location,
+          location: `${customerData.constituency}, ${customerData.county}`,
           gender: customerData.gender,
           phoneNumber: customerData.phoneNumber,
           userType: userType,
@@ -129,6 +186,11 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getAvailableConstituencies = () => {
+    if (!customerData.county) return [];
+    return countyConstituencyData[customerData.county as keyof typeof countyConstituencyData] || [];
   };
 
   return (
@@ -202,29 +264,48 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        type="text" 
-                        placeholder="Location" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.location}
-                        onChange={(e) => handleCustomerInputChange('location', e.target.value)}
-                        required 
-                      />
-                    </div>
-                    <Select value={customerData.gender} onValueChange={(value) => handleCustomerInputChange('gender', value)}>
+                    <Select value={customerData.county} onValueChange={(value) => handleCustomerInputChange('county', value)}>
                       <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Select Gender" className="text-gray-500" />
+                        <SelectValue placeholder="Select County" className="text-gray-500" />
                       </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-300">
-                        <SelectItem value="male" className="text-gray-900 hover:bg-gray-100">Male</SelectItem>
-                        <SelectItem value="female" className="text-gray-900 hover:bg-gray-100">Female</SelectItem>
-                        <SelectItem value="other" className="text-gray-900 hover:bg-gray-100">Other</SelectItem>
-                        <SelectItem value="prefer-not-to-say" className="text-gray-900 hover:bg-gray-100">Prefer not to say</SelectItem>
+                      <SelectContent className="bg-white border-gray-300 z-50">
+                        {Object.keys(countyConstituencyData).map((county) => (
+                          <SelectItem key={county} value={county} className="text-gray-900 hover:bg-gray-100">
+                            {county}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select 
+                      value={customerData.constituency} 
+                      onValueChange={(value) => handleCustomerInputChange('constituency', value)}
+                      disabled={!customerData.county}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Select Constituency" className="text-gray-500" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-300 z-50">
+                        {getAvailableConstituencies().map((constituency) => (
+                          <SelectItem key={constituency} value={constituency} className="text-gray-900 hover:bg-gray-100">
+                            {constituency}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
+                  
+                  <Select value={customerData.gender} onValueChange={(value) => handleCustomerInputChange('gender', value)}>
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Select Gender" className="text-gray-500" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-300 z-50">
+                      <SelectItem value="male" className="text-gray-900 hover:bg-gray-100">Male</SelectItem>
+                      <SelectItem value="female" className="text-gray-900 hover:bg-gray-100">Female</SelectItem>
+                      <SelectItem value="other" className="text-gray-900 hover:bg-gray-100">Other</SelectItem>
+                      <SelectItem value="prefer-not-to-say" className="text-gray-900 hover:bg-gray-100">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
                   
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
