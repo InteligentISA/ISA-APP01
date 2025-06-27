@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 interface AuthSignUpProps {
   onBack: () => void;
   onAuthSuccess: (user: any) => void;
+  userType: 'customer' | 'vendor';
 }
 
 const countyConstituencyData = {
@@ -62,9 +63,8 @@ const countyConstituencyData = {
   "Lamu County": ["Lamu East", "Lamu West"]
 };
 
-const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
+const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [userType, setUserType] = useState<'customer' | 'vendor'>('customer');
   const [customerData, setCustomerData] = useState({
     firstName: "",
     lastName: "",
@@ -462,29 +462,18 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                 {isLoading ? "Creating account..." : `Create ${userType} account`}
               </Button>
 
-              {userType === 'customer' && (
-                <div className="text-center pt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="text-sm text-gray-600 hover:text-gray-800"
-                    onClick={() => setUserType('vendor')}
-                  >
-                    Apply to be a vendor instead
-                  </Button>
-                </div>
-              )}
-
               {userType === 'vendor' && (
                 <div className="text-center pt-4">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="text-sm text-gray-600 hover:text-gray-800"
-                    onClick={() => setUserType('customer')}
-                  >
-                    Sign up as customer instead
-                  </Button>
+                  <p className="text-sm text-gray-600">
+                    Already have an account?{' '}
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                      onClick={onBack}
+                    >
+                      Sign in
+                    </button>
+                  </p>
                 </div>
               )}
             </form>

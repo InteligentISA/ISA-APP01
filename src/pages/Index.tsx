@@ -11,7 +11,7 @@ import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -90,12 +90,21 @@ const Index = () => {
           onAuthSuccess={handleAuthSuccess}
           onNavigateToSignIn={() => setCurrentView('auth-signin')}
           onNavigateToSignUp={() => setCurrentView('auth-signup')}
+          onNavigateToVendorSignUp={() => setCurrentView('vendor-signup')}
         />
       )}
       {currentView === 'auth-signup' && (
         <AuthSignUp 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
+          userType="customer"
+        />
+      )}
+      {currentView === 'vendor-signup' && (
+        <AuthSignUp 
+          onBack={() => setCurrentView('auth-welcome')}
+          onAuthSuccess={handleAuthSuccess}
+          userType="vendor"
         />
       )}
       {currentView === 'auth-signin' && (
