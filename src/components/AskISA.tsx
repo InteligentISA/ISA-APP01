@@ -170,33 +170,33 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 space-x-4">
-            <Button variant="ghost" size="icon" onClick={onBack}>
-              <ArrowLeft className="w-5 h-5" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex items-center h-14 sm:h-16 space-x-2 sm:space-x-4">
+            <Button variant="ghost" size="icon" onClick={onBack} className="w-8 h-8 sm:w-10 sm:h-10">
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden"
+              className="lg:hidden w-8 h-8 sm:w-10 sm:h-10"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
             <img 
               src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
               alt="ISA Logo" 
-              className="w-8 h-8"
+              className="w-6 h-6 sm:w-8 sm:h-8"
             />
-            <h1 className="text-xl font-bold text-gray-900">Ask ISA</h1>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900">Ask ISA</h1>
           </div>
         </div>
       </header>
 
       <div className="flex flex-1">
         {/* Conversation History Sidebar */}
-        <div className={`${isSidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r border-gray-200 flex flex-col`}>
-          <div className="p-4 border-b border-gray-200">
+        <div className={`${isSidebarOpen ? 'w-full sm:w-64' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r border-gray-200 flex flex-col lg:block`}>
+          <div className="p-3 sm:p-4 border-b border-gray-200">
             <Button 
               onClick={handleNewConversation}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -243,28 +243,28 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
-          <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+          <div className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 w-full">
             {/* Welcome Section */}
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Ask ISA Anything</h2>
-              <p className="text-gray-600">Find the best products from Jumia with AI-powered search</p>
+            <div className="text-center mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Ask ISA Anything</h2>
+              <p className="text-sm sm:text-base text-gray-600">Find the best products from Jumia with AI-powered search</p>
             </div>
 
             {/* Results */}
             {isSearching && (
-              <div className="text-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-600">Scraping Jumia for the best deals...</p>
+              <div className="text-center py-8 sm:py-12">
+                <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin mx-auto mb-4 text-gray-400" />
+                <p className="text-sm sm:text-base text-gray-600">Scraping Jumia for the best deals...</p>
               </div>
             )}
 
             {results.length > 0 && (
-              <div className="space-y-6 mb-8">
-                <h3 className="text-2xl font-bold text-gray-900">
+              <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
                   Jumia Results ({results.length} found)
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {results.map((product) => (
                     <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                       <CardContent className="p-0">
@@ -272,7 +272,7 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           <Button
                             variant="ghost"
@@ -286,30 +286,30 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
                           </Button>
                         </div>
                         
-                        <div className="p-4 space-y-3">
+                        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                           <div>
-                            <h3 className="font-semibold text-gray-900 line-clamp-2">{product.name}</h3>
+                            <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm sm:text-base">{product.name}</h3>
                             <Badge variant="secondary" className="text-xs mt-1">
                               Jumia Kenya
                             </Badge>
                           </div>
                           
                           <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-sm text-gray-600">{parseRating(product.rating)}</span>
+                            <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs sm:text-sm text-gray-600">{parseRating(product.rating)}</span>
                             <span className="text-xs text-gray-500">({product.rating})</span>
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            <span className="text-xl font-bold text-gray-900">
+                            <span className="text-lg sm:text-xl font-bold text-gray-900">
                               {product.price}
                             </span>
                             <Button
                               size="sm"
                               onClick={() => handleAddToCart(product)}
-                              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs sm:text-sm"
                             >
-                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                               Add to Cart
                             </Button>
                           </div>
@@ -317,7 +317,7 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
                           <Button
                             variant="outline"
                             size="sm"
-                            className="w-full"
+                            className="w-full text-xs sm:text-sm"
                             onClick={() => window.open(product.link, '_blank')}
                           >
                             View on Jumia
@@ -331,45 +331,47 @@ const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAP
             )}
 
             {!isSearching && results.length === 0 && query && (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No results found. Try a different search query.</p>
+              <div className="text-center py-8 sm:py-12">
+                <p className="text-sm sm:text-base text-gray-600">No results found. Try a different search query.</p>
               </div>
             )}
           </div>
 
           {/* Search Area - Fixed at Bottom - Always Light Mode */}
           <div className="light">
-            <div className="bg-white border-t border-gray-200 shadow-lg p-4 sticky bottom-0">
+            <div className="bg-white border-t border-gray-200 shadow-lg p-3 sm:p-4 sticky bottom-0">
               <div className="max-w-4xl mx-auto">
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder='Ask ISA: "Find me HP laptop below 20000ks" or "Show me smartphones under 15000"'
-                    className="flex-1 min-h-[50px] resize-none bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                    onKeyPress={(e) => {
+                    className="flex-1 min-h-[50px] resize-none bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 text-sm sm:text-base"
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSearch();
                       }
                     }}
                   />
-                  <Button 
+                  <Button
                     onClick={handleSearch}
                     disabled={isSearching || !query.trim()}
-                    className="isa-gold-bg text-black hover:bg-yellow-500 self-end"
-                    size="lg"
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 sm:px-6"
                   >
                     {isSearching ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <span className="hidden sm:inline">Searching...</span>
+                      </>
                     ) : (
-                      <Send className="w-5 h-5" />
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Search</span>
+                      </>
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  Press Enter to search • Powered by Jumia scraping
-                </p>
               </div>
             </div>
           </div>

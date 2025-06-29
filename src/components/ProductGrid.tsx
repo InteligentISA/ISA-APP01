@@ -1,161 +1,127 @@
-
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Heart, ShoppingCart, Star } from "lucide-react";
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  category: string;
-  rating: number;
-  reviews: number;
-}
+import { ProductService } from "@/services/productService";
+import { Product } from "@/types/product";
+import ProductCard from "./ProductCard";
+import { Loader2 } from "lucide-react";
 
 interface ProductGridProps {
-  category: string;
-  searchQuery: string;
-  onAddToCart: (productId: number) => void;
-  onToggleLike: (productId: number) => void;
-  likedItems: number[];
-  cartItems: number[];
+  category?: string;
+  searchQuery?: string;
+  onAddToCart?: (product: Product) => void;
+  onToggleLike?: (productId: string) => void;
+  likedItems?: string[];
+  showQuickView?: boolean;
+  onQuickView?: (product: Product) => void;
+  limit?: number;
 }
 
 const ProductGrid = ({ 
   category, 
-  searchQuery, 
+  searchQuery = "", 
   onAddToCart, 
   onToggleLike, 
-  likedItems, 
-  cartItems 
+  likedItems = [],
+  showQuickView = false,
+  onQuickView,
+  limit = 20
 }: ProductGridProps) => {
-  const [products] = useState<Product[]>([
-    {
-      id: 1,
-      name: "Wireless Bluetooth Headphones",
-      price: 199.99,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop",
-      category: "Electronics",
-      rating: 4.5,
-      reviews: 128
-    },
-    {
-      id: 2,
-      name: "Premium Leather Jacket",
-      price: 299.99,
-      image: "https://images.unsplash.com/photo-1551028719-00167b16eac5?w=300&h=300&fit=crop",
-      category: "Fashion",
-      rating: 4.8,
-      reviews: 89
-    },
-    {
-      id: 3,
-      name: "Smart Home Speaker",
-      price: 149.99,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
-      category: "Electronics",
-      rating: 4.3,
-      reviews: 256
-    },
-    {
-      id: 4,
-      name: "Minimalist Desk Lamp",
-      price: 89.99,
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
-      category: "Home",
-      rating: 4.6,
-      reviews: 67
-    },
-    {
-      id: 5,
-      name: "Organic Face Cream",
-      price: 59.99,
-      image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=300&h=300&fit=crop",
-      category: "Beauty",
-      rating: 4.7,
-      reviews: 143
-    },
-    {
-      id: 6,
-      name: "Running Shoes",
-      price: 129.99,
-      image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop",
-      category: "Sports",
-      rating: 4.4,
-      reviews: 201
-    }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = category === "All" || product.category === category;
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        let result;
+
+        if (searchQuery.trim()) {
+          // Search products
+          result = await ProductService.searchProducts(searchQuery, limit);
+        } else if (category && category !== "All") {
+          // Get products by category
+          result = await ProductService.getProductsByCategory(category, limit);
+        } else {
+          // Get all products
+          result = await ProductService.getProducts({ limit });
+        }
+
+        if (result.error) {
+          setError("Failed to load products");
+          console.error("Product fetch error:", result.error);
+        } else {
+          setProducts(result.data);
+        }
+      } catch (err) {
+        setError("Failed to load products");
+        console.error("Product fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [category, searchQuery, limit]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-gray-600">Loading products...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="text-blue-600 hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <p className="text-gray-600 mb-2">
+            {searchQuery 
+              ? `No products found for "${searchQuery}"`
+              : category && category !== "All"
+              ? `No products found in ${category}`
+              : "No products available"
+            }
+          </p>
+          <p className="text-sm text-gray-500">Try adjusting your search or filters</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {filteredProducts.map((product) => (
-        <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-          <CardContent className="p-0">
-            <div className="relative overflow-hidden rounded-t-lg">
-              <img
-                src={product.image}
-                alt={product.name}
-                className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`absolute top-2 right-2 ${
-                  likedItems.includes(product.id) ? 'text-red-500' : 'text-gray-400 dark:text-gray-300'
-                } hover:text-red-500 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm`}
-                onClick={() => onToggleLike(product.id)}
-              >
-                <Heart className={`w-4 h-4 ${likedItems.includes(product.id) ? 'fill-current' : ''}`} />
-              </Button>
-            </div>
-            
-            <div className="p-4 space-y-3">
-              <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">{product.name}</h3>
-                <Badge variant="secondary" className="text-xs mt-1 bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-gray-200">
-                  {product.category}
-                </Badge>
-              </div>
-              
-              <div className="flex items-center space-x-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  {product.rating} ({product.reviews})
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  ${product.price}
-                </span>
-                <Button
-                  size="sm"
-                  onClick={() => onAddToCart(product.id)}
-                  disabled={cartItems.includes(product.id)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-                >
-                  {cartItems.includes(product.id) ? (
-                    "Added"
-                  ) : (
-                    <>
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Add to Cart
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onAddToCart={onAddToCart}
+          onToggleLike={onToggleLike}
+          isLiked={likedItems.includes(product.id)}
+          showQuickView={showQuickView}
+          onQuickView={onQuickView}
+        />
       ))}
     </div>
   );

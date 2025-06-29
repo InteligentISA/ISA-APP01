@@ -12,6 +12,7 @@ import ProfileModal from "@/components/ProfileModal";
 import CartModal from "@/components/CartModal";
 import LikedItemsModal from "@/components/LikedItemsModal";
 import WelcomeChatbot from "@/components/WelcomeChatbot";
+import { Product } from "@/types/product";
 
 interface DashboardProps {
   user: any;
@@ -24,26 +25,38 @@ interface DashboardProps {
 const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartItems, setCartItems] = useState<number[]>([]);
-  const [likedItems, setLikedItems] = useState<number[]>([]);
+  const [cartItems, setCartItems] = useState<Product[]>([]);
+  const [likedItems, setLikedItems] = useState<string[]>([]);
   const [showProfile, setShowProfile] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showLikedItems, setShowLikedItems] = useState(false);
   const [showWelcomeChatbot, setShowWelcomeChatbot] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
   const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
 
-  const handleAddToCart = (productId: number) => {
-    setCartItems(prev => [...prev, productId]);
+  const handleAddToCart = (product: Product) => {
+    setCartItems(prev => {
+      // Check if product is already in cart
+      const existingItem = prev.find(item => item.id === product.id);
+      if (existingItem) {
+        toast({
+          title: "Already in cart",
+          description: "This item is already in your cart.",
+        });
+        return prev;
+      }
+      return [...prev, product];
+    });
     toast({
       title: "Added to cart!",
       description: "Item has been added to your shopping cart.",
     });
   };
 
-  const handleToggleLike = (productId: number) => {
+  const handleToggleLike = (productId: string) => {
     setLikedItems(prev => 
       prev.includes(productId) 
         ? prev.filter(id => id !== productId)
@@ -71,20 +84,21 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            {/* Logo and Title */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <img 
                 src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
                 alt="ISA Logo" 
-                className="w-8 h-8"
+                className="w-6 h-6 sm:w-8 sm:h-8"
               />
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">ISA</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">ISA</h1>
             </div>
             
-            {/* Search */}
-            <div className="flex-1 max-w-lg mx-8">
-              <div className="relative">
+            {/* Search - Hidden on mobile, shown in mobile menu */}
+            <div className="hidden md:flex flex-1 max-w-lg mx-8">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                 <Input
                   type="text"
@@ -96,7 +110,8 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               <Button
                 variant="ghost"
                 size="icon"
@@ -162,7 +177,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   <AvatarImage src={user.avatar} />
                   <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium">{user.name}</span>
+                <span className="text-sm font-medium hidden lg:inline">{user.name}</span>
               </Button>
               
               <Button 
@@ -174,21 +189,128 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 <LogOut className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile Search Bar */}
+          <div className="md:hidden pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          {/* Mobile Menu */}
+          {showMobileMenu && (
+            <div className="md:hidden border-t border-gray-200 dark:border-slate-700 py-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                  className="text-gray-600 dark:text-gray-300"
+                >
+                  {theme === "light" ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
+                  {theme === "light" ? "Dark Mode" : "Light Mode"}
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                  onClick={onNavigateToAskISA}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Ask ISA
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="isa-gold-bg text-black"
+                  onClick={onNavigateToGifts}
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Gifts
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowLikedItems(true)}
+                  className="text-red-500"
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  Favorites ({likedItems.length})
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowCart(true)}
+                  className="text-blue-500"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Cart ({cartItems.length})
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowProfile(true)}
+                  className="text-gray-700 dark:text-gray-200"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={onLogout}
+                  className="text-gray-600 dark:text-gray-300"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
         {/* Categories */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Shop by Category</h2>
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Shop by Category</h2>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
               <Button
                 key={category}
                 variant={selectedCategory === category ? "default" : "outline"}
                 onClick={() => setSelectedCategory(category)}
-                className={`rounded-full ${
+                size="sm"
+                className={`rounded-full text-xs sm:text-sm ${
                   selectedCategory === category 
                     ? 'bg-blue-600 text-white hover:bg-blue-700' 
                     : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
@@ -200,18 +322,20 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             <Button
               variant="outline"
               onClick={onNavigateToAskISA}
-              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg"
+              size="sm"
+              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg text-xs sm:text-sm"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              <Sparkles className="w-4 h-4 mr-1" />
+              <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               Ask ISA
             </Button>
             <Button
               variant="outline"
               onClick={onNavigateToGifts}
-              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500 border-none shadow-lg"
+              size="sm"
+              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500 border-none shadow-lg text-xs sm:text-sm"
             >
-              <Gift className="w-4 h-4 mr-2" />
+              <Gift className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Gifts
             </Button>
           </div>
@@ -224,7 +348,6 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
           likedItems={likedItems}
-          cartItems={cartItems}
         />
       </div>
 
@@ -240,7 +363,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onClose={() => setShowCart(false)}
         user={user}
         cartItems={cartItems}
-        onRemoveFromCart={(productId) => setCartItems(prev => prev.filter(id => id !== productId))}
+        onRemoveFromCart={(productId) => setCartItems(prev => prev.filter(item => item.id !== productId))}
       />
 
       <LikedItemsModal
