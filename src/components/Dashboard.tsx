@@ -80,6 +80,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     onNavigateToGifts();
   };
 
+  // Helper to convert string IDs to numbers (filter out NaN)
+  const likedItemsNumber = likedItems.map(id => Number(id)).filter(id => !isNaN(id));
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
@@ -358,20 +361,21 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onUserUpdate={handleUserUpdate}
       />
 
+
       <CartModal
         isOpen={showCart}
         onClose={() => setShowCart(false)}
         user={user}
-        cartItems={cartItems}
         onRemoveFromCart={(productId) => setCartItems(prev => prev.filter(item => item.id !== productId))}
+        onUpdateQuantity={() => {}}
       />
 
       <LikedItemsModal
         isOpen={showLikedItems}
         onClose={() => setShowLikedItems(false)}
-        likedItems={likedItems}
-        onAddToCart={handleAddToCart}
-        onRemoveFromLiked={(productId) => setLikedItems(prev => prev.filter(id => id !== productId))}
+        likedItems={likedItemsNumber}
+        onAddToCart={() => {}}
+        onRemoveFromLiked={(productId) => setLikedItems(prev => prev.filter(id => id !== String(productId)))}
       />
 
       <WelcomeChatbot

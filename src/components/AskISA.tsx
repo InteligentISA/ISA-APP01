@@ -1,383 +1,281 @@
 import { useState } from "react";
+import { Send, Plus, History, Menu, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Search, Heart, ShoppingCart, Star, Loader2, Send, MessageSquare, Plus, Trash2 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset
+} from "@/components/ui/sidebar";
+// import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
 
-interface AskISAProps {
-  user: any;
-  onBack: () => void;
-  onAddToCart: (product: any) => void;
-  onToggleLike: (productId: string) => void;
-  likedItems: string[];
+interface Message {
+  id: number;
+  type: 'user' | 'isa';
+  content: string;
+  timestamp: Date;
 }
 
-interface SearchResult {
-  id: string;
-  name: string;
-  price: string;
-  image: string;
-  rating: string;
-  link: string;
-}
-
-interface ConversationHistory {
+interface ChatHistory {
   id: string;
   title: string;
-  timestamp: Date;
-  query: string;
-  resultsCount: number;
+  lastMessage: Date;
+  preview: string;
 }
 
-const AskISA = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: AskISAProps) => {
-  const [query, setQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [conversationHistory, setConversationHistory] = useState<ConversationHistory[]>([
+interface AskISAProps {
+  onBack: () => void;
+}
+
+const AskISA = ({ onBack }: AskISAProps) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
     {
       id: "1",
-      title: "HP laptop below 20000ks",
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      query: "Find me HP laptop below 20000ks",
-      resultsCount: 3
+      title: "Best smartphones under 50k",
+      lastMessage: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      preview: "Looking for affordable smartphones..."
     },
     {
       id: "2", 
-      title: "Smartphones under 15000",
-      timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      query: "Show me smartphones under 15000",
-      resultsCount: 5
+      title: "Fashion trends for summer",
+      lastMessage: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      preview: "What are the latest summer fashion trends?"
+    },
+    {
+      id: "3",
+      title: "Home decor ideas",
+      lastMessage: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      preview: "Need some home decoration inspiration..."
     }
   ]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const { toast } = useToast();
 
-  const scrapeJumiaProducts = async (searchQuery: string) => {
-    try {
-      // In a real implementation, this would call your backend API
-      // that runs the Python scraping code
-      const response = await fetch('/api/scrape-jumia', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: searchQuery }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Scraping failed');
-      }
-      
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      // Fallback to mock data for demo purposes
-      console.log('Using mock data - implement backend API for real scraping');
-      return [
-        {
-          id: "1",
-          name: "HP Pavilion Gaming Laptop 15.6\" Intel Core i5",
-          price: "KES 18,500",
-          image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&h=300&fit=crop",
-          rating: "4.3 (234 reviews)",
-          link: "https://www.jumia.co.ke/hp-pavilion-gaming/"
-        },
-        {
-          id: "2", 
-          name: "HP EliteBook 840 G7 14\" Business Laptop",
-          price: "KES 19,800",
-          image: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=300&h=300&fit=crop",
-          rating: "4.5 (156 reviews)",
-          link: "https://www.jumia.co.ke/hp-elitebook-840/"
-        },
-        {
-          id: "3",
-          name: "HP Laptop 15-dw3000 Series AMD Ryzen 5",
-          price: "KES 17,200",
-          image: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=300&h=300&fit=crop",
-          rating: "4.1 (89 reviews)",
-          link: "https://www.jumia.co.ke/hp-laptop-15-dw3000/"
-        }
+  const handleSendMessage = () => {
+    if (!currentMessage.trim()) return;
+
+    const newUserMessage: Message = {
+      id: Date.now(),
+      type: 'user',
+      content: currentMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, newUserMessage]);
+
+    // Simulate ISA response
+    setTimeout(() => {
+      const responses = [
+        "I'd be happy to help you find the perfect products! Let me search through our curated selection...",
+        "Great question! Based on your preferences, I can recommend several options that match your style and budget.",
+        "I've found some amazing deals that I think you'll love! Here are my top recommendations...",
+        "Let me help you discover products that are trending and perfect for your needs...",
+        "I can definitely assist with that! I've curated some fantastic options just for you..."
       ];
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-    
-    setIsSearching(true);
-    
-    try {
-      const scrapedResults = await scrapeJumiaProducts(query);
-      setResults(scrapedResults);
       
-      // Add to conversation history
-      const newConversation: ConversationHistory = {
-        id: Date.now().toString(),
-        title: query.length > 30 ? query.substring(0, 30) + "..." : query,
-        timestamp: new Date(),
-        query: query,
-        resultsCount: scrapedResults.length
+      const isaResponse: Message = {
+        id: Date.now() + 1,
+        type: 'isa',
+        content: responses[Math.floor(Math.random() * responses.length)],
+        timestamp: new Date()
       };
-      setConversationHistory(prev => [newConversation, ...prev]);
       
-      toast({
-        title: "Search completed!",
-        description: `Found ${scrapedResults.length} results from Jumia.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Search failed",
-        description: "Could not fetch results. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
+      setMessages(prev => [...prev, isaResponse]);
+    }, 1500);
+
+    setCurrentMessage("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
-  const handleLoadConversation = (conversation: ConversationHistory) => {
-    setQuery(conversation.query);
-    // In a real app, you'd load the actual results from the conversation
+  const startNewChat = () => {
+    setMessages([]);
   };
 
-  const handleDeleteConversation = (conversationId: string) => {
-    setConversationHistory(prev => prev.filter(conv => conv.id !== conversationId));
-  };
-
-  const handleNewConversation = () => {
-    setQuery("");
-    setResults([]);
-  };
-
-  const handleAddToCart = (product: SearchResult) => {
-    onAddToCart(product);
-    toast({
-      title: "Added to cart!",
-      description: `${product.name} has been added to your cart.`,
-    });
-  };
-
-  const parseRating = (ratingText: string): number => {
-    const match = ratingText.match(/(\d+\.?\d*)/);
-    return match ? parseFloat(match[1]) : 0;
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (hours < 1) return "Just now";
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex items-center h-14 sm:h-16 space-x-2 sm:space-x-4">
-            <Button variant="ghost" size="icon" onClick={onBack} className="w-8 h-8 sm:w-10 sm:h-10">
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gray-50">
+        <Sidebar className="border-r border-gray-200">
+          <SidebarHeader className="p-4 border-b border-gray-200">
+            <div className="flex items-center space-x-2">
+              <img src="/AskISA.png" alt="Ask ISA Logo" className="h-6 w-6" />
+              <span className="font-semibold text-gray-800">ISA Chat</span>
+            </div>
             <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="lg:hidden w-8 h-8 sm:w-10 sm:h-10"
-            >
-              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-            </Button>
-            <img 
-              src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
-              alt="ISA Logo" 
-              className="w-6 h-6 sm:w-8 sm:h-8"
-            />
-            <h1 className="text-lg sm:text-xl font-bold text-gray-900">Ask ISA</h1>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex flex-1">
-        {/* Conversation History Sidebar */}
-        <div className={`${isSidebarOpen ? 'w-full sm:w-64' : 'w-0'} transition-all duration-300 overflow-hidden bg-white border-r border-gray-200 flex flex-col lg:block`}>
-          <div className="p-3 sm:p-4 border-b border-gray-200">
-            <Button 
-              onClick={handleNewConversation}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={startNewChat}
+              className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white"
               size="sm"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              New Search
+              <Plus className="h-4 w-4 mr-2" />
+              New Chat
             </Button>
-          </div>
+          </SidebarHeader>
           
-          <div className="flex-1 overflow-y-auto p-2">
-            <h3 className="text-sm font-medium text-gray-700 mb-3 px-2">Search History</h3>
-            <div className="space-y-1">
-              {conversationHistory.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className="group flex items-center justify-between p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
-                  onClick={() => handleLoadConversation(conversation)}
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {conversation.title}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {conversation.resultsCount} results
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 w-6 h-6"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteConversation(conversation.id);
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8 w-full">
-            {/* Welcome Section */}
-            <div className="text-center mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Ask ISA Anything</h2>
-              <p className="text-sm sm:text-base text-gray-600">Find the best products from Jumia with AI-powered search</p>
-            </div>
-
-            {/* Results */}
-            {isSearching && (
-              <div className="text-center py-8 sm:py-12">
-                <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin mx-auto mb-4 text-gray-400" />
-                <p className="text-sm sm:text-base text-gray-600">Scraping Jumia for the best deals...</p>
+          <SidebarContent>
+            <div className="p-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
+                <History className="h-4 w-4" />
+                <span>Recent Chats</span>
               </div>
-            )}
+              
+              <SidebarMenu>
+                {chatHistory.map((chat) => (
+                  <SidebarMenuItem key={chat.id}>
+                    <SidebarMenuButton className="w-full text-left p-3 hover:bg-gray-100 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm text-gray-800 truncate">
+                          {chat.title}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate mt-1">
+                          {chat.preview}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          {formatTime(chat.lastMessage)}
+                        </div>
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </div>
+          </SidebarContent>
+        </Sidebar>
 
-            {results.length > 0 && (
-              <div className="space-y-4 sm:space-y-6 mb-6 sm:mb-8">
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  Jumia Results ({results.length} found)
-                </h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {results.map((product) => (
-                    <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                      <CardContent className="p-0">
-                        <div className="relative overflow-hidden rounded-t-lg">
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={`absolute top-2 right-2 ${
-                              likedItems.includes(product.id) ? 'text-red-500' : 'text-gray-400'
-                            } hover:text-red-500 bg-white/80 backdrop-blur-sm`}
-                            onClick={() => onToggleLike(product.id)}
-                          >
-                            <Heart className={`w-4 h-4 ${likedItems.includes(product.id) ? 'fill-current' : ''}`} />
-                          </Button>
+        <SidebarInset className="flex-1">
+          <div className="flex flex-col h-screen">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center space-x-3">
+                <SidebarTrigger />
+                <div className="flex items-center space-x-2">
+                  <img src="/AskISA.png" alt="Ask ISA Logo" className="h-6 w-6" />
+                  <h1 className="text-xl font-semibold text-gray-800">Ask ISA</h1>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-gray-500">
+                  Your AI Shopping Assistant
+                </div>
+                {/* Replace with your navigation if needed */}
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 hover:scale-105 transition-transform flex items-center" onClick={onBack}>
+                  <Home className="h-4 w-4 mr-2" />
+                  Back Home
+                </Button>
+              </div>
+            </div>
+
+            {/* Chat Messages */}
+            <ScrollArea className="flex-1 p-4">
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <img src="/AskISA.png" alt="Ask ISA Logo" className="h-16 w-16 mb-4" />
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                    Hi! I'm ISA 👋
+                  </h2>
+                  <p className="text-gray-600 mb-6 max-w-md">
+                    Your AI Shopping Assistant is here to help you discover amazing products, 
+                    compare prices, and find exactly what you're looking for!
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
+                      <h3 className="font-medium text-gray-800 mb-2">🛍️ Find Products</h3>
+                      <p className="text-sm text-gray-600">Search for items across multiple stores and platforms</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
+                      <h3 className="font-medium text-gray-800 mb-2">💰 Compare Prices</h3>
+                      <p className="text-sm text-gray-600">Get the best deals and price comparisons</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
+                      <h3 className="font-medium text-gray-800 mb-2">✨ Get Recommendations</h3>
+                      <p className="text-sm text-gray-600">Personalized suggestions based on your preferences</p>
+                    </div>
+                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
+                      <h3 className="font-medium text-gray-800 mb-2">🎁 Suggest gifts for loved one</h3>
+                      <p className="text-sm text-gray-600">Get thoughtful gift ideas for special occasions</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 max-w-4xl mx-auto">
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                          message.type === 'user'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-white border border-gray-200 text-gray-800'
+                        }`}
+                      >
+                        {message.type === 'isa' && (
+                          <div className="flex items-center space-x-2 mb-2">
+                            <img src="/AskISA.png" alt="Ask ISA Logo" className="h-4 w-4" />
+                            <span className="text-xs font-medium text-orange-600">ISA</span>
+                          </div>
+                        )}
+                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <div className="text-xs opacity-70 mt-2">
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
-                        
-                        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-                          <div>
-                            <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm sm:text-base">{product.name}</h3>
-                            <Badge variant="secondary" className="text-xs mt-1">
-                              Jumia Kenya
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs sm:text-sm text-gray-600">{parseRating(product.rating)}</span>
-                            <span className="text-xs text-gray-500">({product.rating})</span>
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <span className="text-lg sm:text-xl font-bold text-gray-900">
-                              {product.price}
-                            </span>
-                            <Button
-                              size="sm"
-                              onClick={() => handleAddToCart(product)}
-                              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-xs sm:text-sm"
-                            >
-                              <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                              Add to Cart
-                            </Button>
-                          </div>
-                          
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full text-xs sm:text-sm"
-                            onClick={() => window.open(product.link, '_blank')}
-                          >
-                            View on Jumia
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </ScrollArea>
 
-            {!isSearching && results.length === 0 && query && (
-              <div className="text-center py-8 sm:py-12">
-                <p className="text-sm sm:text-base text-gray-600">No results found. Try a different search query.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Search Area - Fixed at Bottom - Always Light Mode */}
-          <div className="light">
-            <div className="bg-white border-t border-gray-200 shadow-lg p-3 sm:p-4 sticky bottom-0">
+            {/* Input Area */}
+            <div className="p-4 border-t border-gray-200 bg-white">
               <div className="max-w-4xl mx-auto">
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                  <Textarea
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder='Ask ISA: "Find me HP laptop below 20000ks" or "Show me smartphones under 15000"'
-                    className="flex-1 min-h-[50px] resize-none bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 text-sm sm:text-base"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSearch();
-                      }
-                    }}
+                <div className="flex space-x-3">
+                  <Input
+                    value={currentMessage}
+                    onChange={(e) => setCurrentMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Ask ISA about products, prices, recommendations..."
+                    className="flex-1 rounded-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   />
                   <Button
-                    onClick={handleSearch}
-                    disabled={isSearching || !query.trim()}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 sm:px-6"
+                    onClick={handleSendMessage}
+                    disabled={!currentMessage.trim()}
+                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-4"
                   >
-                    {isSearching ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        <span className="hidden sm:inline">Searching...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4 mr-2" />
-                        <span className="hidden sm:inline">Search</span>
-                      </>
-                    )}
+                    <Send className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  ISA can make mistakes. Please verify important information.
+                </p>
               </div>
             </div>
           </div>
-        </div>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
