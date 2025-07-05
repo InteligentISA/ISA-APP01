@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Mail, Lock, User, MapPin, Calendar, Store, ShoppingBag, Phone, Building } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 
 interface AuthSignUpProps {
   onBack: () => void;
@@ -227,232 +228,289 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
               {userType === 'customer' ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        type="text" 
-                        placeholder="First Name" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.firstName}
-                        onChange={(e) => handleCustomerInputChange('firstName', e.target.value)}
-                        required 
-                      />
+                    <div>
+                      <Label htmlFor="customer-first-name" className="mb-1 block">First Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="customer-first-name"
+                          type="text" 
+                          placeholder="First Name" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={customerData.firstName}
+                          onChange={(e) => handleCustomerInputChange('firstName', e.target.value)}
+                          required 
+                        />
+                      </div>
                     </div>
+                    <div>
+                      <Label htmlFor="customer-last-name" className="mb-1 block">Last Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="customer-last-name"
+                          type="text" 
+                          placeholder="Last Name" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={customerData.lastName}
+                          onChange={(e) => handleCustomerInputChange('lastName', e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-dob" className="mb-1 block">Date of Birth</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="text" 
-                        placeholder="Last Name" 
+                        id="customer-dob"
+                        type="date" 
+                        placeholder="Date of Birth" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.lastName}
-                        onChange={(e) => handleCustomerInputChange('lastName', e.target.value)}
+                        value={customerData.dob}
+                        onChange={(e) => handleCustomerInputChange('dob', e.target.value)}
                         required 
                       />
                     </div>
                   </div>
-                  
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="date" 
-                      placeholder="Date of Birth" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={customerData.dob}
-                      onChange={(e) => handleCustomerInputChange('dob', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
                   <div className="grid grid-cols-2 gap-4">
-                    <Select value={customerData.county} onValueChange={(value) => handleCustomerInputChange('county', value)}>
+                    <div>
+                      <Label className="mb-1 block">County</Label>
+                      <Select value={customerData.county} onValueChange={(value) => handleCustomerInputChange('county', value)}>
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                          <SelectValue placeholder="Select County" className="text-gray-500" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-300 z-50">
+                          {Object.keys(countyConstituencyData).map((county) => (
+                            <SelectItem key={county} value={county} className="text-gray-900 hover:bg-gray-100">
+                              {county}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Constituency</Label>
+                      <Select 
+                        value={customerData.constituency} 
+                        onValueChange={(value) => handleCustomerInputChange('constituency', value)}
+                        disabled={!customerData.county}
+                      >
+                        <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                          <SelectValue placeholder="Select Constituency" className="text-gray-500" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-gray-300 z-50">
+                          {getAvailableConstituencies().map((constituency) => (
+                            <SelectItem key={constituency} value={constituency} className="text-gray-900 hover:bg-gray-100">
+                              {constituency}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="mb-1 block">Gender</Label>
+                    <Select value={customerData.gender} onValueChange={(value) => handleCustomerInputChange('gender', value)}>
                       <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Select County" className="text-gray-500" />
+                        <SelectValue placeholder="Select Gender" className="text-gray-500" />
                       </SelectTrigger>
                       <SelectContent className="bg-white border-gray-300 z-50">
-                        {Object.keys(countyConstituencyData).map((county) => (
-                          <SelectItem key={county} value={county} className="text-gray-900 hover:bg-gray-100">
-                            {county}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    <Select 
-                      value={customerData.constituency} 
-                      onValueChange={(value) => handleCustomerInputChange('constituency', value)}
-                      disabled={!customerData.county}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Select Constituency" className="text-gray-500" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-300 z-50">
-                        {getAvailableConstituencies().map((constituency) => (
-                          <SelectItem key={constituency} value={constituency} className="text-gray-900 hover:bg-gray-100">
-                            {constituency}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="male" className="text-gray-900 hover:bg-gray-100">Male</SelectItem>
+                        <SelectItem value="female" className="text-gray-900 hover:bg-gray-100">Female</SelectItem>
+                        <SelectItem value="other" className="text-gray-900 hover:bg-gray-100">Other</SelectItem>
+                        <SelectItem value="prefer-not-to-say" className="text-gray-900 hover:bg-gray-100">Prefer not to say</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  
-                  <Select value={customerData.gender} onValueChange={(value) => handleCustomerInputChange('gender', value)}>
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                      <SelectValue placeholder="Select Gender" className="text-gray-500" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-300 z-50">
-                      <SelectItem value="male" className="text-gray-900 hover:bg-gray-100">Male</SelectItem>
-                      <SelectItem value="female" className="text-gray-900 hover:bg-gray-100">Female</SelectItem>
-                      <SelectItem value="other" className="text-gray-900 hover:bg-gray-100">Other</SelectItem>
-                      <SelectItem value="prefer-not-to-say" className="text-gray-900 hover:bg-gray-100">Prefer not to say</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="tel" 
-                      placeholder="Phone Number" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={customerData.phoneNumber}
-                      onChange={(e) => handleCustomerInputChange('phoneNumber', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="email" 
-                      placeholder="Email" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={customerData.email}
-                      onChange={(e) => handleCustomerInputChange('email', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="customer-phone" className="mb-1 block">Phone Number</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="password" 
-                        placeholder="Password" 
+                        id="customer-phone"
+                        type="tel" 
+                        placeholder="Phone Number" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.password}
-                        onChange={(e) => handleCustomerInputChange('password', e.target.value)}
+                        value={customerData.phoneNumber}
+                        onChange={(e) => handleCustomerInputChange('phoneNumber', e.target.value)}
                         required 
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-email" className="mb-1 block">Email</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="password" 
-                        placeholder="Confirm Password" 
+                        id="customer-email"
+                        type="email" 
+                        placeholder="Email" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.confirmPassword}
-                        onChange={(e) => handleCustomerInputChange('confirmPassword', e.target.value)}
+                        value={customerData.email}
+                        onChange={(e) => handleCustomerInputChange('email', e.target.value)}
                         required 
                       />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="customer-password" className="mb-1 block">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="customer-password"
+                          type="password" 
+                          placeholder="Password" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={customerData.password}
+                          onChange={(e) => handleCustomerInputChange('password', e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="customer-confirm-password" className="mb-1 block">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="customer-confirm-password"
+                          type="password" 
+                          placeholder="Confirm Password" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={customerData.confirmPassword}
+                          onChange={(e) => handleCustomerInputChange('confirmPassword', e.target.value)}
+                          required 
+                        />
+                      </div>
                     </div>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="relative">
-                    <Building className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="text" 
-                      placeholder="Company Name" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={vendorData.company}
-                      onChange={(e) => handleVendorInputChange('company', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Store className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="text" 
-                      placeholder="Type of Business/Products" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={vendorData.businessType}
-                      onChange={(e) => handleVendorInputChange('businessType', e.target.value)}
-                      required 
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="vendor-company" className="mb-1 block">Company Name</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Building className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
+                        id="vendor-company"
                         type="text" 
-                        placeholder="Rep First Name" 
+                        placeholder="Company Name" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.firstName}
-                        onChange={(e) => handleVendorInputChange('firstName', e.target.value)}
+                        value={vendorData.company}
+                        onChange={(e) => handleVendorInputChange('company', e.target.value)}
                         required 
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="vendor-business-type" className="mb-1 block">Type of Business/Products</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Store className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
+                        id="vendor-business-type"
                         type="text" 
-                        placeholder="Rep Last Name" 
+                        placeholder="Type of Business/Products" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.lastName}
-                        onChange={(e) => handleVendorInputChange('lastName', e.target.value)}
+                        value={vendorData.businessType}
+                        onChange={(e) => handleVendorInputChange('businessType', e.target.value)}
                         required 
                       />
                     </div>
                   </div>
-                  
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="tel" 
-                      placeholder="Phone Number" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={vendorData.phoneNumber}
-                      onChange={(e) => handleVendorInputChange('phoneNumber', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                    <Input 
-                      type="email" 
-                      placeholder="Email" 
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                      value={vendorData.email}
-                      onChange={(e) => handleVendorInputChange('email', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  
                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="vendor-first-name" className="mb-1 block">Rep First Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="vendor-first-name"
+                          type="text" 
+                          placeholder="Rep First Name" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={vendorData.firstName}
+                          onChange={(e) => handleVendorInputChange('firstName', e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="vendor-last-name" className="mb-1 block">Rep Last Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="vendor-last-name"
+                          type="text" 
+                          placeholder="Rep Last Name" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={vendorData.lastName}
+                          onChange={(e) => handleVendorInputChange('lastName', e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="vendor-phone" className="mb-1 block">Phone Number</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="password" 
-                        placeholder="Password" 
+                        id="vendor-phone"
+                        type="tel" 
+                        placeholder="Phone Number" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.password}
-                        onChange={(e) => handleVendorInputChange('password', e.target.value)}
+                        value={vendorData.phoneNumber}
+                        onChange={(e) => handleVendorInputChange('phoneNumber', e.target.value)}
                         required 
                       />
                     </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="vendor-email" className="mb-1 block">Email</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="password" 
-                        placeholder="Confirm Password" 
+                        id="vendor-email"
+                        type="email" 
+                        placeholder="Email" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.confirmPassword}
-                        onChange={(e) => handleVendorInputChange('confirmPassword', e.target.value)}
+                        value={vendorData.email}
+                        onChange={(e) => handleVendorInputChange('email', e.target.value)}
                         required 
                       />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="vendor-password" className="mb-1 block">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="vendor-password"
+                          type="password" 
+                          placeholder="Password" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={vendorData.password}
+                          onChange={(e) => handleVendorInputChange('password', e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="vendor-confirm-password" className="mb-1 block">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input 
+                          id="vendor-confirm-password"
+                          type="password" 
+                          placeholder="Confirm Password" 
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          value={vendorData.confirmPassword}
+                          onChange={(e) => handleVendorInputChange('confirmPassword', e.target.value)}
+                          required 
+                        />
+                      </div>
                     </div>
                   </div>
                 </>

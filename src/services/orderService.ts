@@ -23,18 +23,16 @@ import {
   Address
 } from '@/types/order';
 import { Product } from '@/types/product';
+import { ProductService } from '@/services/productService';
 
 export class OrderService {
   // Cart Management
   static async getCartItems(userId: string): Promise<CartItemWithProduct[]> {
     const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        *,
-        product:products(*)
-      `)
+      .from('user_cart_items')
+      .select('*')
       .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      .order('added_at', { ascending: false });
 
     if (error) throw error;
     return data || [];
@@ -43,7 +41,7 @@ export class OrderService {
   static async addToCart(userId: string, request: AddToCartRequest): Promise<CartItem> {
     // Check if item already exists in cart
     const { data: existingItem } = await supabase
-      .from('cart_items')
+      .from('user_cart_items')
       .select('*')
       .eq('user_id', userId)
       .eq('product_id', request.product_id)
@@ -52,7 +50,7 @@ export class OrderService {
     if (existingItem) {
       // Update quantity
       const { data, error } = await supabase
-        .from('cart_items')
+        .from('user_cart_items')
         .update({ quantity: existingItem.quantity + request.quantity })
         .eq('id', existingItem.id)
         .select()
@@ -63,11 +61,15 @@ export class OrderService {
     } else {
       // Add new item
       const { data, error } = await supabase
-        .from('cart_items')
+        .from('user_cart_items')
         .insert({
           user_id: userId,
           product_id: request.product_id,
-          quantity: request.quantity
+          product_name: request.product_name,
+          product_category: request.product_category,
+          quantity: request.quantity,
+          price: request.price,
+          added_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -79,7 +81,7 @@ export class OrderService {
 
   static async updateCartItem(cartItemId: string, quantity: number): Promise<CartItem> {
     const { data, error } = await supabase
-      .from('cart_items')
+      .from('user_cart_items')
       .update({ quantity })
       .eq('id', cartItemId)
       .select()
@@ -91,7 +93,7 @@ export class OrderService {
 
   static async removeFromCart(cartItemId: string): Promise<void> {
     const { error } = await supabase
-      .from('cart_items')
+      .from('user_cart_items')
       .delete()
       .eq('id', cartItemId);
 
@@ -100,7 +102,7 @@ export class OrderService {
 
   static async clearCart(userId: string): Promise<void> {
     const { error } = await supabase
-      .from('cart_items')
+      .from('user_cart_items')
       .delete()
       .eq('user_id', userId);
 
@@ -110,11 +112,8 @@ export class OrderService {
   // Wishlist Management
   static async getWishlistItems(userId: string): Promise<WishlistItemWithProduct[]> {
     const { data, error } = await supabase
-      .from('wishlist_items')
-      .select(`
-        *,
-        product:products(*)
-      `)
+      .from('user_likes')
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -122,12 +121,15 @@ export class OrderService {
     return data || [];
   }
 
-  static async addToWishlist(userId: string, productId: string): Promise<WishlistItem> {
+  static async addToWishlist(userId: string, product: { product_id: string, product_name: string, product_category: string }): Promise<WishlistItem> {
     const { data, error } = await supabase
-      .from('wishlist_items')
+      .from('user_likes')
       .insert({
         user_id: userId,
-        product_id: productId
+        product_id: product.product_id,
+        product_name: product.product_name,
+        product_category: product.product_category,
+        created_at: new Date().toISOString(),
       })
       .select()
       .single();
@@ -136,11 +138,12 @@ export class OrderService {
     return data;
   }
 
-  static async removeFromWishlist(wishlistItemId: string): Promise<void> {
+  static async removeFromWishlist(userId: string, productId: string): Promise<void> {
     const { error } = await supabase
-      .from('wishlist_items')
+      .from('user_likes')
       .delete()
-      .eq('id', wishlistItemId);
+      .eq('user_id', userId)
+      .eq('product_id', productId);
 
     if (error) throw error;
   }
@@ -209,6 +212,12 @@ export class OrderService {
       if (itemError) throw itemError;
       orderItems.push(orderItem);
     }
+
+    // Decrement stock for each product
+    await Promise.all(cartItems.map(async (cartItem) => {
+      const newStock = (cartItem.product.stock_quantity || 0) - cartItem.quantity;
+      await ProductService.updateProduct(cartItem.product_id, { stock_quantity: Math.max(0, newStock) });
+    }));
 
     // Create payment record
     const { data: payment, error: paymentError } = await supabase

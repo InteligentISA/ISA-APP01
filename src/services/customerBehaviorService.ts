@@ -1,11 +1,11 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '../integrations/supabase/client';
 import { 
   UserProductInteraction, 
   UserPreference, 
   ProductPopularity, 
   UserRecommendation,
   Product 
-} from '@/types/product';
+} from '../types/product';
 
 export class CustomerBehaviorService {
   // Track user-product interactions
@@ -68,18 +68,19 @@ export class CustomerBehaviorService {
     try {
       const { data, error } = await supabase
         .from('product_popularity')
-        .select(`
-          *,
-          product:products(*)
-        `)
+        .select('*')
         .order('conversion_rate', { ascending: false })
         .order('purchase_count', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-
-      const products = data?.map(item => item.product).filter(Boolean) || [];
-      return { data: products, error: null };
+      const productIds = data?.map(item => item.product_id).filter(Boolean);
+      if (!productIds || productIds.length === 0) return { data: [], error: null };
+      const { data: products, error: prodError } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds);
+      return { data: products || [], error: prodError };
     } catch (error) {
       return { data: [], error };
     }
@@ -90,18 +91,19 @@ export class CustomerBehaviorService {
     try {
       const { data, error } = await supabase
         .from('product_popularity')
-        .select(`
-          *,
-          product:products(*)
-        `)
+        .select('*')
         .gte('last_updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
         .order('view_count', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-
-      const products = data?.map(item => item.product).filter(Boolean) || [];
-      return { data: products, error: null };
+      const productIds = data?.map(item => item.product_id).filter(Boolean);
+      if (!productIds || productIds.length === 0) return { data: [], error: null };
+      const { data: products, error: prodError } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds);
+      return { data: products || [], error: prodError };
     } catch (error) {
       return { data: [], error };
     }
@@ -146,19 +148,20 @@ export class CustomerBehaviorService {
     try {
       const { data, error } = await supabase
         .from('user_product_interactions')
-        .select(`
-          *,
-          product:products(*)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .eq('interaction_type', 'view')
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-
-      const products = data?.map(item => item.product).filter(Boolean) || [];
-      return { data: products, error: null };
+      const productIds = data?.map(item => item.product_id).filter(Boolean);
+      if (!productIds || productIds.length === 0) return { data: [], error: null };
+      const { data: products, error: prodError } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds);
+      return { data: products || [], error: prodError };
     } catch (error) {
       return { data: [], error };
     }
@@ -169,19 +172,20 @@ export class CustomerBehaviorService {
     try {
       const { data, error } = await supabase
         .from('user_product_interactions')
-        .select(`
-          *,
-          product:products(*)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .eq('interaction_type', 'like')
         .order('created_at', { ascending: false })
         .limit(limit);
 
       if (error) throw error;
-
-      const products = data?.map(item => item.product).filter(Boolean) || [];
-      return { data: products, error: null };
+      const productIds = data?.map(item => item.product_id).filter(Boolean);
+      if (!productIds || productIds.length === 0) return { data: [], error: null };
+      const { data: products, error: prodError } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds);
+      return { data: products || [], error: prodError };
     } catch (error) {
       return { data: [], error };
     }

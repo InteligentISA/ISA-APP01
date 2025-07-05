@@ -1,4 +1,3 @@
-
 -- Create profiles table to store additional user information
 CREATE TABLE public.profiles (
   id UUID NOT NULL REFERENCES auth.users ON DELETE CASCADE,
@@ -161,3 +160,6 @@ $$ language 'plpgsql';
 -- Add updated_at trigger to profiles table
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE PROCEDURE public.update_updated_at_column();
+
+-- Add commission_percentage to products table
+ALTER TABLE public.products ADD COLUMN commission_percentage DECIMAL(5,2);

@@ -5,16 +5,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Gift, Heart, ShoppingCart, Star, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { AIService } from "@/services/aiService";
+import { ProductService } from "@/services/productService";
 
 interface GiftsSectionProps {
   user: any;
   onBack: () => void;
   onAddToCart: (product: any) => void;
+  onToggleLike: (product: any) => void;
+  likedItems: string[];
 }
 
-const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
+const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: GiftsSectionProps) => {
   const [selectedCategory, setSelectedCategory] = useState("surprise");
   const { toast } = useToast();
+
+  // State for custom gift builder inputs
+  const [recipientAge, setRecipientAge] = useState("");
+  const [budget, setBudget] = useState("");
+  const [interests, setInterests] = useState("");
+  const [occasion, setOccasion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
 
   const giftCategories = [
     { id: "surprise", name: "Surprise Me", icon: "✨" },
@@ -58,6 +71,44 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
       title: "Gift added to cart!",
       description: `${gift.name} has been added to your cart.`,
     });
+  };
+
+  // Handler for "Ask ISA for Help"
+  const handleAskISA = async () => {
+    setLoading(true);
+    setSuggestionLoading(true);
+    setSuggestedProducts([]);
+    const prompt = `I want to buy a gift. Recipient's age: ${recipientAge || 'unknown'}. Budget: ${budget || 'not specified'}. Interests/hobbies: ${interests || 'not specified'}. Occasion: ${occasion || 'not specified'}. Please suggest a creative and thoughtful gift idea.`;
+    try {
+      const aiResult = await AIService.processMessage(prompt, user, []);
+      // Try to extract a search term from the AI's analysis or response
+      let searchTerm = '';
+      if (aiResult.analysis && aiResult.analysis.searchTerms && aiResult.analysis.searchTerms.length > 0) {
+        searchTerm = aiResult.analysis.searchTerms.join(' ');
+      } else {
+        // fallback: use the AI's response as a search term
+        searchTerm = aiResult.response.split(' ').slice(0, 5).join(' ');
+      }
+      // Fetch product suggestions
+      const { data: products } = await ProductService.searchProducts(searchTerm, 6);
+      setSuggestedProducts(products || []);
+      if (!products || products.length === 0) {
+        toast({
+          title: "No products found",
+          description: "ISA couldn't find any matching products. Try different details!",
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "ISA Error",
+        description: "Sorry, I'm having trouble connecting to the AI service.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+      setSuggestionLoading(false);
+    }
   };
 
   return (
@@ -185,18 +236,26 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
                 <Input 
                   placeholder="Recipient's age" 
                   className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
+                  value={recipientAge}
+                  onChange={e => setRecipientAge(e.target.value)}
                 />
                 <Input 
                   placeholder="Budget range (e.g., 5000-10000)" 
                   className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
+                  value={budget}
+                  onChange={e => setBudget(e.target.value)}
                 />
                 <Input 
                   placeholder="Their interests/hobbies" 
                   className="sm:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
+                  value={interests}
+                  onChange={e => setInterests(e.target.value)}
                 />
                 <Input 
                   placeholder="Special occasion details" 
                   className="sm:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
+                  value={occasion}
+                  onChange={e => setOccasion(e.target.value)}
                 />
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-2">
@@ -204,13 +263,64 @@ const GiftsSection = ({ user, onBack, onAddToCart }: GiftsSectionProps) => {
                   <Sparkles className="w-4 h-4 mr-2" />
                   Create Surprise
                 </Button>
-                <Button variant="outline" className="flex-1 text-sm sm:text-base">
+                <Button variant="outline" className="flex-1 text-sm sm:text-base" onClick={handleAskISA} disabled={loading}>
                   Ask ISA for Help
                 </Button>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {/* AI Product Suggestions */}
+        {suggestionLoading && (
+          <div className="text-center py-6 text-gray-500">Loading suggestions...</div>
+        )}
+        {suggestedProducts.length > 0 && !suggestionLoading && (
+          <div className="mt-8">
+            <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">ISA's Gift Suggestions</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {suggestedProducts.map(product => (
+                <Card key={product.id} className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+                  <CardContent className="p-0">
+                    <img
+                      src={product.main_image || (product.images && product.images[0]) || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-40 object-cover rounded-t"
+                    />
+                    <div className="p-4 space-y-2">
+                      <h5 className="font-semibold text-gray-900 dark:text-white text-base">{product.name}</h5>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">{product.description}</p>
+                      <div className="flex items-center space-x-2 text-sm">
+                        <span className="font-bold text-orange-600 dark:text-orange-300">KES {product.price.toLocaleString()}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Stock: {product.stock_quantity}</span>
+                        <span className="flex items-center text-yellow-500"><Star className="w-4 h-4 mr-1" />{product.rating}</span>
+                      </div>
+                      <div className="flex space-x-2 pt-2">
+                        <Button
+                          size="sm"
+                          variant={likedItems.includes(product.id) ? "default" : "outline"}
+                          onClick={() => onToggleLike(product)}
+                          className={likedItems.includes(product.id) ? "bg-red-500 text-white" : ""}
+                        >
+                          <Heart className="w-4 h-4 mr-1" />
+                          {likedItems.includes(product.id) ? "Liked" : "Like"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => onAddToCart(product)}
+                          className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-xs sm:text-sm"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Add to Cart
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

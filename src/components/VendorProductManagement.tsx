@@ -51,6 +51,7 @@ interface ProductFormData {
   is_active: boolean;
   main_image?: string;
   images?: string[];
+  commission_percentage?: number;
 }
 
 const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
@@ -79,7 +80,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     is_featured: false,
     is_active: true,
     main_image: "",
-    images: []
+    images: [],
+    commission_percentage: undefined
   });
 
   const [tagInput, setTagInput] = useState("");
@@ -198,8 +200,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       specifications: product.specifications || {},
       is_featured: product.is_featured,
       is_active: product.is_active,
-      main_image: product.main_image || "",
-      images: product.images || []
+      main_image: product.main_image,
+      images: product.images || [],
+      commission_percentage: product.commission_percentage
     });
     setShowAddDialog(true);
   };
@@ -242,7 +245,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       is_featured: false,
       is_active: true,
       main_image: "",
-      images: []
+      images: [],
+      commission_percentage: undefined
     });
     setTagInput("");
   };
@@ -571,14 +575,15 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="stock">Stock Quantity *</Label>
+                    <Label htmlFor="stock_quantity">Stock Quantity *</Label>
                     <Input
-                      id="stock"
+                      id="stock_quantity"
                       type="number"
+                      min={0}
                       value={formData.stock_quantity}
-                      onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
-                      placeholder="Enter stock quantity"
+                      onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) }))}
                       required
+                      className="mb-4"
                     />
                   </div>
                 </div>
@@ -587,36 +592,50 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
               <TabsContent value="pricing" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="price">Price *</Label>
+                    <Label htmlFor="price">Now (Current Price) *</Label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
                         id="price"
                         type="number"
-                        step="0.01"
+                        min={0}
                         value={formData.price}
-                        onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="pl-10"
+                        onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
                         required
+                        placeholder="e.g. 19500"
+                        className="pl-10 mb-4"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="original_price">Original Price</Label>
+                    <Label htmlFor="original_price">Was (Original Price)</Label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                       <Input
                         id="original_price"
                         type="number"
-                        step="0.01"
-                        value={formData.original_price}
-                        onChange={(e) => setFormData(prev => ({ ...prev, original_price: parseFloat(e.target.value) || 0 }))}
-                        placeholder="0.00"
-                        className="pl-10"
+                        min={0}
+                        value={formData.original_price ?? ''}
+                        onChange={e => setFormData(prev => ({ ...prev, original_price: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                        placeholder="e.g. 20000"
+                        className="pl-10 mb-4"
                       />
                     </div>
                   </div>
+                </div>
+                <div>
+                  <Label htmlFor="commission_percentage">Commission Percentage (%)</Label>
+                  <Input
+                    id="commission_percentage"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={0.01}
+                    value={formData.commission_percentage ?? ''}
+                    onChange={e => setFormData(prev => ({ ...prev, commission_percentage: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                    placeholder="e.g. 10 for 10%"
+                    className="mb-4"
+                  />
                 </div>
               </TabsContent>
 

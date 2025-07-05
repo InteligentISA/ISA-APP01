@@ -1,5 +1,4 @@
-
-import { AuthProvider } from '@/hooks/useAuth';
+import { AuthProvider } from '../hooks/useAuth';
 import { ReactNode } from 'react';
 
 interface AuthWrapperProps {

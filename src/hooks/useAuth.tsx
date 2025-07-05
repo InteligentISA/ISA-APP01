@@ -1,17 +1,19 @@
-
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { UserProfileService, UserProfile } from '@/services/userProfileService';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  userProfile: UserProfile | null;
   signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signInWithGoogle: () => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  refreshUserProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,21 +34,68 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      console.log('AuthProvider: Starting to fetch user profile for:', userId);
+      
+      // Add a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+      });
+      
+      const profilePromise = UserProfileService.getUserProfile(userId);
+      const profile = await Promise.race([profilePromise, timeoutPromise]) as UserProfile | null;
+      
+      console.log('AuthProvider: Profile fetch completed:', { hasProfile: !!profile, profileId: profile?.id });
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      setUserProfile(null);
+    }
+  };
+
+  const refreshUserProfile = async () => {
+    if (user?.id) {
+      await fetchUserProfile(user.id);
+    }
+  };
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('AuthProvider: Auth state changed', { event, session: !!session, userId: session?.user?.id });
         setSession(session);
         setUser(session?.user ?? null);
+        
+        if (session?.user?.id) {
+          console.log('AuthProvider: Fetching user profile for', session.user.id);
+          await fetchUserProfile(session.user.id);
+        } else {
+          console.log('AuthProvider: No session, clearing user profile');
+          setUserProfile(null);
+        }
+        
         setLoading(false);
       }
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    console.log('AuthProvider: Getting initial session');
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('AuthProvider: Initial session result', { hasSession: !!session, userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
+      
+      if (session?.user?.id) {
+        console.log('AuthProvider: Fetching initial user profile for', session.user.id);
+        await fetchUserProfile(session.user.id);
+      }
+      
       setLoading(false);
     });
 
@@ -85,6 +134,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setUserProfile(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -98,11 +148,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     user,
     session,
     loading,
+    userProfile,
     signUp,
     signIn,
     signInWithGoogle,
     signOut,
-    resetPassword
+    resetPassword,
+    refreshUserProfile
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

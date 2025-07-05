@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,11 @@ import CartModal from "@/components/CartModal";
 import LikedItemsModal from "@/components/LikedItemsModal";
 import WelcomeChatbot from "@/components/WelcomeChatbot";
 import { Product } from "@/types/product";
+import { OrderService } from "@/services/orderService";
+import { ProductService } from '@/services/productService';
+import { DashboardProduct } from '@/types/product';
+import { CustomerBehaviorService } from '@/services/customerBehaviorService';
+import { JumiaInteractionService } from '@/services/jumiaInteractionService';
 
 interface DashboardProps {
   user: any;
@@ -25,8 +30,8 @@ interface DashboardProps {
 const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartItems, setCartItems] = useState<Product[]>([]);
-  const [likedItems, setLikedItems] = useState<string[]>([]);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [likedItems, setLikedItems] = useState<any[]>([]);
   const [showProfile, setShowProfile] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showLikedItems, setShowLikedItems] = useState(false);
@@ -34,34 +39,169 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [productLoading, setProductLoading] = useState(true);
+  const [productError, setProductError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 20;
+  const [totalVendorCount, setTotalVendorCount] = useState(0);
+  const [vendorPages, setVendorPages] = useState(1);
+  const [likedJumiaItems, setLikedJumiaItems] = useState<string[]>([]);
+  const [jumiaInteractionsLoading, setJumiaInteractionsLoading] = useState(false);
 
   const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
 
-  const handleAddToCart = (product: Product) => {
-    setCartItems(prev => {
-      // Check if product is already in cart
-      const existingItem = prev.find(item => item.id === product.id);
-      if (existingItem) {
-        toast({
-          title: "Already in cart",
-          description: "This item is already in your cart.",
-        });
-        return prev;
-      }
-      return [...prev, product];
-    });
-    toast({
-      title: "Added to cart!",
-      description: "Item has been added to your shopping cart.",
-    });
+  // Load user's liked Jumia products from backend
+  const loadLikedJumiaProducts = async () => {
+    if (!user?.id) return;
+    
+    setJumiaInteractionsLoading(true);
+    try {
+      const { data: likedJumiaInteractions } = await JumiaInteractionService.getLikedJumiaProducts(user.id);
+      const likedJumiaIds = likedJumiaInteractions.map(interaction => interaction.jumia_product_id);
+      setLikedJumiaItems(likedJumiaIds);
+    } catch (error) {
+      console.error('Error loading liked Jumia products:', error);
+    } finally {
+      setJumiaInteractionsLoading(false);
+    }
   };
 
-  const handleToggleLike = (productId: string) => {
-    setLikedItems(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    );
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoading(true);
+    Promise.all([
+      OrderService.getCartItems(user.id),
+      OrderService.getWishlistItems(user.id),
+      loadLikedJumiaProducts()
+    ]).then(([cart, wishlist]) => {
+      setCartItems(cart);
+      setLikedItems(wishlist);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [user]);
+
+  useEffect(() => {
+    setProductLoading(true);
+    setProductError(null);
+    ProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE)
+      .then(({ data, error, totalVendorCount }) => {
+        if (error) {
+          setProductError('Failed to load products');
+        } else {
+          setProducts(data);
+          setTotalVendorCount(totalVendorCount);
+          // Calculate total pages: vendor pages + unlimited Jumia pages
+          const vendorPages = Math.ceil((totalVendorCount || 0) / PRODUCTS_PER_PAGE);
+          setVendorPages(vendorPages);
+        }
+      })
+      .catch(() => setProductError('Failed to load products'))
+      .finally(() => setProductLoading(false));
+  }, [currentPage]);
+
+  const handleAddToCart = async (product) => {
+    if (!user?.id) return;
+    try {
+      await OrderService.addToCart(user.id, {
+        product_id: product.id,
+        product_name: product.name,
+        product_category: product.category,
+        quantity: 1,
+        price: product.price,
+      });
+      const updatedCart = await OrderService.getCartItems(user.id);
+      setCartItems(updatedCart);
+      toast({ title: "Added to cart!", description: "Item has been added to your shopping cart." });
+    } catch (e) {
+      toast({ title: "Failed to add to cart", description: e.message || "Please try again." });
+    }
+  };
+
+  const handleRemoveFromCart = async (cartItemId) => {
+    if (!user?.id) return;
+    try {
+      await OrderService.removeFromCart(cartItemId);
+      const updatedCart = await OrderService.getCartItems(user.id);
+      setCartItems(updatedCart);
+      toast({ title: "Removed from cart", description: "Item has been removed from your cart." });
+    } catch (e) {
+      toast({ title: "Failed to remove from cart", description: e.message || "Please try again." });
+    }
+  };
+
+  const handleToggleLike = async (product) => {
+    if (product.source === 'jumia') {
+      try {
+        const isCurrentlyLiked = likedJumiaItems.includes(product.id);
+        
+        if (isCurrentlyLiked) {
+          // Unlike the product
+          await JumiaInteractionService.unlikeJumiaProduct(user.id, product.id);
+          setLikedJumiaItems(prev => prev.filter(id => id !== product.id));
+          
+          // Track the unlike interaction
+          await JumiaInteractionService.trackInteraction(
+            user.id,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              link: product.link,
+              image: product.image
+            },
+            'unlike'
+          );
+          
+          toast({ title: "Removed from favorites", description: "Product removed from your favorites." });
+        } else {
+          // Like the product
+          await JumiaInteractionService.trackInteraction(
+            user.id,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              link: product.link,
+              image: product.image
+            },
+            'like',
+            {
+              category: 'electronics', // Default category for Jumia products
+              source: 'jumia'
+            }
+          );
+          
+          setLikedJumiaItems(prev => [...prev, product.id]);
+          toast({ title: "Added to favorites!", description: "Product added to your favorites." });
+        }
+      } catch (error) {
+        console.error('Error toggling Jumia product like:', error);
+        toast({ 
+          title: "Error", 
+          description: "Failed to update favorites. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } else {
+      // existing vendor like logic
+      if (!user?.id) return;
+      const alreadyLiked = likedItems.some(item => item.product_id === product.id);
+      try {
+        if (alreadyLiked) {
+          OrderService.removeFromWishlist(user.id, product.id);
+        } else {
+          OrderService.addToWishlist(user.id, {
+            product_id: product.id,
+            product_name: product.name,
+            product_category: product.category,
+          });
+        }
+        // Update wishlist UI
+        OrderService.getWishlistItems(user.id).then(setLikedItems);
+      } catch (e) {}
+    }
   };
 
   const handleUserUpdate = (updatedUser: any) => {
@@ -81,7 +221,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   };
 
   // Helper to convert string IDs to numbers (filter out NaN)
-  const likedItemsNumber = likedItems.map(id => Number(id)).filter(id => !isNaN(id));
+  const likedItemsNumber = likedItems.map(item => Number(item.product_id)).filter(id => !isNaN(id));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
@@ -150,9 +290,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 onClick={() => setShowLikedItems(true)}
               >
                 <Heart className="w-5 h-5" />
-                {likedItems.length > 0 && (
+                {(likedItems.length + likedJumiaItems.length) > 0 && (
                   <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
-                    {likedItems.length}
+                    {likedItems.length + likedJumiaItems.length}
                   </Badge>
                 )}
               </Button>
@@ -177,10 +317,12 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 onClick={() => setShowProfile(true)}
               >
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">{user.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">
+                    {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium hidden lg:inline">{user.name}</span>
+                <span className="text-sm font-medium hidden lg:inline">{user?.name || user?.email || 'User'}</span>
               </Button>
               
               <Button 
@@ -264,7 +406,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   className="text-red-500"
                 >
                   <Heart className="w-4 h-4 mr-2" />
-                  Favorites ({likedItems.length})
+                  Favorites ({likedItems.length + likedJumiaItems.length})
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -345,13 +487,31 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         </div>
 
         {/* Products */}
-        <ProductGrid
-          category={selectedCategory}
-          searchQuery={searchQuery}
-          onAddToCart={handleAddToCart}
-          onToggleLike={handleToggleLike}
-          likedItems={likedItems}
-        />
+        {productLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <span>Loading products...</span>
+          </div>
+        ) : productError ? (
+          <div className="flex items-center justify-center py-12">
+            <span className="text-red-600">{productError}</span>
+          </div>
+        ) : (
+          <ProductGrid
+            products={products}
+            onAddToCart={handleAddToCart}
+            onToggleLike={handleToggleLike}
+            likedItems={
+              products.length > 0 && products[0].source === 'jumia'
+                ? likedJumiaItems
+                : likedItems.map(item => item.product_id)
+            }
+            currentPage={currentPage}
+            vendorPages={vendorPages}
+            totalVendorCount={totalVendorCount}
+            onNextPage={() => setCurrentPage(p => p + 1)}
+            onPrevPage={() => setCurrentPage(p => Math.max(p - 1, 1))}
+          />
+        )}
       </div>
 
       <ProfileModal 
@@ -361,21 +521,29 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onUserUpdate={handleUserUpdate}
       />
 
-
       <CartModal
         isOpen={showCart}
         onClose={() => setShowCart(false)}
         user={user}
-        onRemoveFromCart={(productId) => setCartItems(prev => prev.filter(item => item.id !== productId))}
-        onUpdateQuantity={() => {}}
+        cartItems={cartItems}
+        onRemoveFromCart={handleRemoveFromCart}
+        onUpdateQuantity={async (cartItemId, quantity) => {
+          await OrderService.updateCartItem(cartItemId, quantity);
+          const updatedCart = await OrderService.getCartItems(user.id);
+          setCartItems(updatedCart);
+        }}
       />
 
       <LikedItemsModal
         isOpen={showLikedItems}
         onClose={() => setShowLikedItems(false)}
-        likedItems={likedItemsNumber}
-        onAddToCart={() => {}}
-        onRemoveFromLiked={(productId) => setLikedItems(prev => prev.filter(id => id !== String(productId)))}
+        likedItems={likedItems}
+        likedJumiaItems={likedJumiaItems}
+        onAddToCart={handleAddToCart}
+        onRemoveFromLiked={async (productId) => {
+          await handleToggleLike({ id: productId });
+        }}
+        userId={user?.id}
       />
 
       <WelcomeChatbot

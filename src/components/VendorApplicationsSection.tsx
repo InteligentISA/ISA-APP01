@@ -24,7 +24,7 @@ const VendorApplicationsSection = () => {
   const fetchVendorApplications = async () => {
     setLoading(true);
     try {
-      const data = await AdminService.getVendorApplications();
+      const data = await AdminService.getPendingVendorApplications();
       setApplications(data);
     } catch (error) {
       console.error('Error fetching applications:', error);

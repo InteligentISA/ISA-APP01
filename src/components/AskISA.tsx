@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send, Plus, History, Menu, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   SidebarTrigger,
   SidebarInset
 } from "@/components/ui/sidebar";
+import { AIService } from "@/services/aiService";
 // import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
 
 interface Message {
@@ -30,35 +31,49 @@ interface ChatHistory {
   preview: string;
 }
 
-interface AskISAProps {
-  onBack: () => void;
+interface JumiaProduct {
+  name: string;
+  price: string;
+  rating: string;
+  link: string;
+  image: string;
 }
 
-const AskISA = ({ onBack }: AskISAProps) => {
+interface AskISAProps {
+  onBack: () => void;
+  user: any;
+  onAddToCart: (product: any) => void;
+  onToggleLike: (productId: string) => void;
+  likedItems: string[];
+}
+
+const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([
-    {
-      id: "1",
-      title: "Best smartphones under 50k",
-      lastMessage: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      preview: "Looking for affordable smartphones..."
-    },
-    {
-      id: "2", 
-      title: "Fashion trends for summer",
-      lastMessage: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      preview: "What are the latest summer fashion trends?"
-    },
-    {
-      id: "3",
-      title: "Home decor ideas",
-      lastMessage: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      preview: "Need some home decoration inspiration..."
-    }
-  ]);
+  const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
+  const [productResults, setProductResults] = useState<any[]>([]);
+  const [jumiaResults, setJumiaResults] = useState<JumiaProduct[]>([]);
 
-  const handleSendMessage = () => {
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("isa_chat_history");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        // Convert lastMessage back to Date
+        setChatHistory(parsed.map((c: any) => ({ ...c, lastMessage: new Date(c.lastMessage) })));
+      } catch {
+        setChatHistory([]);
+      }
+    }
+  }, []);
+
+  // Save chat history to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("isa_chat_history", JSON.stringify(chatHistory));
+  }, [chatHistory]);
+
+  const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
 
     const newUserMessage: Message = {
@@ -70,25 +85,64 @@ const AskISA = ({ onBack }: AskISAProps) => {
 
     setMessages(prev => [...prev, newUserMessage]);
 
-    // Simulate ISA response
-    setTimeout(() => {
-      const responses = [
-        "I'd be happy to help you find the perfect products! Let me search through our curated selection...",
-        "Great question! Based on your preferences, I can recommend several options that match your style and budget.",
-        "I've found some amazing deals that I think you'll love! Here are my top recommendations...",
-        "Let me help you discover products that are trending and perfect for your needs...",
-        "I can definitely assist with that! I've curated some fantastic options just for you..."
-      ];
-      
+    // Add to chat history if it's a new topic
+    if (messages.length === 0) {
+      const newChat: ChatHistory = {
+        id: Date.now().toString(),
+        title: currentMessage.length > 32 ? currentMessage.slice(0, 32) + '...' : currentMessage,
+        lastMessage: new Date(),
+        preview: currentMessage
+      };
+      setChatHistory(prev => [newChat, ...prev]);
+    } else if (chatHistory.length > 0) {
+      // Update lastMessage/preview for the most recent chat
+      setChatHistory(prev => [
+        { ...prev[0], lastMessage: new Date(), preview: currentMessage },
+        ...prev.slice(1)
+      ]);
+    }
+
+    // Call AIService for ISA response
+    try {
+      const aiResult = await AIService.processMessage(
+        currentMessage,
+        user,
+        messages.map(m => ({
+          role: m.type === 'user' ? 'user' : 'assistant',
+          content: m.content,
+          timestamp: m.timestamp
+        }))
+      );
+      // If aiResult contains products and jumiaProducts, combine and limit
+      let combinedProducts: any[] = [];
+      if (aiResult.products || aiResult.jumiaProducts) {
+        const own = aiResult.products || [];
+        const jumia = aiResult.jumiaProducts || [];
+        // Show own products first, then Jumia, limit to 10-15
+        combinedProducts = [...own, ...jumia.slice(0, Math.max(0, 15 - own.length))];
+        setProductResults(combinedProducts);
+        setJumiaResults(jumia.slice(0, Math.max(0, 15 - own.length)));
+      } else {
+        setProductResults([]);
+        setJumiaResults([]);
+      }
       const isaResponse: Message = {
         id: Date.now() + 1,
         type: 'isa',
-        content: responses[Math.floor(Math.random() * responses.length)],
+        content: aiResult.response,
         timestamp: new Date()
       };
-      
       setMessages(prev => [...prev, isaResponse]);
-    }, 1500);
+    } catch (err) {
+      setMessages(prev => [...prev, {
+        id: Date.now() + 1,
+        type: 'isa',
+        content: "Sorry, I'm having trouble connecting to the AI service.",
+        timestamp: new Date()
+      }]);
+      setProductResults([]);
+      setJumiaResults([]);
+    }
 
     setCurrentMessage("");
   };
@@ -116,9 +170,10 @@ const AskISA = ({ onBack }: AskISAProps) => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gray-50">
-        <Sidebar className="border-r border-gray-200">
-          <SidebarHeader className="p-4 border-b border-gray-200">
+      {/* Force white background regardless of dark mode */}
+      <div className="min-h-screen flex w-full bg-white">
+        <Sidebar className="border-r border-gray-200 bg-white">
+          <SidebarHeader className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center space-x-2">
               <img src="/AskISA.png" alt="Ask ISA Logo" className="h-6 w-6" />
               <span className="font-semibold text-gray-800">ISA Chat</span>
@@ -133,7 +188,7 @@ const AskISA = ({ onBack }: AskISAProps) => {
             </Button>
           </SidebarHeader>
           
-          <SidebarContent>
+          <SidebarContent className="bg-white">
             <div className="p-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
                 <History className="h-4 w-4" />
@@ -141,30 +196,34 @@ const AskISA = ({ onBack }: AskISAProps) => {
               </div>
               
               <SidebarMenu>
-                {chatHistory.map((chat) => (
-                  <SidebarMenuItem key={chat.id}>
-                    <SidebarMenuButton className="w-full text-left p-3 hover:bg-gray-100 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm text-gray-800 truncate">
-                          {chat.title}
+                {chatHistory.length === 0 ? (
+                  <div className="text-xs text-gray-400 px-3 py-6 text-center">Your history will appear here</div>
+                ) : (
+                  chatHistory.map((chat) => (
+                    <SidebarMenuItem key={chat.id}>
+                      <SidebarMenuButton className="w-full text-left p-3 hover:bg-gray-100 rounded-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm text-gray-800 truncate">
+                            {chat.title}
+                          </div>
+                          <div className="text-xs text-gray-500 truncate mt-1">
+                            {chat.preview}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {formatTime(chat.lastMessage)}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 truncate mt-1">
-                          {chat.preview}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {formatTime(chat.lastMessage)}
-                        </div>
-                      </div>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))
+                )}
               </SidebarMenu>
             </div>
           </SidebarContent>
         </Sidebar>
 
-        <SidebarInset className="flex-1">
-          <div className="flex flex-col h-screen">
+        <SidebarInset className="flex-1 bg-white">
+          <div className="flex flex-col h-screen bg-white">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
               <div className="flex items-center space-x-3">
@@ -187,7 +246,7 @@ const AskISA = ({ onBack }: AskISAProps) => {
             </div>
 
             {/* Chat Messages */}
-            <ScrollArea className="flex-1 p-4">
+            <ScrollArea className="flex-1 p-4 bg-white">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <img src="/AskISA.png" alt="Ask ISA Logo" className="h-16 w-16 mb-4" />
@@ -247,6 +306,42 @@ const AskISA = ({ onBack }: AskISAProps) => {
                 </div>
               )}
             </ScrollArea>
+
+            {/* Product Results */}
+            {productResults.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Product Results</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {productResults.map((prod, idx) => (
+                    prod.link ? (
+                      // Jumia product card
+                      <a
+                        key={prod.link + idx}
+                        href={prod.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block border border-orange-200 rounded-lg p-4 bg-white hover:shadow-lg transition"
+                      >
+                        <img src={prod.image} alt={prod.name} className="h-32 w-full object-contain mb-2" />
+                        <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
+                        <div className="text-orange-600 font-bold mb-1">{prod.price}</div>
+                        <div className="text-xs text-gray-500 mb-2">{prod.rating}</div>
+                        <span className="inline-block text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">External • Jumia</span>
+                      </a>
+                    ) : (
+                      // Own product card (reuse your existing card or markup)
+                      <div key={prod.id || idx} className="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-lg transition">
+                        <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-32 w-full object-contain mb-2" />
+                        <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
+                        <div className="text-orange-600 font-bold mb-1">KES {prod.price}</div>
+                        <div className="text-xs text-gray-500 mb-2">{prod.rating || 'No rating'}</div>
+                        {/* Add like/cart buttons as needed */}
+                      </div>
+                    )
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Input Area */}
             <div className="p-4 border-t border-gray-200 bg-white">

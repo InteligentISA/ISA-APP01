@@ -98,7 +98,11 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
     }).format(price);
   };
 
-  const total = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const total = cartItems.reduce((sum, item) => {
+    const price = item?.product?.price || 0;
+    const quantity = item?.quantity || 1;
+    return sum + (price * quantity);
+  }, 0);
 
   if (!isOpen) return null;
 
@@ -142,14 +146,14 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700">
                       <div className="flex items-center space-x-3 sm:space-x-4">
                         <img
-                          src={item.product.main_image || '/placeholder.svg'}
-                          alt={item.product.name}
+                          src={item?.product?.main_image || '/placeholder.svg'}
+                          alt={item?.product?.name || 'Product'}
                           className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{item.product.name}</h4>
-                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{item.product.category}</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{formatPrice(item.product.price)}</p>
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{item?.product?.name || 'Unknown Product'}</h4>
+                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{item?.product?.category || 'Uncategorized'}</p>
+                          <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{formatPrice(item?.product?.price || 0)}</p>
                         </div>
                       </div>
                       
@@ -169,7 +173,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                             variant="outline"
                             size="sm"
                             onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.product.stock_quantity}
+                            disabled={item.quantity >= (item?.product?.stock_quantity || 999)}
                             className="w-8 h-8 p-0"
                           >
                             +
@@ -178,7 +182,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                         
                         <div className="text-right">
                           <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                            {formatPrice(item.product.price * item.quantity)}
+                            {formatPrice((item?.product?.price || 0) * item.quantity)}
                           </p>
                           <Button
                             variant="ghost"

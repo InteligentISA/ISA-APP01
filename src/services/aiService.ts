@@ -1,5 +1,6 @@
 import { ProductFilters } from '@/types/product';
 import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/product';
 
 export interface QueryAnalysis {
   searchTerms: string[];
@@ -150,7 +151,7 @@ INSTRUCTIONS:
 3. If it's a general question, answer it knowledgeably
 4. If it's a greeting, respond warmly and ask how you can help
 5. Use the user's name when appropriate
-6. Keep responses concise but helpful
+6. Keep responses very concise but helpful
 7. If you detect they want to shop for something, mention that you can help them find products
 
 RESPONSE:`;
@@ -186,6 +187,10 @@ RESPONSE:`;
       });
 
       if (!response.ok) {
+        if (response.status === 429) {
+          // Rate limit or quota exceeded
+          return 'The AI service is temporarily busy or rate-limited. Please try again in a minute.';
+        }
         throw new Error(`OpenAI API error: ${response.status}`);
       }
 
@@ -193,6 +198,10 @@ RESPONSE:`;
       return data.choices[0].message.content.trim();
     } catch (error) {
       console.error('GPT API call failed:', error);
+      // If error is 429, return a user-friendly message
+      if (error instanceof Error && error.message.includes('429')) {
+        return 'The AI service is temporarily busy or rate-limited. Please try again in a minute.';
+      }
       throw error;
     }
   }
@@ -338,7 +347,7 @@ RESPONSE:`;
     // Extract rating preferences
     const ratingInfo = this.extractRatingInfo(lowerQuery);
     if (ratingInfo) {
-      filters.minRating = ratingInfo;
+      filters.rating = ratingInfo;
       confidence += 0.1;
       isProductQuery = true;
       userIntent = 'shopping';
@@ -462,8 +471,8 @@ RESPONSE:`;
       response += ` above ${filters.minPrice.toLocaleString()} KSH`;
     }
     
-    if (filters.minRating) {
-      response += ` with rating ${filters.minRating}+ stars`;
+    if (filters.rating) {
+      response += ` with rating ${filters.rating}+ stars`;
     }
     
     response += '. Here are the best matches:';
@@ -483,14 +492,14 @@ RESPONSE:`;
       questions.push("What's your budget range?");
     }
 
-    if (!filters.minRating) {
+    if (!filters.rating) {
       questions.push("Do you have any preference for product ratings?");
     }
 
     return questions;
   }
 
-  static async getUserContext(userId: string): Promise<UserContext> {
+  static async getUserContext(userId: string): Promise<UserContext & { conversationHistory: Array<{ role: 'user' | 'assistant'; content: string; timestamp: Date }> }> {
     try {
       // Get user profile
       const { data: profile, error: profileError } = await supabase
@@ -538,6 +547,20 @@ RESPONSE:`;
         .order('purchase_date', { ascending: false })
         .limit(10);
 
+      // Get last 10 chat messages for context
+      const { data: chat } = await (supabase as any)
+        .from('chat_history')
+        .select('role, message, timestamp')
+        .eq('user_id', userId)
+        .order('timestamp', { ascending: false })
+        .limit(10);
+
+      const conversationHistory = chat?.map((msg: any) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.message,
+        timestamp: new Date(msg.timestamp)
+      })) || [];
+
       return {
         id: userId,
         name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'there',
@@ -547,7 +570,8 @@ RESPONSE:`;
         searchHistory: searches?.map(s => s.search_query) || [],
         likedProducts: likes?.map(l => l.product_name) || [],
         cartHistory: cartItems?.map(c => c.product_name) || [],
-        purchaseHistory: purchases?.map(p => p.product_name) || []
+        purchaseHistory: purchases?.map(p => p.product_name) || [],
+        conversationHistory
       };
     } catch (error) {
       console.error('Error getting user context:', error);
@@ -560,7 +584,8 @@ RESPONSE:`;
         searchHistory: [],
         likedProducts: [],
         cartHistory: [],
-        purchaseHistory: []
+        purchaseHistory: [],
+        conversationHistory: []
       };
     }
   }
@@ -580,5 +605,28 @@ Price: ${product.price} KSH
 
 Respond as ISA, directly to the user.`;
     return this.callGPT(prompt);
+  }
+
+  static async saveChatMessage({
+    userId,
+    sessionId,
+    message,
+    role,
+    timestamp = new Date().toISOString()
+  }: {
+    userId: string;
+    sessionId: string;
+    message: string;
+    role: 'user' | 'assistant';
+    timestamp?: string;
+  }) {
+    const { error } = await (supabase as any).from('chat_history').insert({
+      user_id: userId,
+      session_id: sessionId,
+      message,
+      role,
+      timestamp
+    });
+    if (error) throw error;
   }
 } 

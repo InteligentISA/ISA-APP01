@@ -21,6 +21,7 @@ export interface Product {
   created_at: string;
   updated_at: string;
   currency?: string; // Default to KES (Kenyan Shillings)
+  commission_percentage?: number;
 }
 
 export interface ProductCategory {
@@ -118,4 +119,23 @@ export interface UserRecommendation {
 
 export interface ProductWithPopularity extends Product {
   popularity?: ProductPopularity;
-} 
+}
+
+// Add a source field to distinguish product origin
+type ProductSource = 'vendor' | 'jumia';
+
+export interface DashboardJumiaProduct {
+  id: string; // generated unique id for React key
+  name: string;
+  price: number;
+  rating: number;
+  link: string;
+  image: string;
+  source: 'jumia';
+}
+
+export interface DashboardVendorProduct extends Product {
+  source: 'vendor';
+}
+
+export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct; 

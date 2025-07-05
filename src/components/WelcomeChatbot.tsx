@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +18,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
   const [messages, setMessages] = useState([
     {
       type: 'isa',
-      content: `👋 Hey ${user?.name || 'there'}! ☺️\n\nI'm ISA — your personal shopping assistant.\n\nI can help you:\n🛍️ Compare products (mobiles, beauty, clothing, etc.)\n💸 Find the best prices and deals\n🤔 Make smarter buying decisions\n\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\n\nReady? What are you looking for today?`
+      content: `Hey ${user?.name || 'there'}! ☺️\n\nI'm ISA — your personal shopping assistant.\nI can help you:\n🛍️ Compare products (mobiles, beauty, clothing, etc.)\n💸 Find the best prices and deals\n🤔 Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
     }
   ]);
 
@@ -43,7 +42,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
 
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-end justify-center p-2 sm:p-4 z-50">
-      <div className="w-full max-w-4xl h-[85vh] sm:h-[75vh] relative">
+      <div className="w-full max-w-4xl max-h-screen h-auto sm:h-auto relative flex flex-col justify-end">
         {/* Top buttons - responsive layout */}
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 mb-4 px-2 sm:px-12">
           <Button
@@ -64,7 +63,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
         </div>
 
         {/* Main chatbot card */}
-        <Card className="h-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl">
+        <Card className="w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl flex flex-col max-h-[90vh] sm:max-h-[80vh] h-auto">
           <CardContent className="p-0 h-full flex flex-col bg-gray-50">
             {/* ISA Avatar and Header */}
             <div className="text-center p-4 sm:p-8 pb-4 sm:pb-6 bg-white">
@@ -74,59 +73,31 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
             </div>
 
             {/* Chat Messages Area */}
-            <div className="flex-1 px-4 sm:px-8 pb-4 bg-white min-h-0">
-              <ScrollArea className="h-full">
-                <div className="space-y-4">
-                  {messages.map((message, index) => (
-                    <div
-                      key={index}
-                      className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[85%] sm:max-w-[80%] p-3 sm:p-4 rounded-2xl ${
-                          message.type === 'user'
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-50 border border-gray-200 text-gray-800'
-                        }`}
-                      >
-                        <p className="whitespace-pre-line text-sm leading-relaxed">
-                          {message.content}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+            <div className="flex-1 px-4 sm:px-8 pb-4 bg-white min-h-0 flex flex-col items-center justify-center overflow-hidden">
+              <div
+                className="space-y-4 cursor-pointer max-w-2xl mx-auto"
+                onClick={() => onNavigateToAskISA()}
+                style={{ userSelect: 'none' }}
+              >
+                <div className="flex justify-center">
+                  <div className="max-w-full p-3 sm:p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-800 text-left shadow-md">
+                    <p className="whitespace-pre-line text-sm leading-relaxed">
+                      {messages[0].content}
+                    </p>
+                  </div>
                 </div>
-              </ScrollArea>
+              </div>
             </div>
 
-            {/* Interactive Chat Section */}
-            <div className="bg-white px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100">
-              <div className="space-y-3 sm:space-y-4">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-800 text-center">
-                  Try asking ISA something now!
-                </h3>
-                <div className="flex space-x-2 sm:space-x-3">
-                  <Input
-                    type="text"
-                    placeholder="Type what you're looking for..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="flex-1 py-2 sm:py-3 text-sm sm:text-base border-2 border-purple-200 focus:border-purple-500 rounded-xl bg-white shadow-sm text-gray-800 placeholder:text-gray-500"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    size="icon"
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 rounded-xl h-10 w-10 sm:h-12 sm:w-12 shadow-lg shrink-0"
-                    disabled={!query.trim()}
-                  >
-                    <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-500 text-center px-2">
-                  Press Enter or click Send to start your shopping journey with ISA
-                </p>
-              </div>
+            {/* Cute Ask ISA Button (only one, always visible) */}
+            <div className="bg-white px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100 flex flex-col items-center sticky bottom-0 z-10 w-full">
+              <Button
+                onClick={() => onNavigateToAskISA()}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 sm:px-12 py-3 sm:py-4 text-base sm:text-lg rounded-full shadow-lg hover:scale-105 transition-all duration-300 w-full max-w-xs"
+                style={{ minWidth: 220 }}
+              >
+                Ask ISA anything for free now
+              </Button>
             </div>
 
             {/* Close button */}

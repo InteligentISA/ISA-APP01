@@ -11,11 +11,12 @@ interface AuthWelcomeProps {
   onNavigateToSignIn: () => void;
   onNavigateToSignUp: () => void;
   onNavigateToVendorSignUp: () => void;
+  onGoogleAuthSuccess: (email: string) => void;
 }
 
-const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToSignUp, onNavigateToVendorSignUp }: AuthWelcomeProps) => {
+const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToSignUp, onNavigateToVendorSignUp, onGoogleAuthSuccess }: AuthWelcomeProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { signInWithGoogle } = useAuth();
+  const { signInWithGoogle, user } = useAuth();
   const { toast } = useToast();
 
   const handleGoogleAuth = async () => {
@@ -29,8 +30,15 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
           variant: "destructive"
         });
       } else {
-        // Google auth successful, user will be redirected
-        onAuthSuccess({ userType: 'customer' });
+        // Wait for user to be set in context
+        setTimeout(() => {
+          if (user && user.email) {
+            onGoogleAuthSuccess(user.email);
+          } else {
+            // fallback: reload or try again
+            window.location.reload();
+          }
+        }, 1000);
       }
     } catch (error) {
       toast({

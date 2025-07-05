@@ -1,6 +1,7 @@
 import { AIService, QueryAnalysis } from './aiService';
 import { ProductService } from './productService';
 import { Product } from '@/types/product';
+import { scrapeJumiaProducts, JumiaProduct } from './jumiaScraperService';
 
 export interface ChatMessage {
   id: string;
@@ -9,6 +10,7 @@ export interface ChatMessage {
   timestamp: Date;
   products?: Product[];
   analysis?: QueryAnalysis;
+  jumiaProducts?: JumiaProduct[];
 }
 
 export interface ChatSession {
@@ -56,6 +58,7 @@ export class ChatService {
 
     // If GPT says to search products, do so and include in response
     let products: Product[] = [];
+    let jumiaProducts: JumiaProduct[] = [];
     if (gptResult.shouldSearchProducts && gptResult.analysis && gptResult.analysis.searchTerms.length > 0) {
       const searchQuery = gptResult.analysis.searchTerms.join(' ');
       const { data: foundProducts } = await ProductService.getProducts({
@@ -64,6 +67,10 @@ export class ChatService {
         sort: { field: 'rating', direction: 'desc' }
       });
       products = foundProducts || [];
+      // Only do Jumia scraping if products are missing or all have low stock
+      if (products.length === 0 || products.every(p => p.stock_quantity !== undefined && p.stock_quantity <= 2)) {
+        jumiaProducts = await scrapeJumiaProducts(searchQuery);
+      }
     }
 
     return {
@@ -72,7 +79,8 @@ export class ChatService {
       content: gptResult.response,
       timestamp: new Date(),
       products: products,
-      analysis: gptResult.analysis
+      analysis: gptResult.analysis,
+      ...(jumiaProducts.length > 0 ? { jumiaProducts } : {})
     };
   }
 

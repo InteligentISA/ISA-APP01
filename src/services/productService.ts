@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductFilters, ProductSortOption, ProductSearchParams } from '@/types/product';
 import { ImageUploadService } from './imageUploadService';
+import { scrapeJumiaProducts } from './jumiaScraperService';
+import { DashboardProduct, DashboardVendorProduct, DashboardJumiaProduct } from '@/types/product';
 
 export class ProductService {
   // Get all products with optional filters
@@ -36,6 +38,15 @@ export class ProductService {
         query = query.order(params.sort.field, { ascending: params.sort.direction === 'asc' });
       } else {
         query = query.order('created_at', { ascending: false });
+      }
+
+      // Apply pagination
+      if (params.limit) {
+        query = query.limit(params.limit);
+      }
+      if (params.page && params.limit) {
+        const offset = (params.page - 1) * params.limit;
+        query = query.range(offset, offset + params.limit - 1);
       }
 
       const { data, count, error } = await query;
@@ -248,6 +259,56 @@ export class ProductService {
       return { data: data || [], error };
     } catch (error) {
       return { data: [], error };
+    }
+  }
+
+  // Get dashboard products: vendor + Jumia fallback
+  static async getDashboardProducts(page: number = 1, limit: number = 20): Promise<{ data: DashboardProduct[]; error: any; totalVendorCount: number }> {
+    try {
+      // Get total vendor product count (without pagination)
+      const { count: totalVendorCount, error: countError } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true);
+      
+      if (countError) return { data: [], error: countError, totalVendorCount: 0 };
+      
+      const vendorPages = Math.ceil((totalVendorCount || 0) / limit);
+
+      if (page <= vendorPages) {
+        // Vendor products page
+        const { data: vendorProducts, error } = await ProductService.getProducts({ 
+          limit, 
+          page,
+          filters: { inStock: true } // Only show active products
+        });
+        
+        if (error) return { data: [], error, totalVendorCount: totalVendorCount || 0 };
+        
+        const dashboardProducts: DashboardProduct[] = (vendorProducts || []).map((p) => ({ 
+          ...p, 
+          source: 'vendor' as const 
+        }));
+        
+        return { data: dashboardProducts, error: null, totalVendorCount: totalVendorCount || 0 };
+      } else {
+        // Jumia products page - fallback when vendor products are insufficient
+        const jumiaPage = page - vendorPages;
+        const jumiaRaw = await scrapeJumiaProducts('electronics', jumiaPage);
+        const jumiaProducts: DashboardJumiaProduct[] = (jumiaRaw || []).slice(0, limit).map((jp, idx) => ({
+          id: `jumia-${page}-${idx}-${jp.link}`,
+          name: jp.name,
+          price: Number(jp.price.replace(/[^\d]/g, '')),
+          rating: jp.rating === 'No rating' ? 0 : Number(jp.rating),
+          link: jp.link,
+          image: jp.image,
+          source: 'jumia' as const,
+        }));
+        
+        return { data: jumiaProducts, error: null, totalVendorCount: totalVendorCount || 0 };
+      }
+    } catch (err) {
+      return { data: [], error: err, totalVendorCount: 0 };
     }
   }
 } 

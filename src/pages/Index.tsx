@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Preloader from "@/components/Preloader";
 import Welcome from "@/components/Welcome";
@@ -9,29 +8,82 @@ import Dashboard from "@/components/Dashboard";
 import VendorDashboard from "@/components/VendorDashboard";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
+import ProfileCompletionModal from "@/components/ProfileCompletionModal";
+import { UserProfileService } from "@/services/userProfileService";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const [profileCompletionOpen, setProfileCompletionOpen] = useState(false);
+  const [profileCompletionData, setProfileCompletionData] = useState<any>(null);
+  const { user: authUser, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    // Simulate preloader
+    console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
+    console.log('Auth user details:', {
+      id: authUser?.id,
+      email: authUser?.email,
+      user_metadata: authUser?.user_metadata
+    });
+    
+    // Add a timeout fallback to prevent getting stuck
+    const timeoutFallback = setTimeout(() => {
+      console.log('Auth loading timeout - proceeding anyway');
+      if (currentView === 'preloader') {
+        setCurrentView('welcome');
+      }
+    }, 10000); // 10 second timeout
+    
+    // Wait for auth to load before proceeding
+    if (authLoading) {
+      console.log('Auth is still loading, waiting...');
+      return () => clearTimeout(timeoutFallback);
+    }
+
+    // Clear timeout since auth is no longer loading
+    clearTimeout(timeoutFallback);
+
+    // If user is already authenticated, go to dashboard
+    if (authUser) {
+      console.log('User is authenticated, going to dashboard');
+      setUser(authUser);
+      setCurrentView('dashboard');
+      return;
+    }
+
+    // Simulate preloader only if not authenticated
+    console.log('Starting preloader timer - no authenticated user found');
     const timer = setTimeout(() => {
+      console.log('Preloader timer completed, setting view to welcome');
       setCurrentView('welcome');
     }, 3000);
     
-    return () => clearTimeout(timer);
-  }, []);
+    return () => {
+      console.log('Clearing preloader timer');
+      clearTimeout(timer);
+    };
+  }, [authLoading, authUser]);
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
   };
 
   const handleAuthSuccess = (userData: any) => {
-    setUser(userData);
-    if (userData.userType === 'vendor') {
+    // Format user data for Dashboard component
+    const formattedUser = {
+      ...userData,
+      name: userData.first_name && userData.last_name 
+        ? `${userData.first_name} ${userData.last_name}`
+        : userData.email?.split('@')[0] || 'User',
+      avatar: userData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email || 'user'}`,
+      userType: userData.user_type || 'customer'
+    };
+    
+    setUser(formattedUser);
+    if (formattedUser.userType === 'vendor') {
       setCurrentView('vendor-dashboard');
     } else {
       setCurrentView('dashboard');
@@ -59,11 +111,11 @@ const Index = () => {
     setCartItems(prev => [...prev, product]);
   };
 
-  const handleToggleLike = (productId: string) => {
+  const handleToggleLike = (product: any) => {
     setLikedItems(prev => 
-      prev.includes(productId) 
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
+      prev.includes(product.id) 
+        ? prev.filter(id => id !== product.id)
+        : [...prev, product.id]
     );
   };
 
@@ -80,6 +132,71 @@ const Index = () => {
     alert('Password reset functionality will be implemented soon.');
   };
 
+  const isProfileComplete = (profile: any) => {
+    return profile && profile.first_name && profile.last_name && profile.location && profile.gender && profile.phone_number;
+  };
+
+  const onGoogleAuthSuccess = async (email: string) => {
+    // Fetch user profile by email
+    const profile = await UserProfileService.getUserProfileByEmail(email);
+    if (!profile || !isProfileComplete(profile)) {
+      // For new Google users, create a basic profile structure
+      const basicProfile = profile || {
+        email: email,
+        first_name: '',
+        last_name: '',
+        user_type: 'customer'
+      };
+      setProfileCompletionData(basicProfile);
+      setProfileCompletionOpen(true);
+    } else {
+      handleAuthSuccess(profile);
+    }
+  };
+
+  const handleProfileComplete = async (data: any) => {
+    try {
+      // Update user profile
+      if (profileCompletionData && profileCompletionData.id) {
+        await UserProfileService.updateUserProfile(profileCompletionData.id, {
+          first_name: data.firstName,
+          last_name: data.lastName,
+          location: `${data.constituency}, ${data.county}`,
+          gender: data.gender,
+          phone_number: data.phoneNumber,
+        });
+        // Fetch updated profile
+        const updated = await UserProfileService.getUserProfileByEmail(profileCompletionData.email);
+        setProfileCompletionOpen(false);
+        handleAuthSuccess(updated);
+      } else {
+        // For new users without a profile ID, create a formatted user object
+        const newUser = {
+          email: profileCompletionData.email,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          location: `${data.constituency}, ${data.county}`,
+          gender: data.gender,
+          phone_number: data.phoneNumber,
+          user_type: 'customer'
+        };
+        setProfileCompletionOpen(false);
+        handleAuthSuccess(newUser);
+      }
+    } catch (error) {
+      console.error('Error completing profile:', error);
+      // Fallback: create a basic user object
+      const fallbackUser = {
+        email: profileCompletionData.email,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        user_type: 'customer'
+      };
+      setProfileCompletionOpen(false);
+      handleAuthSuccess(fallbackUser);
+    }
+  };
+
   return (
     <div className="min-h-screen isa-gradient">
       {currentView === 'preloader' && <Preloader />}
@@ -91,6 +208,7 @@ const Index = () => {
           onNavigateToSignIn={() => setCurrentView('auth-signin')}
           onNavigateToSignUp={() => setCurrentView('auth-signup')}
           onNavigateToVendorSignUp={() => setCurrentView('vendor-signup')}
+          onGoogleAuthSuccess={onGoogleAuthSuccess}
         />
       )}
       {currentView === 'auth-signup' && (
@@ -143,6 +261,16 @@ const Index = () => {
           user={user}
           onBack={handleBackToDashboard}
           onAddToCart={handleAddToCart}
+          onToggleLike={handleToggleLike}
+          likedItems={likedItems}
+        />
+      )}
+      {profileCompletionOpen && (
+        <ProfileCompletionModal
+          isOpen={profileCompletionOpen}
+          initialData={profileCompletionData}
+          onComplete={handleProfileComplete}
+          onClose={() => setProfileCompletionOpen(false)}
         />
       )}
     </div>

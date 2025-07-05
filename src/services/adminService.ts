@@ -101,6 +101,24 @@ export class AdminService {
     if (error) throw error;
   }
 
+  static async getPendingVendorApplications(): Promise<VendorApplication[]> {
+    const { data, error } = await supabase
+      .from('vendor_applications')
+      .select(`
+        *,
+        profiles:user_id (
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Analytics
   static async getAnalytics(): Promise<any[]> {
     const { data, error } = await supabase
