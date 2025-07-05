@@ -70,11 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    const stockQuantity = product.source === 'jumia' 
-      ? (product.stock_quantity || 0) 
-      : product.stock_quantity;
-
-    if (stockQuantity === 0) {
+    if (product.stock_quantity === 0) {
       toast({
         title: "Out of stock",
         description: "This product is currently out of stock.",
@@ -113,8 +109,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       if (product.source !== 'jumia') {
         await OrderService.addToCart(user.id, {
           product_id: product.id,
-          quantity: quantity,
-          product_name: product.name
+          quantity: quantity
         });
       }
       
@@ -175,7 +170,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
           );
         } else {
           await JumiaInteractionService.unlikeJumiaProduct(user.id, product.id);
-          // For unlike, we just track it as a separate interaction without using 'unlike' type
           await JumiaInteractionService.trackInteraction(
             user.id,
             {
@@ -185,17 +179,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
               link: product.link,
               image: product.image
             },
-            'view' // Use 'view' instead of 'unlike' since it's not supported
+            'unlike'
           );
         }
       } else {
-        // For vendor products, track like/unlike differently
-        if (newLikeState) {
-          await CustomerBehaviorService.trackInteraction(user.id, product.id, 'like');
-        } else {
-          // Handle unlike for vendor products - just track as view since unlike isn't supported
-          await CustomerBehaviorService.trackInteraction(user.id, product.id, 'view');
-        }
+        await CustomerBehaviorService.trackInteraction(
+          user.id, 
+          product.id, 
+          newLikeState ? 'like' : 'unlike'
+        );
       }
       
       setLocalIsLiked(newLikeState);
@@ -326,8 +318,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
     );
   }
 
-  const stockQuantity = product.stock_quantity || 0;
-
   return (
     <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       {/* Product Image */}
@@ -382,10 +372,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Stock indicator */}
-        {stockQuantity > 0 && stockQuantity <= 5 && (
+        {product.stock_quantity > 0 && product.stock_quantity <= 5 && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
-              Only {stockQuantity} left
+              Only {product.stock_quantity} left
             </Badge>
           </div>
         )}
@@ -452,7 +442,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <CardFooter className="p-4 pt-0">
         <div className="w-full space-y-3">
           {/* Quantity Selector */}
-          {stockQuantity > 0 && (
+          {product.stock_quantity > 0 && (
             <div className="flex items-center justify-center space-x-2">
               <Button
                 size="icon"
@@ -470,8 +460,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 size="icon"
                 variant="outline"
                 className="w-8 h-8"
-                onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
-                disabled={quantity >= stockQuantity}
+                onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
+                disabled={quantity >= product.stock_quantity}
               >
                 <Plus className="w-3 h-3" />
               </Button>
@@ -481,7 +471,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Add to Cart Button */}
           <Button
             onClick={handleAddToCart}
-            disabled={stockQuantity === 0 || isLoading}
+            disabled={product.stock_quantity === 0 || isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isLoading ? (
@@ -493,7 +483,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-center space-x-2">
                 <ShoppingCart className="w-4 h-4" />
                 <span>
-                  {stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
                 </span>
               </div>
             )}
@@ -504,4 +494,4 @@ const ProductCard: React.FC<ProductCardProps> = ({
   );
 };
 
-export default ProductCard;
+export default ProductCard; 

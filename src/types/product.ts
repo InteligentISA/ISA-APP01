@@ -22,8 +22,6 @@ export interface Product {
   updated_at: string;
   currency?: string; // Default to KES (Kenyan Shillings)
   commission_percentage?: number;
-  pickup_location?: string;
-  pickup_phone?: string;
 }
 
 export interface ProductCategory {
@@ -134,13 +132,10 @@ export interface DashboardJumiaProduct {
   link: string;
   image: string;
   source: 'jumia';
-  stock_quantity?: number; // Add this for consistency
-  category?: string; // Add for consistency
-  description?: string; // Add for consistency
 }
 
 export interface DashboardVendorProduct extends Product {
   source: 'vendor';
 }
 
-export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct;
+export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct; 

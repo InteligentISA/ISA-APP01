@@ -1,444 +1,558 @@
-import { useState, useEffect } from 'react';
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
-import { useToast } from "@/hooks/use-toast"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
+import ProductGrid from "@/components/ProductGrid";
+import ProfileModal from "@/components/ProfileModal";
+import CartModal from "@/components/CartModal";
+import LikedItemsModal from "@/components/LikedItemsModal";
+import WelcomeChatbot from "@/components/WelcomeChatbot";
+import { Product } from "@/types/product";
+import { OrderService } from "@/services/orderService";
 import { ProductService } from '@/services/productService';
-import { OrderService } from '@/services/orderService';
-import ProductCard from './ProductCard';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Filter, Menu, ShoppingCart, Heart } from "lucide-react";
 import { DashboardProduct } from '@/types/product';
-import CartModal from './CartModal';
-import AskISA from './AskISA';
+import { CustomerBehaviorService } from '@/services/customerBehaviorService';
+import { JumiaInteractionService } from '@/services/jumiaInteractionService';
 
-const Dashboard = () => {
-  const [products, setProducts] = useState<DashboardProduct[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<DashboardProduct[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [priceRange, setPriceRange] = useState<number[]>([0, 1000]);
-  const [sortOption, setSortOption] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
-  const [isLoading, setIsLoading] = useState(true);
+interface DashboardProps {
+  user: any;
+  onLogout: () => void;
+  onNavigateToAskISA: () => void;
+  onNavigateToGifts: () => void;
+  onUserUpdate?: (updatedUser: any) => void;
+}
+
+const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [likedItems, setLikedItems] = useState<any[]>([]);
+  const [showProfile, setShowProfile] = useState(false);
   const [showCart, setShowCart] = useState(false);
-  const [showISA, setShowISA] = useState(false);
-  const [likedItems, setLikedItems] = useState<string[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
-  const [totalVendorCount, setTotalVendorCount] = useState(0);
-  const [user, setUser] = useState<any>(null); // Replace Clerk with simple user state
+  const [showLikedItems, setShowLikedItems] = useState(false);
+  const [showWelcomeChatbot, setShowWelcomeChatbot] = useState(true);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [productLoading, setProductLoading] = useState(true);
+  const [productError, setProductError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 20;
+  const [totalVendorCount, setTotalVendorCount] = useState(0);
+  const [vendorPages, setVendorPages] = useState(1);
+  const [likedJumiaItems, setLikedJumiaItems] = useState<string[]>([]);
+  const [jumiaInteractionsLoading, setJumiaInteractionsLoading] = useState(false);
 
-  useEffect(() => {
-    // Get user from localStorage or auth context
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+  const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
+
+  // Load user's liked Jumia products from backend
+  const loadLikedJumiaProducts = async () => {
+    if (!user?.id) return;
     
-    loadProducts();
-    loadCategories();
-    loadLikedItems();
-  }, []);
+    setJumiaInteractionsLoading(true);
+    try {
+      const { data: likedJumiaInteractions } = await JumiaInteractionService.getLikedJumiaProducts(user.id);
+      const likedJumiaIds = likedJumiaInteractions.map(interaction => interaction.jumia_product_id);
+      setLikedJumiaItems(likedJumiaIds);
+    } catch (error) {
+      console.error('Error loading liked Jumia products:', error);
+    } finally {
+      setJumiaInteractionsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    applyFilters();
-  }, [products, searchQuery, categoryFilter, priceRange, sortOption, sortDirection]);
+    if (!user?.id) return;
+    setLoading(true);
+    Promise.all([
+      OrderService.getCartItems(user.id),
+      OrderService.getWishlistItems(user.id),
+      loadLikedJumiaProducts()
+    ]).then(([cart, wishlist]) => {
+      setCartItems(cart);
+      setLikedItems(wishlist);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [user]);
 
-  const loadProducts = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error, totalVendorCount } = await ProductService.getDashboardProducts(page);
-      if (error) {
-        toast({
-          title: "Error loading products",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setProducts(data);
-        setTotalVendorCount(totalVendorCount);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error loading products",
-        description: error.message || "Failed to load products.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  useEffect(() => {
+    setProductLoading(true);
+    setProductError(null);
+    ProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE)
+      .then(({ data, error, totalVendorCount }) => {
+        if (error) {
+          setProductError('Failed to load products');
+        } else {
+          setProducts(data);
+          setTotalVendorCount(totalVendorCount);
+          // Calculate total pages: vendor pages + unlimited Jumia pages
+          const vendorPages = Math.ceil((totalVendorCount || 0) / PRODUCTS_PER_PAGE);
+          setVendorPages(vendorPages);
+        }
+      })
+      .catch(() => setProductError('Failed to load products'))
+      .finally(() => setProductLoading(false));
+  }, [currentPage]);
 
-  const loadCategories = async () => {
-    try {
-      const { data, error } = await ProductService.getCategories();
-      if (error) {
-        toast({
-          title: "Error loading categories",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        setCategories(data);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error loading categories",
-        description: error.message || "Failed to load categories.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const loadLikedItems = async () => {
-    if (!user) return;
-    try {
-      const items = await OrderService.getWishlistItems(user.id);
-      setLikedItems(items.map(item => item.product_id));
-    } catch (error: any) {
-      toast({
-        title: "Error loading wishlist",
-        description: error.message || "Failed to load wishlist.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleAddToCart = async (product: DashboardProduct) => {
-    if (!user) {
-      toast({
-        title: "Please sign in",
-        description: "You need to be signed in to add items to cart.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleAddToCart = async (product) => {
+    if (!user?.id) return;
     try {
       await OrderService.addToCart(user.id, {
         product_id: product.id,
-        quantity: 1,
         product_name: product.name,
-        product_category: product.source === 'vendor' ? (product as any).category : 'general'
+        product_category: product.category,
+        quantity: 1,
+        price: product.price,
       });
-      
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
-      });
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart.",
-        variant: "destructive",
-      });
+      const updatedCart = await OrderService.getCartItems(user.id);
+      setCartItems(updatedCart);
+      toast({ title: "Added to cart!", description: "Item has been added to your shopping cart." });
+    } catch (e) {
+      toast({ title: "Failed to add to cart", description: e.message || "Please try again." });
     }
   };
 
-  const handleToggleLike = async (product: DashboardProduct) => {
-    if (!user) {
-      toast({
-        title: "Please sign in",
-        description: "You need to be signed in to like items.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const isLiked = likedItems.includes(product.id);
-
+  const handleRemoveFromCart = async (cartItemId) => {
+    if (!user?.id) return;
     try {
-      if (isLiked) {
-        await OrderService.removeFromWishlist(user.id, product.id);
-        setLikedItems(prev => prev.filter(id => id !== product.id));
-        toast({
-          title: "Removed from wishlist",
-          description: "Item removed from your wishlist.",
-        });
-      } else {
-        await OrderService.addToWishlist(user.id, {
-          product_id: product.id,
-          product_name: product.name,
-          product_category: product.source === 'vendor' ? (product as any).category || 'general' : 'general'
-        });
-        setLikedItems(prev => [...prev, product.id]);
-        toast({
-          title: "Added to wishlist",
-          description: "Item added to your wishlist.",
+      await OrderService.removeFromCart(cartItemId);
+      const updatedCart = await OrderService.getCartItems(user.id);
+      setCartItems(updatedCart);
+      toast({ title: "Removed from cart", description: "Item has been removed from your cart." });
+    } catch (e) {
+      toast({ title: "Failed to remove from cart", description: e.message || "Please try again." });
+    }
+  };
+
+  const handleToggleLike = async (product) => {
+    if (product.source === 'jumia') {
+      try {
+        const isCurrentlyLiked = likedJumiaItems.includes(product.id);
+        
+        if (isCurrentlyLiked) {
+          // Unlike the product
+          await JumiaInteractionService.unlikeJumiaProduct(user.id, product.id);
+          setLikedJumiaItems(prev => prev.filter(id => id !== product.id));
+          
+          // Track the unlike interaction
+          await JumiaInteractionService.trackInteraction(
+            user.id,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              link: product.link,
+              image: product.image
+            },
+            'unlike'
+          );
+          
+          toast({ title: "Removed from favorites", description: "Product removed from your favorites." });
+        } else {
+          // Like the product
+          await JumiaInteractionService.trackInteraction(
+            user.id,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              link: product.link,
+              image: product.image
+            },
+            'like',
+            {
+              category: 'electronics', // Default category for Jumia products
+              source: 'jumia'
+            }
+          );
+          
+          setLikedJumiaItems(prev => [...prev, product.id]);
+          toast({ title: "Added to favorites!", description: "Product added to your favorites." });
+        }
+      } catch (error) {
+        console.error('Error toggling Jumia product like:', error);
+        toast({ 
+          title: "Error", 
+          description: "Failed to update favorites. Please try again.",
+          variant: "destructive"
         });
       }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update wishlist.",
-        variant: "destructive",
-      });
+    } else {
+      // existing vendor like logic
+      if (!user?.id) return;
+      const alreadyLiked = likedItems.some(item => item.product_id === product.id);
+      try {
+        if (alreadyLiked) {
+          OrderService.removeFromWishlist(user.id, product.id);
+        } else {
+          OrderService.addToWishlist(user.id, {
+            product_id: product.id,
+            product_name: product.name,
+            product_category: product.category,
+          });
+        }
+        // Update wishlist UI
+        OrderService.getWishlistItems(user.id).then(setLikedItems);
+      } catch (e) {}
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...products];
-
-    if (searchQuery) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.source === 'vendor' && (product as any).description && (product as any).description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+  const handleUserUpdate = (updatedUser: any) => {
+    if (onUserUpdate) {
+      onUserUpdate(updatedUser);
     }
-
-    if (categoryFilter) {
-      filtered = filtered.filter(product => 
-        product.source === 'vendor' ? (product as any).category === categoryFilter : false
-      );
-    }
-
-    filtered = filtered.filter(product => product.price >= priceRange[0] && product.price <= priceRange[1]);
-
-    if (sortOption) {
-      filtered.sort((a, b) => {
-        const aValue = typeof (a as any)[sortOption] === 'string' ? (a as any)[sortOption].toLowerCase() : (a as any)[sortOption];
-        const bValue = typeof (b as any)[sortOption] === 'string' ? (b as any)[sortOption].toLowerCase() : (b as any)[sortOption];
-
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    setFilteredProducts(filtered);
   };
 
-  const handleLoadMore = () => {
-    setPage(prev => prev + 1);
-    loadProducts();
+  const handleNavigateToAskISAWithQuery = (query?: string) => {
+    setShowWelcomeChatbot(false);
+    onNavigateToAskISA();
   };
+
+  const handleNavigateToGiftsFromChatbot = () => {
+    setShowWelcomeChatbot(false);
+    onNavigateToGifts();
+  };
+
+  // Helper to convert string IDs to numbers (filter out NaN)
+  const likedItemsNumber = likedItems.map(item => Number(item.product_id)).filter(id => !isNaN(id));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <Menu className="h-5 w-5 mr-2" />
-                  Menu
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="sm:max-w-sm">
-                <SheetHeader>
-                  <SheetTitle>Dashboard Menu</SheetTitle>
-                  <SheetDescription>
-                    Explore options to manage your account and preferences.
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="grid gap-4 py-4">
-                  <Button variant="outline" className="justify-start">
-                    My Orders
-                  </Button>
-                  <Button variant="outline" className="justify-start">
-                    Account Settings
-                  </Button>
-                  <Button variant="destructive" className="justify-start">
-                    Logout
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+      <header className="bg-white dark:bg-slate-800 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            {/* Logo and Title */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <img 
+                src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
+                alt="ISA Logo" 
+                className="w-6 h-6 sm:w-8 sm:h-8"
+              />
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">ISA</h1>
+            </div>
+            
+            {/* Search - Hidden on mobile, shown in mobile menu */}
+            <div className="hidden md:flex flex-1 max-w-lg mx-8">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 w-full bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                />
+              </div>
+            </div>
+            
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              </Button>
 
-            <Button variant="ghost" size="sm" onClick={() => setShowISA(true)}>
-              <img src="/AskISA.png" alt="Ask ISA Logo" className="h-5 w-5 mr-2" />
-              Ask ISA
-            </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg"
+                onClick={onNavigateToAskISA}
+              >
+                <MessageCircle className="w-5 h-5" />
+                <Sparkles className="absolute -top-1 -right-1 w-3 h-3" />
+              </Button>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative isa-gold-bg text-black rounded-full hover:bg-yellow-500 shadow-lg"
+                onClick={onNavigateToGifts}
+              >
+                <Gift className="w-5 h-5" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+                onClick={() => setShowLikedItems(true)}
+              >
+                <Heart className="w-5 h-5" />
+                {(likedItems.length + likedJumiaItems.length) > 0 && (
+                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
+                    {likedItems.length + likedJumiaItems.length}
+                  </Badge>
+                )}
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="relative text-gray-600 dark:text-gray-300 hover:text-blue-500 dark:hover:text-blue-400"
+                onClick={() => setShowCart(true)}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {cartItems.length > 0 && (
+                  <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-blue-500 text-white">
+                    {cartItems.length}
+                  </Badge>
+                )}
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setShowProfile(true)}
+              >
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={user?.avatar} />
+                  <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">
+                    {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium hidden lg:inline">{user?.name || user?.email || 'User'}</span>
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={onLogout}
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="text-gray-600 dark:text-gray-300"
+              >
+                <Menu className="w-5 h-5" />
+              </Button>
+            </div>
           </div>
 
-          <Input
-            type="search"
-            placeholder="Search for products..."
-            className="max-w-md"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          <div className="flex items-center space-x-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Category</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <RadioGroup defaultValue={categoryFilter} onValueChange={setCategoryFilter} className="p-2">
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="" id="all" className="peer h-4 w-4 shrink-0 rounded-full border border-primary ring-offset-background focus-without-ring data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground" />
-                    <Label htmlFor="all" className="cursor-pointer peer-data-[state=checked]:text-primary">All</Label>
-                  </div>
-                  {categories.map(category => (
-                    <div key={category} className="flex items-center space-x-2">
-                      <RadioGroupItem value={category} id={category} className="peer h-4 w-4 shrink-0 rounded-full border border-primary ring-offset-background focus-without-ring data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground" />
-                      <Label htmlFor={category} className="cursor-pointer peer-data-[state=checked]:text-primary">{category}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Price Range</DropdownMenuLabel>
-                <div className="px-4 py-2">
-                  <Slider
-                    defaultValue={priceRange}
-                    max={1000}
-                    step={10}
-                    onValueChange={setPriceRange}
-                  />
-                  <div className="flex justify-between text-sm text-gray-500 mt-2">
-                    <span>KES {priceRange[0]}</span>
-                    <span>KES {priceRange[1]}</span>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button variant="ghost" size="sm" onClick={() => setShowCart(true)}>
-              <ShoppingCart className="h-5 w-5" />
-              <span className="ml-2">
-                Cart
-              </span>
-            </Button>
+          {/* Mobile Search Bar */}
+          <div className="md:hidden pb-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Search products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+              />
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {showMobileMenu && (
+            <div className="md:hidden border-t border-gray-200 dark:border-slate-700 py-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+                  className="text-gray-600 dark:text-gray-300"
+                >
+                  {theme === "light" ? <Moon className="w-4 h-4 mr-2" /> : <Sun className="w-4 h-4 mr-2" />}
+                  {theme === "light" ? "Dark Mode" : "Light Mode"}
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
+                  onClick={onNavigateToAskISA}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Ask ISA
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="isa-gold-bg text-black"
+                  onClick={onNavigateToGifts}
+                >
+                  <Gift className="w-4 h-4 mr-2" />
+                  Gifts
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowLikedItems(true)}
+                  className="text-red-500"
+                >
+                  <Heart className="w-4 h-4 mr-2" />
+                  Favorites ({likedItems.length + likedJumiaItems.length})
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowCart(true)}
+                  className="text-blue-500"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Cart ({cartItems.length})
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowProfile(true)}
+                  className="text-gray-700 dark:text-gray-200"
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={onLogout}
+                  className="text-gray-600 dark:text-gray-300"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Featured Products Section */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Featured Products</h2>
-          <p className="text-gray-600">Discover our handpicked selection of top-quality products.</p>
-        </section>
-
-        {/* Categories Section */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Shop by Category</h2>
-          <p className="text-gray-600">Explore our wide range of product categories.</p>
-        </section>
-
-        {/* Products Grid */}
-        <section className="mb-16">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-900">
-              {searchQuery ? `Search Results for "${searchQuery}"` : 'All Products'}
-            </h2>
-            <div className="flex items-center space-x-4">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    Sort By
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setSortOption('name'); setSortDirection('asc'); }}>Name (A-Z)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setSortOption('name'); setSortDirection('desc'); }}>Name (Z-A)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setSortOption('price'); setSortDirection('asc'); }}>Price (Low to High)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setSortOption('price'); setSortDirection('desc'); }}>Price (High to Low)</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-lg shadow-md p-4 animate-pulse">
-                  <div className="bg-gray-300 h-48 rounded-lg mb-4"></div>
-                  <div className="bg-gray-300 h-4 rounded mb-2"></div>
-                  <div className="bg-gray-300 h-4 rounded mb-2 w-3/4"></div>
-                  <div className="bg-gray-300 h-6 rounded w-1/2"></div>
-                </div>
-              ))}
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-gray-500 text-lg">No products found.</p>
-              {searchQuery && (
-                <Button 
-                  onClick={() => setSearchQuery('')}
-                  variant="outline"
-                  className="mt-4"
-                >
-                  Clear Search
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onAddToCart={handleAddToCart}
-                  onToggleLike={handleToggleLike}
-                  isLiked={likedItems.includes(product.id)}
-                  user={user}
-                />
-              ))}
-            </div>
-          )}
-
-          {products.length < totalVendorCount && (
-            <div className="text-center mt-8">
-              <Button onClick={handleLoadMore} disabled={isLoading}>
-                {isLoading ? 'Loading...' : 'Load More'}
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+        {/* Categories */}
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4">Shop by Category</h2>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Button
+                key={category}
+                variant={selectedCategory === category ? "default" : "outline"}
+                onClick={() => setSelectedCategory(category)}
+                size="sm"
+                className={`rounded-full text-xs sm:text-sm ${
+                  selectedCategory === category 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {category}
               </Button>
-            </div>
-          )}
-        </section>
-      </main>
+            ))}
+            <Button
+              variant="outline"
+              onClick={onNavigateToAskISA}
+              size="sm"
+              className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg text-xs sm:text-sm"
+            >
+              <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              Ask ISA
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onNavigateToGifts}
+              size="sm"
+              className="rounded-full isa-gold-bg text-black hover:bg-yellow-500 border-none shadow-lg text-xs sm:text-sm"
+            >
+              <Gift className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              Gifts
+            </Button>
+          </div>
+        </div>
 
-      {/* Modals */}
+        {/* Products */}
+        {productLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <span>Loading products...</span>
+          </div>
+        ) : productError ? (
+          <div className="flex items-center justify-center py-12">
+            <span className="text-red-600">{productError}</span>
+          </div>
+        ) : (
+          <ProductGrid
+            products={products}
+            onAddToCart={handleAddToCart}
+            onToggleLike={handleToggleLike}
+            likedItems={
+              products.length > 0 && products[0].source === 'jumia'
+                ? likedJumiaItems
+                : likedItems.map(item => item.product_id)
+            }
+            currentPage={currentPage}
+            vendorPages={vendorPages}
+            totalVendorCount={totalVendorCount}
+            onNextPage={() => setCurrentPage(p => p + 1)}
+            onPrevPage={() => setCurrentPage(p => Math.max(p - 1, 1))}
+          />
+        )}
+      </div>
+
+      <ProfileModal 
+        isOpen={showProfile}
+        onClose={() => setShowProfile(false)}
+        user={user}
+        onUserUpdate={handleUserUpdate}
+      />
+
       <CartModal
         isOpen={showCart}
         onClose={() => setShowCart(false)}
         user={user}
-        onRemoveFromCart={() => {}}
-        onUpdateQuantity={() => {}}
+        cartItems={cartItems}
+        onRemoveFromCart={handleRemoveFromCart}
+        onUpdateQuantity={async (cartItemId, quantity) => {
+          await OrderService.updateCartItem(cartItemId, quantity);
+          const updatedCart = await OrderService.getCartItems(user.id);
+          setCartItems(updatedCart);
+        }}
       />
 
-      {showISA && (
-        <div className="fixed inset-0 z-50">
-          <AskISA
-            onBack={() => setShowISA(false)}
-            user={user}
-            onAddToCart={handleAddToCart}
-            onToggleLike={handleToggleLike}
-            likedItems={likedItems}
-          />
-        </div>
-      )}
+      <LikedItemsModal
+        isOpen={showLikedItems}
+        onClose={() => setShowLikedItems(false)}
+        likedItems={likedItems}
+        likedJumiaItems={likedJumiaItems}
+        onAddToCart={handleAddToCart}
+        onRemoveFromLiked={async (productId) => {
+          await handleToggleLike({ id: productId });
+        }}
+        userId={user?.id}
+      />
+
+      <WelcomeChatbot
+        isOpen={showWelcomeChatbot}
+        onClose={() => setShowWelcomeChatbot(false)}
+        user={user}
+        onNavigateToGifts={handleNavigateToGiftsFromChatbot}
+        onNavigateToAskISA={handleNavigateToAskISAWithQuery}
+      />
     </div>
   );
 };

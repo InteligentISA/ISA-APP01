@@ -1,4 +1,3 @@
-
 export interface Address {
   street: string;
   city: string;
@@ -19,15 +18,10 @@ export interface Order {
   discount_amount: number;
   total_amount: number;
   currency: string;
-  fulfillment_method: 'pickup' | 'delivery';
-  shipping_address?: Address;
-  pickup_location?: string;
-  pickup_phone?: string;
+  shipping_address: Address;
+  billing_address: Address;
   customer_email: string;
   customer_phone?: string;
-  payment_method?: PaymentMethod;
-  payment_status?: PaymentStatus;
-  mpesa_transaction_id?: string;
   notes?: string;
   estimated_delivery_date?: string;
   actual_delivery_date?: string;
@@ -49,6 +43,34 @@ export interface OrderItem {
   created_at: string;
 }
 
+export interface Payment {
+  id: string;
+  order_id: string;
+  payment_method: PaymentMethod;
+  payment_intent_id?: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  transaction_id?: string;
+  gateway_response?: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Shipping {
+  id: string;
+  order_id: string;
+  carrier: string;
+  tracking_number?: string;
+  tracking_url?: string;
+  status: ShippingStatus;
+  shipping_method: string;
+  estimated_delivery_date?: string;
+  actual_delivery_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CartItem {
   id: string;
   user_id: string;
@@ -56,10 +78,8 @@ export interface CartItem {
   quantity: number;
   created_at: string;
   updated_at: string;
+  // Joined with product data
   product?: Product;
-  product_name?: string;
-  product_category?: string;
-  price?: number;
 }
 
 export interface WishlistItem {
@@ -67,18 +87,28 @@ export interface WishlistItem {
   user_id: string;
   product_id: string;
   created_at: string;
+  // Joined with product data
   product?: Product;
+}
+
+export interface OrderStatusHistory {
+  id: string;
+  order_id: string;
+  status: OrderStatus;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
 }
 
 export interface OrderWithDetails extends Order {
   items: OrderItem[];
+  payment?: Payment;
+  shipping?: Shipping;
+  status_history: OrderStatusHistory[];
 }
 
 export interface CartItemWithProduct extends CartItem {
   product: Product;
-  product_name: string;
-  product_category: string;
-  price: number;
 }
 
 export interface WishlistItemWithProduct extends WishlistItem {
@@ -96,21 +126,58 @@ export type OrderStatus =
   | 'refunded';
 
 export type PaymentMethod = 
-  | 'mpesa'
-  | 'pay_after_pickup'
-  | 'pay_after_delivery';
+  | 'stripe'
+  | 'paypal'
+  | 'apple_pay'
+  | 'google_pay'
+  | 'bank_transfer'
+  | 'cash_on_delivery';
 
 export type PaymentStatus = 
   | 'pending'
-  | 'paid'
+  | 'processing'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled'
+  | 'refunded';
+
+export type ShippingStatus = 
+  | 'pending'
+  | 'shipped'
+  | 'in_transit'
+  | 'delivered'
   | 'failed';
 
 // Request/Response types
+export interface CreateOrderRequest {
+  items: Array<{
+    product_id: string;
+    quantity: number;
+  }>;
+  shipping_address: Address;
+  billing_address: Address;
+  customer_email: string;
+  customer_phone?: string;
+  notes?: string;
+  payment_method: PaymentMethod;
+}
+
+export interface CreatePaymentRequest {
+  order_id: string;
+  payment_method: PaymentMethod;
+  amount: number;
+  currency?: string;
+}
+
+export interface UpdateOrderStatusRequest {
+  order_id: string;
+  status: OrderStatus;
+  notes?: string;
+}
+
 export interface AddToCartRequest {
   product_id: string;
   quantity: number;
-  product_name?: string;
-  product_category?: string;
 }
 
 export interface UpdateCartItemRequest {
@@ -119,19 +186,34 @@ export interface UpdateCartItemRequest {
 }
 
 export interface CheckoutRequest {
-  fulfillment_method: 'pickup' | 'delivery';
-  shipping_address?: Address;
+  shipping_address: Address;
+  billing_address: Address;
   customer_email: string;
   customer_phone?: string;
   notes?: string;
   payment_method: PaymentMethod;
 }
 
-export interface MpesaPaymentRequest {
-  phone_number: string;
-  amount: number;
-  order_id: string;
+// Filter and search types
+export interface OrderFilters {
+  status?: OrderStatus;
+  date_from?: string;
+  date_to?: string;
+  min_amount?: number;
+  max_amount?: number;
+}
+
+export interface OrderSortOption {
+  field: 'created_at' | 'total_amount' | 'status';
+  direction: 'asc' | 'desc';
+}
+
+export interface OrderSearchParams {
+  filters?: OrderFilters;
+  sort?: OrderSortOption;
+  page?: number;
+  limit?: number;
 }
 
 // Import Product type
-import { Product } from './product';
+import { Product } from './product'; 

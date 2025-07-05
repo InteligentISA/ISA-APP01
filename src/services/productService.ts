@@ -262,11 +262,6 @@ export class ProductService {
     }
   }
 
-  // Alias for getProductsByVendor to match the expected method name
-  static async getVendorProducts(vendorId: string): Promise<{ data: Product[]; error: any }> {
-    return this.getProductsByVendor(vendorId);
-  }
-
   // Get dashboard products: vendor + Jumia fallback
   static async getDashboardProducts(page: number = 1, limit: number = 20): Promise<{ data: DashboardProduct[]; error: any; totalVendorCount: number }> {
     try {
@@ -316,4 +311,4 @@ export class ProductService {
       return { data: [], error: err, totalVendorCount: 0 };
     }
   }
-}
+} 

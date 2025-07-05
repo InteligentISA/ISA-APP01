@@ -1,317 +1,347 @@
-
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { X, CreditCard, MapPin, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { OrderService } from "@/services/orderService";
-import { CheckoutRequest, Address } from "@/types/order";
-import MpesaPaymentModal from "./MpesaPaymentModal";
-import OrderSuccessModal from "./OrderSuccessModal";
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
+import { X, CreditCard, Check, MapPin } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { OrderService } from '@/services/orderService';
+import { CartItemWithProduct, Address, PaymentMethod } from '@/types/order';
 
 interface CheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: any;
-  cartItems: any[];
+  cartItems: CartItemWithProduct[];
   onOrderComplete: () => void;
 }
 
-const CheckoutModal = ({ isOpen, onClose, user, cartItems, onOrderComplete }: CheckoutModalProps) => {
-  const [fulfillmentMethod, setFulfillmentMethod] = useState<'pickup' | 'delivery'>('pickup');
-  const [customerPhone, setCustomerPhone] = useState(user?.phone_number || '');
-  const [notes, setNotes] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'pay_after_pickup' | 'pay_after_delivery'>('mpesa');
+const CheckoutModal: React.FC<CheckoutModalProps> = ({
+  isOpen,
+  onClose,
+  user,
+  cartItems,
+  onOrderComplete
+}) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderComplete, setOrderComplete] = useState(false);
+  const [orderNumber, setOrderNumber] = useState('');
+  
   const [shippingAddress, setShippingAddress] = useState<Address>({
     street: '',
     city: '',
     state: '',
     zip: '',
-    country: 'Kenya',
-    apartment: ''
+    country: 'United States'
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [showMpesaPayment, setShowMpesaPayment] = useState(false);
-  const [showOrderSuccess, setShowOrderSuccess] = useState(false);
-  const [currentOrder, setCurrentOrder] = useState<any>(null);
+  const [contactInfo, setContactInfo] = useState({
+    email: user?.email || '',
+    phone: ''
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [notes, setNotes] = useState('');
+
   const { toast } = useToast();
 
-  const total = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const taxAmount = subtotal * 0.08;
+  const shippingAmount = subtotal > 50 ? 0 : 5.99;
+  const totalAmount = subtotal + taxAmount + shippingAmount;
 
-  const handleCheckout = async () => {
-    if (!customerPhone) {
+  const handlePlaceOrder = async () => {
+    if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.state || !shippingAddress.zip) {
       toast({
-        title: "Phone required",
-        description: "Please enter your phone number.",
-        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in all required shipping address fields.",
+        variant: "destructive"
       });
       return;
     }
 
-    if (fulfillmentMethod === 'delivery' && !shippingAddress.street) {
+    if (!contactInfo.email || !contactInfo.phone) {
       toast({
-        title: "Address required",
-        description: "Please enter your delivery address.",
-        variant: "destructive",
+        title: "Missing Information",
+        description: "Please provide your email and phone number.",
+        variant: "destructive"
       });
       return;
     }
 
+    setIsProcessing(true);
     try {
-      setIsLoading(true);
-      
-      const checkoutData: CheckoutRequest = {
-        fulfillment_method: fulfillmentMethod,
-        shipping_address: fulfillmentMethod === 'delivery' ? shippingAddress : undefined,
-        customer_email: user.email,
-        customer_phone: customerPhone,
+      const order = await OrderService.createOrder(user.id, {
+        items: cartItems.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity
+        })),
+        shipping_address: shippingAddress,
+        billing_address: shippingAddress,
+        customer_email: contactInfo.email,
+        customer_phone: contactInfo.phone,
         notes,
         payment_method: paymentMethod
-      };
+      });
 
-      const order = await OrderService.createOrder(user.id, checkoutData, cartItems);
-      setCurrentOrder(order);
+      await OrderService.processPayment(order.id, {
+        order_id: order.id,
+        payment_method: paymentMethod,
+        amount: totalAmount
+      });
 
-      if (paymentMethod === 'mpesa') {
-        setShowMpesaPayment(true);
-      } else {
-        setShowOrderSuccess(true);
-      }
+      setOrderNumber(order.order_number);
+      setOrderComplete(true);
+      onOrderComplete();
+
+      toast({
+        title: "Order Placed Successfully!",
+        description: `Your order #${OrderService.formatOrderNumber(order.order_number)} has been confirmed.`,
+      });
+
+      setTimeout(() => {
+        onClose();
+        setOrderComplete(false);
+      }, 3000);
+
     } catch (error) {
       console.error('Checkout error:', error);
       toast({
-        title: "Checkout failed",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
+        title: "Checkout Failed",
+        description: "There was an error processing your order. Please try again.",
+        variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
-  const handleMpesaSuccess = () => {
-    setShowMpesaPayment(false);
-    setShowOrderSuccess(true);
-  };
-
-  const handleOrderSuccessClose = () => {
-    setShowOrderSuccess(false);
-    onOrderComplete();
-    onClose();
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(price);
   };
 
   if (!isOpen) return null;
 
-  return (
-    <>
+  if (orderComplete) {
+    return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-          <CardHeader className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-            <CardTitle className="text-2xl font-bold">Checkout</CardTitle>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Order Summary */}
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">Order Summary</h3>
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.product_name} x {item.quantity}</span>
-                  <span>KES {(item.price * item.quantity).toFixed(2)}</span>
-                </div>
-              ))}
-              <div className="border-t pt-2 mt-2 font-semibold">
-                <div className="flex justify-between">
-                  <span>Total:</span>
-                  <span>KES {total.toFixed(2)}</span>
-                </div>
-              </div>
+        <Card className="w-full max-w-md bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+          <CardContent className="p-8 text-center">
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-white" />
             </div>
-
-            {/* Fulfillment Method */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">How would you like to receive your order?</Label>
-              <Select value={fulfillmentMethod} onValueChange={(value: 'pickup' | 'delivery') => setFulfillmentMethod(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pickup">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>Pickup from vendor</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="delivery">
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4" />
-                      <span>ISA Delivery</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Delivery Address (only if delivery selected) */}
-            {fulfillmentMethod === 'delivery' && (
-              <div className="space-y-4">
-                <Label className="text-base font-semibold">Delivery Address</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="street">Street Address</Label>
-                    <Input
-                      id="street"
-                      value={shippingAddress.street}
-                      onChange={(e) => setShippingAddress({ ...shippingAddress, street: e.target.value })}
-                      placeholder="123 Main St"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="apartment">Apartment/Unit (Optional)</Label>
-                    <Input
-                      id="apartment"
-                      value={shippingAddress.apartment}
-                      onChange={(e) => setShippingAddress({ ...shippingAddress, apartment: e.target.value })}
-                      placeholder="Apt 4B"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={shippingAddress.city}
-                      onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
-                      placeholder="Nairobi"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">County</Label>
-                    <Input
-                      id="state"
-                      value={shippingAddress.state}
-                      onChange={(e) => setShippingAddress({ ...shippingAddress, state: e.target.value })}
-                      placeholder="Nairobi County"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="zip">Postal Code</Label>
-                    <Input
-                      id="zip"
-                      value={shippingAddress.zip}
-                      onChange={(e) => setShippingAddress({ ...shippingAddress, zip: e.target.value })}
-                      placeholder="00100"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <Label className="text-base font-semibold">Contact Information</Label>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="254700000000"
-                />
-              </div>
-              <div>
-                <Label htmlFor="notes">Order Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Any special instructions..."
-                />
-              </div>
-            </div>
-
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label className="text-base font-semibold">Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={(value: any) => setPaymentMethod(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mpesa">
-                    <div className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4" />
-                      <span>Pay now with M-Pesa</span>
-                    </div>
-                  </SelectItem>
-                  {fulfillmentMethod === 'pickup' && (
-                    <SelectItem value="pay_after_pickup">
-                      <span>Pay after pickup</span>
-                    </SelectItem>
-                  )}
-                  {fulfillmentMethod === 'delivery' && (
-                    <SelectItem value="pay_after_delivery">
-                      <span>Pay after delivery</span>
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Pickup Location Info (only if pickup selected) */}
-            {fulfillmentMethod === 'pickup' && cartItems.length > 0 && (
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">Pickup Locations:</h4>
-                {Array.from(new Set(cartItems.map(item => item.pickup_location))).map((location, index) => (
-                  <div key={index} className="text-sm">
-                    <p><strong>Location:</strong> {location || 'TBD - Vendor will contact you'}</p>
-                    <p><strong>Contact:</strong> {cartItems.find(item => item.pickup_location === location)?.pickup_phone || 'TBD'}</p>
-                    {index < Array.from(new Set(cartItems.map(item => item.pickup_location))).length - 1 && <hr className="my-2" />}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <Button 
-              onClick={handleCheckout} 
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isLoading}
-            >
-              {isLoading ? "Processing..." : `Place Order - KES ${total.toFixed(2)}`}
-            </Button>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Order Confirmed!</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Order #{OrderService.formatOrderNumber(orderNumber)}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              You will receive a confirmation email shortly.
+            </p>
           </CardContent>
         </Card>
       </div>
+    );
+  }
 
-      {showMpesaPayment && currentOrder && (
-        <MpesaPaymentModal
-          isOpen={showMpesaPayment}
-          onClose={() => setShowMpesaPayment(false)}
-          order={currentOrder}
-          onSuccess={handleMpesaSuccess}
-        />
-      )}
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <CardHeader className="relative border-b border-gray-200 dark:border-slate-700">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+            onClick={onClose}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+            Checkout
+          </CardTitle>
+        </CardHeader>
 
-      {showOrderSuccess && currentOrder && (
-        <OrderSuccessModal
-          isOpen={showOrderSuccess}
-          onClose={handleOrderSuccessClose}
-          order={currentOrder}
-        />
-      )}
-    </>
+        <CardContent className="p-6 space-y-6">
+          {/* Shipping Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2" />
+              Shipping Address
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="md:col-span-2">
+                <Label htmlFor="street">Street Address</Label>
+                <Input
+                  id="street"
+                  value={shippingAddress.street}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, street: e.target.value }))}
+                  placeholder="123 Main St"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={shippingAddress.city}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, city: e.target.value }))}
+                  placeholder="New York"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  value={shippingAddress.state}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, state: e.target.value }))}
+                  placeholder="NY"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="zip">ZIP Code</Label>
+                <Input
+                  id="zip"
+                  value={shippingAddress.zip}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, zip: e.target.value }))}
+                  placeholder="10001"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={shippingAddress.country}
+                  onChange={(e) => setShippingAddress(prev => ({ ...prev, country: e.target.value }))}
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Contact Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={contactInfo.email}
+                  onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="your@email.com"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={contactInfo.phone}
+                  onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="(555) 123-4567"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Payment Method */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <CreditCard className="w-5 h-5 mr-2" />
+              Payment Method
+            </h3>
+            <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
+              <SelectTrigger className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600">
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stripe">Credit/Debit Card</SelectItem>
+                <SelectItem value="paypal">PayPal</SelectItem>
+                <SelectItem value="apple_pay">Apple Pay</SelectItem>
+                <SelectItem value="google_pay">Google Pay</SelectItem>
+                <SelectItem value="cash_on_delivery">Cash on Delivery</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          {/* Order Summary */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Order Summary</h3>
+            <div className="space-y-2 bg-gray-50 dark:bg-slate-700 p-4 rounded-lg">
+              {cartItems.map((item) => (
+                <div key={item.id} className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-300">
+                    {item.product.name} x {item.quantity}
+                  </span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    {formatPrice(item.product.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+              <Separator />
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">Subtotal:</span>
+                <span className="text-gray-900 dark:text-white">{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">Tax:</span>
+                <span className="text-gray-900 dark:text-white">{formatPrice(taxAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-300">Shipping:</span>
+                <span className="text-gray-900 dark:text-white">
+                  {shippingAmount === 0 ? 'Free' : formatPrice(shippingAmount)}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex justify-between text-lg font-bold">
+                <span className="text-gray-900 dark:text-white">Total:</span>
+                <span className="text-gray-900 dark:text-white">{formatPrice(totalAmount)}</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Notes */}
+          <div>
+            <Label htmlFor="notes">Order Notes (Optional)</Label>
+            <Input
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Special instructions or notes..."
+              className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+            />
+          </div>
+
+          {/* Place Order Button */}
+          <Button 
+            onClick={handlePlaceOrder} 
+            disabled={isProcessing}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+          >
+            {isProcessing ? 'Processing...' : `Place Order - ${formatPrice(totalAmount)}`}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-export default CheckoutModal;
+export default CheckoutModal; 
