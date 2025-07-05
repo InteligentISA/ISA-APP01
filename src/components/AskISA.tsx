@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Send, Plus, History, Menu, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import {
   SidebarInset
 } from "@/components/ui/sidebar";
 import { AIService } from "@/services/aiService";
-// import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
+import { AIServiceResponse } from "@/types/ai";
 
 interface Message {
   id: number;
@@ -104,7 +105,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
 
     // Call AIService for ISA response
     try {
-      const aiResult = await AIService.processMessage(
+      const aiResult: AIServiceResponse = await AIService.processMessage(
         currentMessage,
         user,
         messages.map(m => ({
@@ -113,7 +114,8 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
           timestamp: m.timestamp
         }))
       );
-      // If aiResult contains products and jumiaProducts, combine and limit
+      
+      // Handle products and jumiaProducts if they exist in the response
       let combinedProducts: any[] = [];
       if (aiResult.products || aiResult.jumiaProducts) {
         const own = aiResult.products || [];
@@ -126,6 +128,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
         setProductResults([]);
         setJumiaResults([]);
       }
+      
       const isaResponse: Message = {
         id: Date.now() + 1,
         type: 'isa',

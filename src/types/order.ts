@@ -178,6 +178,7 @@ export interface UpdateOrderStatusRequest {
 export interface AddToCartRequest {
   product_id: string;
   quantity: number;
+  product_name?: string;
 }
 
 export interface UpdateCartItemRequest {
@@ -216,4 +217,4 @@ export interface OrderSearchParams {
 }
 
 // Import Product type
-import { Product } from './product'; 
+import { Product } from './product';

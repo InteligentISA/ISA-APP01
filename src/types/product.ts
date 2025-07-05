@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -132,10 +133,11 @@ export interface DashboardJumiaProduct {
   link: string;
   image: string;
   source: 'jumia';
+  stock_quantity?: number; // Add this for consistency
 }
 
 export interface DashboardVendorProduct extends Product {
   source: 'vendor';
 }
 
-export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct; 
+export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct;
