@@ -1,726 +1,530 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  Search, 
-  Filter, 
-  Upload, 
-  Image as ImageIcon,
-  Package,
-  DollarSign,
-  Star,
-  TrendingUp,
-  AlertCircle
-} from "lucide-react";
-import { Product } from "@/types/product";
-import { ProductService } from "@/services/productService";
-import { ImageUploadService } from "@/services/imageUploadService";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import ImageUpload from "./ImageUpload";
+import { ProductService } from "@/services/productService";
+import { Product } from "@/types/product";
+import { ImageUploadService } from "@/services/imageUploadService";
+import { Plus, Trash2 } from "lucide-react";
 
 interface VendorProductManagementProps {
   user: any;
 }
 
-interface ProductFormData {
-  name: string;
-  description: string;
-  price: number;
-  original_price?: number;
-  category: string;
-  subcategory?: string;
-  brand?: string;
-  stock_quantity: number;
-  sku?: string;
-  tags: string[];
-  specifications: Record<string, any>;
-  is_featured: boolean;
-  is_active: boolean;
-  main_image?: string;
-  images?: string[];
-  commission_percentage?: number;
-}
-
 const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
+  const [originalPrice, setOriginalPrice] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [category, setCategory] = useState('');
+  const [subcategory, setSubcategory] = useState('');
+  const [brand, setBrand] = useState('');
+  const [sku, setSku] = useState('');
+  const [tags, setTags] = useState('');
+  const [mainImage, setMainImage] = useState('');
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
+  const [specifications, setSpecifications] = useState('');
+  const [isFeatured, setIsFeatured] = useState(false);
+  const [commissionPercentage, setCommissionPercentage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
-  const { user: authUser } = useAuth();
 
-  const [formData, setFormData] = useState<ProductFormData>({
-    name: "",
-    description: "",
-    price: 0,
-    original_price: 0,
-    category: "",
-    subcategory: "",
-    brand: "",
-    stock_quantity: 0,
-    sku: "",
-    tags: [],
-    specifications: {},
-    is_featured: false,
-    is_active: true,
-    main_image: "",
-    images: [],
-    commission_percentage: undefined
-  });
+  const [pickupLocation, setPickupLocation] = useState('');
+  const [pickupPhone, setPickupPhone] = useState('');
 
-  const [tagInput, setTagInput] = useState("");
-
-  // Fetch vendor's products
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-  }, []);
+    if (user) {
+      loadProducts();
+    }
+  }, [user]);
 
-  const fetchProducts = async () => {
-    setLoading(true);
+  const loadProducts = async () => {
     try {
-      // For now, we'll fetch all products. In a real app, you'd filter by vendor_id
-      const result = await ProductService.getProducts();
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: "Failed to load products",
-          variant: "destructive"
-        });
-      } else {
-        setProducts(result.data);
-      }
+      setIsLoading(true);
+      const { data, error } = await ProductService.getProductsByVendor(user.id);
+      if (error) throw error;
+      setProducts(data || []);
     } catch (error) {
+      console.error('Error loading products:', error);
       toast({
         title: "Error",
-        description: "Failed to load products",
-        variant: "destructive"
+        description: "Failed to load products.",
+        variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const fetchCategories = async () => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
     try {
-      const result = await ProductService.getCategories();
-      if (!result.error) {
-        setCategories(result.data);
-      }
+      setIsLoading(true);
+      const { data, error } = await ProductService.uploadProductImages(files, user.id);
+      if (error) throw error;
+
+      setAdditionalImages(prevImages => [...prevImages, ...(data || [])]);
+      toast({
+        title: "Images Uploaded",
+        description: "Images have been uploaded successfully.",
+      });
     } catch (error) {
-      console.error("Failed to fetch categories:", error);
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload images. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRemoveImage = async (imageUrl: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await ProductService.deleteProductImage(imageUrl);
+      if (error) throw error;
+
+      setAdditionalImages(prevImages => prevImages.filter(img => img !== imageUrl));
+      toast({
+        title: "Image Removed",
+        description: "Image has been removed successfully.",
+      });
+    } catch (error) {
+      console.error('Error removing image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetMainImage = (imageUrl: string) => {
+    setMainImage(imageUrl);
+    toast({
+      title: "Main Image Set",
+      description: "Main image has been set successfully.",
+    });
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setName(product.name);
+    setDescription(product.description || '');
+    setPrice(product.price.toString());
+    setOriginalPrice(product.original_price?.toString() || '');
+    setStockQuantity(product.stock_quantity?.toString() || '');
+    setCategory(product.category);
+    setSubcategory(product.subcategory || '');
+    setBrand(product.brand || '');
+    setSku(product.sku || '');
+    setTags(product.tags?.join(',') || '');
+    setMainImage(product.main_image || '');
+    setAdditionalImages(product.images || []);
+    setSpecifications(product.specifications ? JSON.stringify(product.specifications) : '');
+    setIsFeatured(product.is_featured);
+    setCommissionPercentage(product.commission_percentage?.toString() || '');
+    setPickupLocation(product.pickup_location || '');
+    setPickupPhone(product.pickup_phone || '');
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await ProductService.deleteProduct(id);
+      if (error) throw error;
+
+      setProducts(prevProducts => prevProducts.filter(product => product.id !== id));
+      toast({
+        title: "Product Deleted",
+        description: "Product has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete product. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.category) {
+    if (!name || !price || !category || !pickupLocation || !pickupPhone) {
       toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive"
+        title: "Missing Information",
+        description: "Please fill in all required fields including pickup location and phone.",
+        variant: "destructive",
       });
       return;
     }
 
     try {
+      setIsLoading(true);
+      
       const productData = {
-        ...formData,
-        vendor_id: authUser?.id,
-        price: parseFloat(formData.price.toString()),
-        original_price: formData.original_price ? parseFloat(formData.original_price.toString()) : undefined,
-        stock_quantity: parseInt(formData.stock_quantity.toString())
+        vendor_id: user.id,
+        name,
+        description,
+        price: parseFloat(price),
+        original_price: originalPrice ? parseFloat(originalPrice) : parseFloat(price),
+        stock_quantity: parseInt(stockQuantity),
+        category,
+        subcategory: subcategory || null,
+        brand: brand || null,
+        sku: sku || null,
+        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        main_image: mainImage || null,
+        images: additionalImages,
+        specifications: specifications ? JSON.parse(specifications) : null,
+        is_featured: isFeatured,
+        is_active: true,
+        pickup_location: pickupLocation,
+        pickup_phone: pickupPhone,
+        rating: 0,
+        review_count: 0,
+        commission_percentage: commissionPercentage ? parseFloat(commissionPercentage) : null
       };
 
       if (editingProduct) {
-        // Update existing product
-        const result = await ProductService.updateProduct(editingProduct.id, productData);
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
+        const { error } = await ProductService.updateProduct(editingProduct.id, productData);
+        if (error) throw error;
+        
         toast({
-          title: "Success",
-          description: "Product updated successfully"
+          title: "Product Updated",
+          description: "Your product has been updated successfully.",
         });
       } else {
-        // Create new product
-        const result = await ProductService.createProduct(productData);
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
+        const { error } = await ProductService.createProduct(productData);
+        if (error) throw error;
+        
         toast({
-          title: "Success",
-          description: "Product created successfully"
+          title: "Product Created",
+          description: "Your product has been created successfully.",
         });
       }
 
-      setShowAddDialog(false);
-      setEditingProduct(null);
+      // Reset form
       resetForm();
-      fetchProducts();
+      loadProducts();
     } catch (error) {
+      console.error('Error saving product:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save product",
-        variant: "destructive"
+        description: "Failed to save product. Please try again.",
+        variant: "destructive",
       });
-    }
-  };
-
-  const handleEdit = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description || "",
-      price: product.price,
-      original_price: product.original_price,
-      category: product.category,
-      subcategory: product.subcategory || "",
-      brand: product.brand || "",
-      stock_quantity: product.stock_quantity,
-      sku: product.sku || "",
-      tags: product.tags || [],
-      specifications: product.specifications || {},
-      is_featured: product.is_featured,
-      is_active: product.is_active,
-      main_image: product.main_image,
-      images: product.images || [],
-      commission_percentage: product.commission_percentage
-    });
-    setShowAddDialog(true);
-  };
-
-  const handleDelete = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-
-    try {
-      const result = await ProductService.deleteProduct(productId);
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-      toast({
-        title: "Success",
-        description: "Product deleted successfully"
-      });
-      fetchProducts();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete product",
-        variant: "destructive"
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      price: 0,
-      original_price: 0,
-      category: "",
-      subcategory: "",
-      brand: "",
-      stock_quantity: 0,
-      sku: "",
-      tags: [],
-      specifications: {},
-      is_featured: false,
-      is_active: true,
-      main_image: "",
-      images: [],
-      commission_percentage: undefined
-    });
-    setTagInput("");
-  };
-
-  const addTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, tagInput.trim()]
-      }));
-      setTagInput("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  // Handle image upload
-  const handleImageUpload = (result: any) => {
-    if (result.error) {
-      toast({
-        title: "Upload Failed",
-        description: result.error,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Set as main image if no main image exists
-    if (!formData.main_image) {
-      setFormData(prev => ({ ...prev, main_image: result.url }));
-    }
-
-    // Add to images array
-    setFormData(prev => ({
-      ...prev,
-      images: [...(prev.images || []), result.url]
-    }));
-  };
-
-  // Handle image removal
-  const handleImageRemove = (imageUrl: string) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images?.filter(img => img !== imageUrl) || [],
-      main_image: prev.main_image === imageUrl ? "" : prev.main_image
-    }));
-  };
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
+    setName('');
+    setDescription('');
+    setPrice('');
+    setOriginalPrice('');
+    setStockQuantity('');
+    setCategory('');
+    setSubcategory('');
+    setBrand('');
+    setSku('');
+    setTags('');
+    setMainImage('');
+    setAdditionalImages([]);
+    setSpecifications('');
+    setIsFeatured(false);
+    setCommissionPercentage('');
+    setPickupLocation('');
+    setPickupPhone('');
+    setEditingProduct(null);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
-              <p className="text-gray-600">Manage your product catalog</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold">Manage Products</h2>
+      </div>
+
+      {/* Product List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Products</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-4">Loading products...</div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-4">No products found. Add a new product below.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {products.map((product) => (
+                <div key={product.id} className="border rounded-md p-4">
+                  <div className="relative">
+                    <img
+                      src={product.main_image || '/placeholder.svg'}
+                      alt={product.name}
+                      className="w-full h-32 object-cover rounded-md mb-2"
+                    />
+                    <div className="absolute top-2 right-2 flex space-x-2">
+                      <Button size="icon" variant="secondary" onClick={() => handleEditProduct(product)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.082.285a.75.75 0 00.69 1.352l.283-.079a5.25 5.25 0 002.214-1.32L19.513 8.199z" />
+                        </svg>
+                      </Button>
+                      <Button size="icon" variant="destructive" onClick={() => handleDeleteProduct(product.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-semibold">{product.name}</h3>
+                  <p className="text-gray-600">KES {product.price}</p>
+                </div>
+              ))}
             </div>
-            <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
-          </div>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <Package className="w-8 h-8 text-blue-600" />
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-600">Total Products</p>
-                    <p className="text-2xl font-bold">{products.length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <TrendingUp className="w-8 h-8 text-green-600" />
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-600">Active Products</p>
-                    <p className="text-2xl font-bold">{products.filter(p => p.is_active).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <Star className="w-8 h-8 text-yellow-600" />
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-600">Featured</p>
-                    <p className="text-2xl font-bold">{products.filter(p => p.is_featured).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center">
-                  <AlertCircle className="w-8 h-8 text-red-600" />
-                  <div className="ml-3">
-                    <p className="text-sm text-gray-600">Out of Stock</p>
-                    <p className="text-2xl font-bold">{products.filter(p => p.stock_quantity === 0).length}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* Product Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Product Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="name">Name *</Label>
                 <Input
-                  placeholder="Search products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Product Name"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="price">Price *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="Price"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="original-price">Original Price</Label>
+                <Input
+                  id="original-price"
+                  type="number"
+                  value={originalPrice}
+                  onChange={(e) => setOriginalPrice(e.target.value)}
+                  placeholder="Original Price (if different)"
+                />
+              </div>
+              <div>
+                <Label htmlFor="stock">Stock Quantity</Label>
+                <Input
+                  id="stock"
+                  type="number"
+                  value={stockQuantity}
+                  onChange={(e) => setStockQuantity(e.target.value)}
+                  placeholder="Stock Quantity"
                 />
               </div>
             </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="All">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
-            <Card key={product.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-0">
-                <div className="relative">
-                  <img
-                    src={product.main_image || product.images?.[0] || '/placeholder.svg'}
-                    alt={product.name}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="w-8 h-8 bg-white/90 hover:bg-white"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="w-8 h-8 bg-red-500/90 hover:bg-red-500"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="absolute top-2 left-2 flex gap-1">
-                    {product.is_featured && (
-                      <Badge className="bg-yellow-500 text-white">Featured</Badge>
-                    )}
-                    {!product.is_active && (
-                      <Badge variant="destructive">Inactive</Badge>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                  
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
-                    <Badge variant="secondary">{product.category}</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-sm text-gray-600">
-                    <span>Stock: {product.stock_quantity}</span>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                      <span>{product.rating.toFixed(1)} ({product.review_count})</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchQuery || selectedCategory !== "All" 
-                ? "Try adjusting your search or filters"
-                : "Get started by adding your first product"
-              }
-            </p>
-            {!searchQuery && selectedCategory === "All" && (
-              <Button onClick={() => setShowAddDialog(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Product
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Add/Edit Product Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProduct ? "Edit Product" : "Add New Product"}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                <TabsTrigger value="pricing">Pricing</TabsTrigger>
-                <TabsTrigger value="media">Media</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Product Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter product name"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="brand">Brand</Label>
-                    <Input
-                      id="brand"
-                      value={formData.brand}
-                      onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      placeholder="Enter brand name"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter product description"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subcategory">Subcategory</Label>
-                    <Input
-                      id="subcategory"
-                      value={formData.subcategory}
-                      onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
-                      placeholder="Enter subcategory"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="sku">SKU</Label>
-                    <Input
-                      id="sku"
-                      value={formData.sku}
-                      onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                      placeholder="Enter SKU"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="stock_quantity">Stock Quantity *</Label>
-                    <Input
-                      id="stock_quantity"
-                      type="number"
-                      min={0}
-                      value={formData.stock_quantity}
-                      onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) }))}
-                      required
-                      className="mb-4"
-                    />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="pricing" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="price">Now (Current Price) *</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="price"
-                        type="number"
-                        min={0}
-                        value={formData.price}
-                        onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
-                        required
-                        placeholder="e.g. 19500"
-                        className="pl-10 mb-4"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="original_price">Was (Original Price)</Label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="original_price"
-                        type="number"
-                        min={0}
-                        value={formData.original_price ?? ''}
-                        onChange={e => setFormData(prev => ({ ...prev, original_price: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                        placeholder="e.g. 20000"
-                        className="pl-10 mb-4"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="commission_percentage">Commission Percentage (%)</Label>
-                  <Input
-                    id="commission_percentage"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.01}
-                    value={formData.commission_percentage ?? ''}
-                    onChange={e => setFormData(prev => ({ ...prev, commission_percentage: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                    placeholder="e.g. 10 for 10%"
-                    className="mb-4"
-                  />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="media" className="space-y-4">
-                <div>
-                  <Label>Product Images</Label>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Upload product images. The first image will be used as the main product image.
-                  </p>
-                  <ImageUpload
-                    onImageUpload={handleImageUpload}
-                    onImageRemove={handleImageRemove}
-                    existingImages={formData.images || []}
-                    multiple={true}
-                    maxImages={5}
-                  />
-                </div>
-                
-                <div>
-                  <Label>Tags</Label>
-                  <div className="flex gap-2 mb-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      placeholder="Add a tag"
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                    />
-                    <Button type="button" onClick={addTag} variant="outline">
-                      Add
-                    </Button>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {formData.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
-                        {tag} ×
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="advanced" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="featured">Featured Product</Label>
-                    <p className="text-sm text-gray-600">Show this product in featured sections</p>
-                  </div>
-                  <Switch
-                    id="featured"
-                    checked={formData.is_featured}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_featured: checked }))}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="active">Active Product</Label>
-                    <p className="text-sm text-gray-600">Make this product visible to customers</p>
-                  </div>
-                  <Switch
-                    id="active"
-                    checked={formData.is_active}
-                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => {
-                setShowAddDialog(false);
-                setEditingProduct(null);
-                resetForm();
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit">
-                {editingProduct ? "Update Product" : "Create Product"}
-              </Button>
+            {/* Category and Brand */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="category">Category *</Label>
+                <Input
+                  id="category"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Category"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="subcategory">Subcategory</Label>
+                <Input
+                  id="subcategory"
+                  value={subcategory}
+                  onChange={(e) => setSubcategory(e.target.value)}
+                  placeholder="Subcategory"
+                />
+              </div>
+              <div>
+                <Label htmlFor="brand">Brand</Label>
+                <Input
+                  id="brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  placeholder="Brand"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sku">SKU</Label>
+                <Input
+                  id="sku"
+                  value={sku}
+                  onChange={(e) => setSku(e.target.value)}
+                  placeholder="SKU"
+                />
+              </div>
             </div>
+
+            {/* Description and Tags */}
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="tags">Tags (comma separated)</Label>
+              <Input
+                id="tags"
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
+                placeholder="tags"
+              />
+            </div>
+
+            {/* Pickup Information */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="pickup-location">Pickup Location *</Label>
+                <Input
+                  id="pickup-location"
+                  value={pickupLocation}
+                  onChange={(e) => setPickupLocation(e.target.value)}
+                  placeholder="Where customers can pickup this item"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Provide clear location details for customer pickup
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="pickup-phone">Pickup Contact Phone *</Label>
+                <Input
+                  id="pickup-phone"
+                  value={pickupPhone}
+                  onChange={(e) => setPickupPhone(e.target.value)}
+                  placeholder="254700000000"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Phone number customers can call for pickup inquiries
+                </p>
+              </div>
+            </div>
+
+            {/* Images */}
+            <div>
+              <Label>Images</Label>
+              <div className="flex items-center space-x-4">
+                <Input type="file" id="image-upload" multiple onChange={handleImageUpload} className="hidden" />
+                <Label htmlFor="image-upload" className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md py-2 px-4">
+                  <Plus className="inline-block w-4 h-4 mr-2" />
+                  Add Images
+                </Label>
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2">
+                {additionalImages.map((img, index) => (
+                  <div key={index} className="relative">
+                    <img src={img} alt={`Additional Image ${index}`} className="w-full h-24 object-cover rounded-md" />
+                    <div className="absolute top-0 right-0 flex space-x-1">
+                      <Button size="icon" variant="outline" onClick={() => handleSetMainImage(img)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                          <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zm0 4.5a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zm0 4.5a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75z" />
+                        </svg>
+                      </Button>
+                      <Button size="icon" variant="destructive" onClick={() => handleRemoveImage(img)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {mainImage && (
+                <div className="mt-2">
+                  <Label>Main Image</Label>
+                  <img src={mainImage} alt="Main Image" className="w-32 h-32 object-cover rounded-md" />
+                </div>
+              )}
+            </div>
+
+            {/* Specifications */}
+            <div>
+              <Label htmlFor="specifications">Specifications (JSON)</Label>
+              <Textarea
+                id="specifications"
+                value={specifications}
+                onChange={(e) => setSpecifications(e.target.value)}
+                placeholder='e.g., {"color": "red", "size": "large"}'
+              />
+            </div>
+
+            {/* Featured Product */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="featured"
+                checked={isFeatured}
+                onCheckedChange={(checked) => setIsFeatured(checked || false)}
+              />
+              <Label htmlFor="featured">Featured Product</Label>
+            </div>
+
+            {/* Commission Percentage */}
+            <div>
+              <Label htmlFor="commission">Commission Percentage</Label>
+              <Input
+                id="commission"
+                type="number"
+                value={commissionPercentage}
+                onChange={(e) => setCommissionPercentage(e.target.value)}
+                placeholder="Commission Percentage"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <Button disabled={isLoading} className="bg-orange-500 hover:bg-orange-600 text-white">
+              {editingProduct ? 'Update Product' : 'Add Product'}
+            </Button>
           </form>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default VendorProductManagement; 
+export default VendorProductManagement;

@@ -83,6 +83,173 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string
+          product_id: string
+          product_image: string | null
+          product_name: string
+          product_sku: string | null
+          quantity: number
+          total_price: number
+          unit_price: number
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id: string
+          product_id: string
+          product_image?: string | null
+          product_name: string
+          product_sku?: string | null
+          quantity: number
+          total_price: number
+          unit_price: number
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_image?: string | null
+          product_name?: string
+          product_sku?: string | null
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          actual_delivery_date: string | null
+          created_at: string | null
+          currency: string | null
+          customer_email: string
+          customer_phone: string | null
+          discount_amount: number | null
+          estimated_delivery_date: string | null
+          fulfillment_method: string
+          id: string
+          mpesa_transaction_id: string | null
+          notes: string | null
+          order_number: string
+          payment_method: string | null
+          payment_status: string | null
+          pickup_location: string | null
+          pickup_phone: string | null
+          shipping_address: Json | null
+          shipping_amount: number | null
+          status: string
+          subtotal: number
+          tax_amount: number | null
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email: string
+          customer_phone?: string | null
+          discount_amount?: number | null
+          estimated_delivery_date?: string | null
+          fulfillment_method: string
+          id?: string
+          mpesa_transaction_id?: string | null
+          notes?: string | null
+          order_number: string
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          pickup_phone?: string | null
+          shipping_address?: Json | null
+          shipping_amount?: number | null
+          status?: string
+          subtotal: number
+          tax_amount?: number | null
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_email?: string
+          customer_phone?: string | null
+          discount_amount?: number | null
+          estimated_delivery_date?: string | null
+          fulfillment_method?: string
+          id?: string
+          mpesa_transaction_id?: string | null
+          notes?: string | null
+          order_number?: string
+          payment_method?: string | null
+          payment_status?: string | null
+          pickup_location?: string | null
+          pickup_phone?: string | null
+          shipping_address?: Json | null
+          shipping_amount?: number | null
+          status?: string
+          subtotal?: number
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_categories: {
         Row: {
           created_at: string | null
@@ -203,6 +370,8 @@ export type Database = {
           main_image: string | null
           name: string
           original_price: number | null
+          pickup_location: string | null
+          pickup_phone: string | null
           price: number
           rating: number | null
           review_count: number | null
@@ -227,6 +396,8 @@ export type Database = {
           main_image?: string | null
           name: string
           original_price?: number | null
+          pickup_location?: string | null
+          pickup_phone?: string | null
           price: number
           rating?: number | null
           review_count?: number | null
@@ -251,6 +422,8 @@ export type Database = {
           main_image?: string | null
           name?: string
           original_price?: number | null
+          pickup_location?: string | null
+          pickup_phone?: string | null
           price?: number
           rating?: number | null
           review_count?: number | null
@@ -559,7 +732,10 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      generate_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

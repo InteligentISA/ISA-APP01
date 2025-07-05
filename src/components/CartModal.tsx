@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Trash2, ShoppingCart, Heart, Eye } from "lucide-react";
+import { X, Trash2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/services/orderService";
 import { CartItemWithProduct } from "@/types/order";
@@ -91,15 +92,8 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
     onClose();
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(price);
-  };
-
   const total = cartItems.reduce((sum, item) => {
-    const price = item?.product?.price || 0;
+    const price = item?.product?.price || item?.price || 0;
     const quantity = item?.quantity || 1;
     return sum + (price * quantity);
   }, 0);
@@ -109,17 +103,17 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
   return (
     <>
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
-        <Card className="w-full max-w-2xl bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-          <CardHeader className="relative border-b border-gray-200 dark:border-slate-700 p-4 sm:p-6">
+        <Card className="w-full max-w-2xl bg-white max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <CardHeader className="relative border-b border-gray-200 p-4 sm:p-6">
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
               onClick={onClose}
             >
               <X className="w-4 h-4" />
             </Button>
-            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center">
               <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
               Shopping Cart ({cartItems.length})
             </CardTitle>
@@ -129,12 +123,12 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
             {isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                <p className="text-gray-500 dark:text-gray-400 mt-2">Loading cart...</p>
+                <p className="text-gray-500 mt-2">Loading cart...</p>
               </div>
             ) : cartItems.length === 0 ? (
               <div className="text-center py-8">
-                <ShoppingCart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 mb-4">Your cart is empty</p>
+                <ShoppingCart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">Your cart is empty</p>
                 <Button onClick={onClose} variant="outline">
                   Continue Shopping
                 </Button>
@@ -143,17 +137,23 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
               <>
                 <div className="space-y-3 sm:space-y-4 mb-6">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700">
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50">
                       <div className="flex items-center space-x-3 sm:space-x-4">
                         <img
                           src={item?.product?.main_image || '/placeholder.svg'}
-                          alt={item?.product?.name || 'Product'}
+                          alt={item?.product?.name || item?.product_name || 'Product'}
                           className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{item?.product?.name || 'Unknown Product'}</h4>
-                          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{item?.product?.category || 'Uncategorized'}</p>
-                          <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">{formatPrice(item?.product?.price || 0)}</p>
+                          <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">
+                            {item?.product?.name || item?.product_name || 'Unknown Product'}
+                          </h4>
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            {item?.product?.category || item?.product_category || 'Uncategorized'}
+                          </p>
+                          <p className="text-base sm:text-lg font-bold text-gray-900">
+                            KES {(item?.product?.price || item?.price || 0).toFixed(2)}
+                          </p>
                         </div>
                       </div>
                       
@@ -168,7 +168,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                           >
                             -
                           </Button>
-                          <span className="w-8 text-center text-gray-900 dark:text-white text-sm sm:text-base">{item.quantity}</span>
+                          <span className="w-8 text-center text-gray-900 text-sm sm:text-base">{item.quantity}</span>
                           <Button
                             variant="outline"
                             size="sm"
@@ -181,14 +181,14 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                         </div>
                         
                         <div className="text-right">
-                          <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                            {formatPrice((item?.product?.price || 0) * item.quantity)}
+                          <p className="text-base sm:text-lg font-bold text-gray-900">
+                            KES {((item?.product?.price || item?.price || 0) * item.quantity).toFixed(2)}
                           </p>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleRemoveFromCart(item.id)}
-                            className="text-red-500 hover:text-red-700 dark:hover:text-red-400 w-8 h-8"
+                            className="text-red-500 hover:text-red-700 w-8 h-8"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -198,18 +198,12 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                   ))}
                 </div>
                 
-                <div className="border-t border-gray-200 dark:border-slate-600 pt-4">
+                <div className="border-t border-gray-200 pt-4">
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Total: {formatPrice(total)}</span>
+                    <span className="text-lg sm:text-xl font-bold text-gray-900">
+                      Total: KES {total.toFixed(2)}
+                    </span>
                   </div>
-                  
-                  {total < 50 && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg mb-4">
-                      <p className="text-xs sm:text-sm text-blue-700 dark:text-blue-300">
-                        Add {formatPrice(50 - total)} more to get free shipping!
-                      </p>
-                    </div>
-                  )}
                   
                   <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                     <Button 
@@ -221,7 +215,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                     </Button>
                     <Button 
                       onClick={handleCheckout} 
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
                       disabled={cartItems.length === 0}
                     >
                       Proceed to Checkout
