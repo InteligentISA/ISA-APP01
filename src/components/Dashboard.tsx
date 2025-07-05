@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -156,7 +155,7 @@ const Dashboard = () => {
     }
   };
 
-  const handleToggleLike = async (productId: string) => {
+  const handleToggleLike = async (product: DashboardProduct) => {
     if (!user) {
       toast({
         title: "Please sign in",
@@ -166,26 +165,23 @@ const Dashboard = () => {
       return;
     }
 
-    const isLiked = likedItems.includes(productId);
+    const isLiked = likedItems.includes(product.id);
 
     try {
       if (isLiked) {
-        await OrderService.removeFromWishlist(user.id, productId);
-        setLikedItems(prev => prev.filter(id => id !== productId));
+        await OrderService.removeFromWishlist(user.id, product.id);
+        setLikedItems(prev => prev.filter(id => id !== product.id));
         toast({
           title: "Removed from wishlist",
           description: "Item removed from your wishlist.",
         });
       } else {
-        const product = products.find(p => p.id === productId);
-        if (!product) throw new Error('Product not found');
-
         await OrderService.addToWishlist(user.id, {
-          product_id: productId,
+          product_id: product.id,
           product_name: product.name,
           product_category: product.source === 'vendor' ? (product as any).category || 'general' : 'general'
         });
-        setLikedItems(prev => [...prev, productId]);
+        setLikedItems(prev => [...prev, product.id]);
         toast({
           title: "Added to wishlist",
           description: "Item added to your wishlist.",
