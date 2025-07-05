@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -5,7 +6,7 @@ import { Slider } from "@/components/ui/slider"
 import { useToast } from "@/hooks/use-toast"
 import { ProductService } from '@/services/productService';
 import { OrderService } from '@/services/orderService';
-import { ProductCard } from './ProductCard';
+import ProductCard from './ProductCard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,8 +27,7 @@ import {
 } from "@/components/ui/sheet"
 import { Filter, Menu, ShoppingCart, Heart } from "lucide-react";
 import { DashboardProduct } from '@/types/product';
-import { CartModal } from './CartModal';
-import { useUser } from '@clerk/clerk-react';
+import CartModal from './CartModal';
 import AskISA from './AskISA';
 
 const Dashboard = () => {
@@ -45,10 +45,16 @@ const Dashboard = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [totalVendorCount, setTotalVendorCount] = useState(0);
+  const [user, setUser] = useState<any>(null); // Replace Clerk with simple user state
   const { toast } = useToast();
-  const { user } = useUser();
 
   useEffect(() => {
+    // Get user from localStorage or auth context
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+    
     loadProducts();
     loadCategories();
     loadLikedItems();
@@ -133,7 +139,7 @@ const Dashboard = () => {
         product_id: product.id,
         quantity: 1,
         product_name: product.name,
-        product_category: product.category || 'general'
+        product_category: product.source === 'vendor' ? (product as any).category : 'general'
       });
       
       toast({
@@ -177,7 +183,7 @@ const Dashboard = () => {
         await OrderService.addToWishlist(user.id, {
           product_id: productId,
           product_name: product.name,
-          product_category: product.category || 'general'
+          product_category: product.source === 'vendor' ? (product as any).category || 'general' : 'general'
         });
         setLikedItems(prev => [...prev, productId]);
         toast({
@@ -200,20 +206,22 @@ const Dashboard = () => {
     if (searchQuery) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        (product.source === 'vendor' && (product as any).description && (product as any).description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
     if (categoryFilter) {
-      filtered = filtered.filter(product => product.category === categoryFilter);
+      filtered = filtered.filter(product => 
+        product.source === 'vendor' ? (product as any).category === categoryFilter : false
+      );
     }
 
     filtered = filtered.filter(product => product.price >= priceRange[0] && product.price <= priceRange[1]);
 
     if (sortOption) {
       filtered.sort((a, b) => {
-        const aValue = typeof a[sortOption] === 'string' ? a[sortOption].toLowerCase() : a[sortOption];
-        const bValue = typeof b[sortOption] === 'string' ? b[sortOption].toLowerCase() : b[sortOption];
+        const aValue = typeof (a as any)[sortOption] === 'string' ? (a as any)[sortOption].toLowerCase() : (a as any)[sortOption];
+        const bValue = typeof (b as any)[sortOption] === 'string' ? (b as any)[sortOption].toLowerCase() : (b as any)[sortOption];
 
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
@@ -332,14 +340,12 @@ const Dashboard = () => {
         {/* Featured Products Section */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Featured Products</h2>
-          {/* Add featured products carousel or grid here */}
           <p className="text-gray-600">Discover our handpicked selection of top-quality products.</p>
         </section>
 
         {/* Categories Section */}
         <section className="mb-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-8">Shop by Category</h2>
-          {/* Add categories grid or carousel here */}
           <p className="text-gray-600">Explore our wide range of product categories.</p>
         </section>
 

@@ -57,6 +57,9 @@ export interface CartItem {
   created_at: string;
   updated_at: string;
   product?: Product;
+  product_name?: string;
+  product_category?: string;
+  price?: number;
 }
 
 export interface WishlistItem {
@@ -73,6 +76,9 @@ export interface OrderWithDetails extends Order {
 
 export interface CartItemWithProduct extends CartItem {
   product: Product;
+  product_name: string;
+  product_category: string;
+  price: number;
 }
 
 export interface WishlistItemWithProduct extends WishlistItem {

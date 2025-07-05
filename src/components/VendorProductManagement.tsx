@@ -1,16 +1,46 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
-import { ProductService } from "@/services/productService";
-import { Product } from "@/types/product";
-import { ImageUploadService } from "@/services/imageUploadService";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useToast } from "@/hooks/use-toast"
+import { ProductService } from '@/services/productService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Product } from '@/types/product';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
+import { Plus, Edit, Trash2 } from "lucide-react";
 
 interface VendorProductManagementProps {
   user: any;
@@ -18,45 +48,54 @@ interface VendorProductManagementProps {
 
 const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [originalPrice, setOriginalPrice] = useState('');
-  const [stockQuantity, setStockQuantity] = useState('');
-  const [category, setCategory] = useState('');
-  const [subcategory, setSubcategory] = useState('');
-  const [brand, setBrand] = useState('');
-  const [sku, setSku] = useState('');
-  const [tags, setTags] = useState('');
-  const [mainImage, setMainImage] = useState('');
-  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
-  const [specifications, setSpecifications] = useState('');
-  const [isFeatured, setIsFeatured] = useState(false);
-  const [commissionPercentage, setCommissionPercentage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  const [pickupLocation, setPickupLocation] = useState('');
-  const [pickupPhone, setPickupPhone] = useState('');
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    original_price: 0,
+    category: '',
+    subcategory: '',
+    brand: '',
+    sku: '',
+    tags: [] as string[],
+    stock_quantity: 0,
+    is_featured: false,
+    is_active: true,
+    commission_percentage: 0,
+    pickup_location: '',
+    pickup_phone: ''
+  });
 
   useEffect(() => {
     if (user) {
       loadProducts();
+      loadCategories();
     }
   }, [user]);
 
   const loadProducts = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const { data, error } = await ProductService.getProductsByVendor(user.id);
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      console.error('Error loading products:', error);
+      const { data, error } = await ProductService.getVendorProducts(user.id);
+      if (error) {
+        toast({
+          title: "Error loading products",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setProducts(data);
+      }
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to load products.",
+        title: "Error loading products",
+        description: error.message || "Failed to load products.",
         variant: "destructive",
       });
     } finally {
@@ -64,465 +103,442 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
+  const loadCategories = async () => {
     try {
-      setIsLoading(true);
-      const { data, error } = await ProductService.uploadProductImages(files, user.id);
-      if (error) throw error;
-
-      setAdditionalImages(prevImages => [...prevImages, ...(data || [])]);
+      const { data, error } = await ProductService.getCategories();
+      if (error) {
+        toast({
+          title: "Error loading categories",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setCategories(data);
+      }
+    } catch (error: any) {
       toast({
-        title: "Images Uploaded",
-        description: "Images have been uploaded successfully.",
-      });
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload images. Please try again.",
+        title: "Error loading categories",
+        description: error.message || "Failed to load categories.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleRemoveImage = async (imageUrl: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await ProductService.deleteProductImage(imageUrl);
-      if (error) throw error;
-
-      setAdditionalImages(prevImages => prevImages.filter(img => img !== imageUrl));
-      toast({
-        title: "Image Removed",
-        description: "Image has been removed successfully.",
-      });
-    } catch (error) {
-      console.error('Error removing image:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSetMainImage = (imageUrl: string) => {
-    setMainImage(imageUrl);
-    toast({
-      title: "Main Image Set",
-      description: "Main image has been set successfully.",
+  const handleOpenModal = () => {
+    setEditingProduct(null);
+    setNewProduct({
+      name: '',
+      description: '',
+      price: 0,
+      original_price: 0,
+      category: '',
+      subcategory: '',
+      brand: '',
+      sku: '',
+      tags: [] as string[],
+      stock_quantity: 0,
+      is_featured: false,
+      is_active: true,
+      commission_percentage: 0,
+      pickup_location: '',
+      pickup_phone: ''
     });
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingProduct(null);
+  };
+
+  const handleInputChange = (e: any) => {
+    const { name, value } = e.target;
+    setNewProduct(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e: any) => {
+    const { name, checked } = e.target;
+    setNewProduct(prev => ({ ...prev, [name]: checked }));
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
-    setName(product.name);
-    setDescription(product.description || '');
-    setPrice(product.price.toString());
-    setOriginalPrice(product.original_price?.toString() || '');
-    setStockQuantity(product.stock_quantity?.toString() || '');
-    setCategory(product.category);
-    setSubcategory(product.subcategory || '');
-    setBrand(product.brand || '');
-    setSku(product.sku || '');
-    setTags(product.tags?.join(',') || '');
-    setMainImage(product.main_image || '');
-    setAdditionalImages(product.images || []);
-    setSpecifications(product.specifications ? JSON.stringify(product.specifications) : '');
-    setIsFeatured(product.is_featured);
-    setCommissionPercentage(product.commission_percentage?.toString() || '');
-    setPickupLocation(product.pickup_location || '');
-    setPickupPhone(product.pickup_phone || '');
+    setNewProduct({
+      name: product.name,
+      description: product.description || '',
+      price: product.price,
+      original_price: product.original_price || 0,
+      category: product.category,
+      subcategory: product.subcategory || '',
+      brand: product.brand || '',
+      sku: product.sku || '',
+      tags: product.tags || [],
+      stock_quantity: product.stock_quantity,
+      is_featured: product.is_featured,
+      is_active: product.is_active,
+      commission_percentage: product.commission_percentage || 0,
+      pickup_location: product.pickup_location || '',
+      pickup_phone: product.pickup_phone || ''
+    });
+    setShowModal(true);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    try {
-      setIsLoading(true);
-      const { error } = await ProductService.deleteProduct(id);
-      if (error) throw error;
-
-      setProducts(prevProducts => prevProducts.filter(product => product.id !== id));
-      toast({
-        title: "Product Deleted",
-        description: "Product has been deleted successfully.",
-      });
-    } catch (error) {
-      console.error('Error deleting product:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete product. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  const handleDeleteProduct = async (productId: string) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await ProductService.deleteProduct(productId);
+        setProducts(prev => prev.filter(product => product.id !== productId));
+        toast({
+          title: "Product deleted",
+          description: "Product has been successfully deleted.",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete product.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
-    
-    if (!name || !price || !category || !pickupLocation || !pickupPhone) {
+
+    if (!newProduct.name || !newProduct.category || !newProduct.price || !newProduct.stock_quantity || !newProduct.pickup_location || !newProduct.pickup_phone) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields including pickup location and phone.",
+        title: "Missing fields",
+        description: "Please fill in all required fields.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      setIsLoading(true);
-      
-      const productData = {
-        vendor_id: user.id,
-        name,
-        description,
-        price: parseFloat(price),
-        original_price: originalPrice ? parseFloat(originalPrice) : parseFloat(price),
-        stock_quantity: parseInt(stockQuantity),
-        category,
-        subcategory: subcategory || null,
-        brand: brand || null,
-        sku: sku || null,
-        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        main_image: mainImage || null,
-        images: additionalImages,
-        specifications: specifications ? JSON.parse(specifications) : null,
-        is_featured: isFeatured,
-        is_active: true,
-        pickup_location: pickupLocation,
-        pickup_phone: pickupPhone,
-        rating: 0,
-        review_count: 0,
-        commission_percentage: commissionPercentage ? parseFloat(commissionPercentage) : null
-      };
-
       if (editingProduct) {
-        const { error } = await ProductService.updateProduct(editingProduct.id, productData);
-        if (error) throw error;
-        
+        // Update existing product
+        const updatedProduct = {
+          ...editingProduct,
+          name: newProduct.name,
+          description: newProduct.description,
+          price: newProduct.price,
+          original_price: newProduct.original_price,
+          category: newProduct.category,
+          subcategory: newProduct.subcategory,
+          brand: newProduct.brand,
+          sku: newProduct.sku,
+          tags: newProduct.tags,
+          stock_quantity: newProduct.stock_quantity,
+          is_featured: newProduct.is_featured,
+          is_active: newProduct.is_active,
+          commission_percentage: newProduct.commission_percentage,
+          pickup_location: newProduct.pickup_location,
+          pickup_phone: newProduct.pickup_phone
+        };
+        await ProductService.updateProduct(updatedProduct.id, updatedProduct);
+        setProducts(prev => prev.map(product => product.id === updatedProduct.id ? updatedProduct : product));
         toast({
-          title: "Product Updated",
-          description: "Your product has been updated successfully.",
+          title: "Product updated",
+          description: "Product has been successfully updated.",
         });
       } else {
-        const { error } = await ProductService.createProduct(productData);
-        if (error) throw error;
-        
+        // Create new product
+        const productData = {
+          ...newProduct,
+          vendor_id: user.id,
+          rating: 0,
+          review_count: 0,
+          pickup_location: newProduct.pickup_location,
+          pickup_phone: newProduct.pickup_phone
+        };
+        await ProductService.createProduct(productData);
+        loadProducts(); // Reload products to reflect the new product
         toast({
-          title: "Product Created",
-          description: "Your product has been created successfully.",
+          title: "Product created",
+          description: "Product has been successfully created.",
         });
       }
-
-      // Reset form
-      resetForm();
-      loadProducts();
-    } catch (error) {
-      console.error('Error saving product:', error);
+      handleCloseModal();
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to save product. Please try again.",
+        description: error.message || "Failed to save product.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setNewProduct({
+        name: '',
+        description: '',
+        price: 0,
+        original_price: 0,
+        category: '',
+        subcategory: '',
+        brand: '',
+        sku: '',
+        tags: [],
+        stock_quantity: 0,
+        is_featured: false,
+        is_active: true,
+        commission_percentage: 0,
+        pickup_location: '',
+        pickup_phone: ''
+      });
     }
   };
 
-  const resetForm = () => {
-    setName('');
-    setDescription('');
-    setPrice('');
-    setOriginalPrice('');
-    setStockQuantity('');
-    setCategory('');
-    setSubcategory('');
-    setBrand('');
-    setSku('');
-    setTags('');
-    setMainImage('');
-    setAdditionalImages([]);
-    setSpecifications('');
-    setIsFeatured(false);
-    setCommissionPercentage('');
-    setPickupLocation('');
-    setPickupPhone('');
-    setEditingProduct(null);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold">Manage Products</h2>
+    <div className="container mx-auto py-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Manage Products</h1>
+        <Button onClick={handleOpenModal}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Product
+        </Button>
       </div>
 
-      {/* Product List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-4">Loading products...</div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-4">No products found. Add a new product below.</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {products.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-500">No products found. Add a product to get started!</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[200px]">Name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Stock</TableHead>
+                <TableHead>Active</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {products.map((product) => (
-                <div key={product.id} className="border rounded-md p-4">
-                  <div className="relative">
-                    <img
-                      src={product.main_image || '/placeholder.svg'}
-                      alt={product.name}
-                      className="w-full h-32 object-cover rounded-md mb-2"
-                    />
-                    <div className="absolute top-2 right-2 flex space-x-2">
-                      <Button size="icon" variant="secondary" onClick={() => handleEditProduct(product)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.082.285a.75.75 0 00.69 1.352l.283-.079a5.25 5.25 0 002.214-1.32L19.513 8.199z" />
-                        </svg>
-                      </Button>
-                      <Button size="icon" variant="destructive" onClick={() => handleDeleteProduct(product.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-semibold">{product.name}</h3>
-                  <p className="text-gray-600">KES {product.price}</p>
-                </div>
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>KES {product.price}</TableCell>
+                  <TableCell>{product.stock_quantity}</TableCell>
+                  <TableCell>{product.is_active ? 'Yes' : 'No'}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditProduct(product)}
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700"
+                      onClick={() => handleDeleteProduct(product.id)}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
               ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {/* Product Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Product Information */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="name">Name *</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Product Name"
-                  required
-                />
-              </div>
+      <Sheet open={showModal} onOpenChange={setShowModal}>
+        <SheetContent className="sm:max-w-md">
+          <SheetHeader>
+            <SheetTitle>{editingProduct ? 'Edit Product' : 'Add Product'}</SheetTitle>
+            <SheetDescription>
+              {editingProduct ? 'Edit the details of your product.' : 'Create a new product for your store.'}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name *</Label>
+              <Input
+                id="name"
+                name="name"
+                value={newProduct.name}
+                onChange={handleInputChange}
+                placeholder="Product name"
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                value={newProduct.description}
+                onChange={handleInputChange}
+                placeholder="Product description"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="price">Price *</Label>
                 <Input
                   id="price"
+                  name="price"
                   type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  value={newProduct.price}
+                  onChange={handleInputChange}
                   placeholder="Price"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="original-price">Original Price</Label>
+                <Label htmlFor="original_price">Original Price</Label>
                 <Input
-                  id="original-price"
+                  id="original_price"
+                  name="original_price"
                   type="number"
-                  value={originalPrice}
-                  onChange={(e) => setOriginalPrice(e.target.value)}
-                  placeholder="Original Price (if different)"
-                />
-              </div>
-              <div>
-                <Label htmlFor="stock">Stock Quantity</Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
-                  placeholder="Stock Quantity"
+                  value={newProduct.original_price}
+                  onChange={handleInputChange}
+                  placeholder="Original Price"
                 />
               </div>
             </div>
-
-            {/* Category and Brand */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="category">Category *</Label>
-                <Input
-                  id="category"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Category"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="subcategory">Subcategory</Label>
-                <Input
-                  id="subcategory"
-                  value={subcategory}
-                  onChange={(e) => setSubcategory(e.target.value)}
-                  placeholder="Subcategory"
-                />
-              </div>
-              <div>
-                <Label htmlFor="brand">Brand</Label>
-                <Input
-                  id="brand"
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  placeholder="Brand"
-                />
-              </div>
-              <div>
-                <Label htmlFor="sku">SKU</Label>
-                <Input
-                  id="sku"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  placeholder="SKU"
-                />
-              </div>
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category *</Label>
+              <select
+                id="category"
+                name="category"
+                value={newProduct.category}
+                onChange={handleInputChange}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
+              >
+                <option value="">Select a category</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
             </div>
-
-            {/* Description and Tags */}
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Description"
+            <div className="grid gap-2">
+              <Label htmlFor="subcategory">Subcategory</Label>
+              <Input
+                id="subcategory"
+                name="subcategory"
+                value={newProduct.subcategory}
+                onChange={handleInputChange}
+                placeholder="Subcategory"
               />
             </div>
-            <div>
-              <Label htmlFor="tags">Tags (comma separated)</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                name="brand"
+                value={newProduct.brand}
+                onChange={handleInputChange}
+                placeholder="Brand"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="sku">SKU</Label>
+              <Input
+                id="sku"
+                name="sku"
+                value={newProduct.sku}
+                onChange={handleInputChange}
+                placeholder="SKU"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="tags">Tags</Label>
               <Input
                 id="tags"
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="tags"
+                name="tags"
+                value={newProduct.tags.join(',')}
+                onChange={handleInputChange}
+                placeholder="Tags (comma separated)"
               />
             </div>
-
-            {/* Pickup Information */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="pickup-location">Pickup Location *</Label>
-                <Input
-                  id="pickup-location"
-                  value={pickupLocation}
-                  onChange={(e) => setPickupLocation(e.target.value)}
-                  placeholder="Where customers can pickup this item"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Provide clear location details for customer pickup
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="pickup-phone">Pickup Contact Phone *</Label>
-                <Input
-                  id="pickup-phone"
-                  value={pickupPhone}
-                  onChange={(e) => setPickupPhone(e.target.value)}
-                  placeholder="254700000000"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Phone number customers can call for pickup inquiries
-                </p>
-              </div>
-            </div>
-
-            {/* Images */}
-            <div>
-              <Label>Images</Label>
-              <div className="flex items-center space-x-4">
-                <Input type="file" id="image-upload" multiple onChange={handleImageUpload} className="hidden" />
-                <Label htmlFor="image-upload" className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md py-2 px-4">
-                  <Plus className="inline-block w-4 h-4 mr-2" />
-                  Add Images
-                </Label>
-              </div>
-              <div className="mt-2 grid grid-cols-3 gap-2">
-                {additionalImages.map((img, index) => (
-                  <div key={index} className="relative">
-                    <img src={img} alt={`Additional Image ${index}`} className="w-full h-24 object-cover rounded-md" />
-                    <div className="absolute top-0 right-0 flex space-x-1">
-                      <Button size="icon" variant="outline" onClick={() => handleSetMainImage(img)}>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-                          <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zm0 4.5a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75zm0 4.5a.75.75 0 01-.75.75H9.75a.75.75 0 010-1.5h2.25a.75.75 0 01.75.75z" />
-                        </svg>
-                      </Button>
-                      <Button size="icon" variant="destructive" onClick={() => handleRemoveImage(img)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {mainImage && (
-                <div className="mt-2">
-                  <Label>Main Image</Label>
-                  <img src={mainImage} alt="Main Image" className="w-32 h-32 object-cover rounded-md" />
-                </div>
-              )}
-            </div>
-
-            {/* Specifications */}
-            <div>
-              <Label htmlFor="specifications">Specifications (JSON)</Label>
-              <Textarea
-                id="specifications"
-                value={specifications}
-                onChange={(e) => setSpecifications(e.target.value)}
-                placeholder='e.g., {"color": "red", "size": "large"}'
+            <div className="grid gap-2">
+              <Label htmlFor="stock_quantity">Stock Quantity *</Label>
+              <Input
+                id="stock_quantity"
+                name="stock_quantity"
+                type="number"
+                value={newProduct.stock_quantity}
+                onChange={handleInputChange}
+                placeholder="Stock Quantity"
+                required
               />
             </div>
-
-            {/* Featured Product */}
             <div className="flex items-center space-x-2">
               <Checkbox
-                id="featured"
-                checked={isFeatured}
-                onCheckedChange={(checked) => setIsFeatured(checked || false)}
+                id="is_featured"
+                name="is_featured"
+                checked={newProduct.is_featured}
+                onCheckedChange={(checked) => setNewProduct(prev => ({ ...prev, is_featured: !!checked }))}
               />
-              <Label htmlFor="featured">Featured Product</Label>
+              <Label htmlFor="is_featured">Is Featured</Label>
             </div>
-
-            {/* Commission Percentage */}
-            <div>
-              <Label htmlFor="commission">Commission Percentage</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_active"
+                name="is_active"
+                checked={newProduct.is_active}
+                onCheckedChange={(checked) => setNewProduct(prev => ({ ...prev, is_active: !!checked }))}
+              />
+              <Label htmlFor="is_active">Is Active</Label>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="commission_percentage">Commission Percentage</Label>
               <Input
-                id="commission"
+                id="commission_percentage"
+                name="commission_percentage"
                 type="number"
-                value={commissionPercentage}
-                onChange={(e) => setCommissionPercentage(e.target.value)}
+                value={newProduct.commission_percentage}
+                onChange={handleInputChange}
                 placeholder="Commission Percentage"
               />
             </div>
-
-            {/* Submit Button */}
-            <Button disabled={isLoading} className="bg-orange-500 hover:bg-orange-600 text-white">
-              {editingProduct ? 'Update Product' : 'Add Product'}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="pickup_location">Pickup Location *</Label>
+                      <Input
+                        id="pickup_location"
+                        value={newProduct.pickup_location}
+                        onChange={(e) => setNewProduct({...newProduct, pickup_location: e.target.value})}
+                        placeholder="Where can buyers pickup this item?"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pickup_phone">Pickup Contact Phone *</Label>
+                      <Input
+                        id="pickup_phone"
+                        value={newProduct.pickup_phone}
+                        onChange={(e) => setNewProduct({...newProduct, pickup_phone: e.target.value})}
+                        placeholder="Phone number for pickup inquiries"
+                        required
+                      />
+                    </div>
+                  </div>
+          </div>
+          <SheetFooter>
+            <Button type="submit" onClick={handleSubmit}>
+              {editingProduct ? 'Update Product' : 'Create Product'}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
