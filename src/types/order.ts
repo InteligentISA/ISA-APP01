@@ -1,3 +1,4 @@
+
 export interface Address {
   street: string;
   city: string;
@@ -231,4 +232,17 @@ export interface DeliveryDetails {
   pickup_phone?: string;
   delivery_address?: Address;
   delivery_fee?: number;
+}
+
+export interface VendorApplication {
+  id: string;
+  user_id: string;
+  business_name: string;
+  business_description: string;
+  business_address: string;
+  business_phone: string;
+  business_email: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  updated_at: string;
 }
