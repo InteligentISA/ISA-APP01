@@ -113,12 +113,12 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
           timestamp: m.timestamp
         }))
       );
-      // If aiResult contains products and jumiaProducts, combine and limit
+      
+      // Handle products if they exist in the response
       let combinedProducts: any[] = [];
       if (aiResult.products || aiResult.jumiaProducts) {
         const own = aiResult.products || [];
         const jumia = aiResult.jumiaProducts || [];
-        // Show own products first, then Jumia, limit to 10-15
         combinedProducts = [...own, ...jumia.slice(0, Math.max(0, 15 - own.length))];
         setProductResults(combinedProducts);
         setJumiaResults(jumia.slice(0, Math.max(0, 15 - own.length)));
@@ -126,6 +126,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
         setProductResults([]);
         setJumiaResults([]);
       }
+      
       const isaResponse: Message = {
         id: Date.now() + 1,
         type: 'isa',

@@ -56,7 +56,7 @@ interface ProductFormData {
   pickup_phone_number?: string;
 }
 
-const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
+const VendorProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -306,6 +306,50 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       images: prev.images?.filter(img => img !== imageUrl) || [],
       main_image: prev.main_image === imageUrl ? "" : prev.main_image
     }));
+  };
+
+  const handleCreateProduct = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const productData = {
+        vendor_id: user.id,
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        original_price: newProduct.original_price,
+        category: newProduct.category,
+        subcategory: newProduct.subcategory,
+        brand: newProduct.brand,
+        sku: newProduct.sku,
+        stock_quantity: newProduct.stock_quantity,
+        tags: newProduct.tags,
+        specifications: newProduct.specifications,
+        main_image: newProduct.main_image,
+        images: newProduct.images,
+        is_featured: newProduct.is_featured,
+        is_active: true,
+        rating: 0,
+        review_count: 0,
+        pickup_location: newProduct.pickup_location,
+        pickup_phone: newProduct.pickup_phone_number,
+      };
+
+      const { data, error } = await ProductService.createProduct(productData);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Product created successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create product",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredProducts = products.filter(product => {
@@ -755,4 +799,4 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   );
 };
 
-export default VendorProductManagement; 
+export default VendorProductManagement;

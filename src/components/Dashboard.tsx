@@ -107,7 +107,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
       await OrderService.addToCart(user.id, {
         product_id: product.id,
         product_name: product.name,
-        product_category: product.category,
+        product_category: product.category || product.source === 'jumia' ? 'electronics' : 'general',
         quantity: 1,
         price: product.price,
       });
@@ -525,7 +525,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         isOpen={showCart}
         onClose={() => setShowCart(false)}
         user={user}
-        cartItems={cartItems}
+        items={cartItems}
         onRemoveFromCart={handleRemoveFromCart}
         onUpdateQuantity={async (cartItemId, quantity) => {
           await OrderService.updateCartItem(cartItemId, quantity);

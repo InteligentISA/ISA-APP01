@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, ShoppingCart, Heart, Eye, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Product, DashboardProduct } from "@/types/product";
+import { Product, DashboardProduct, DashboardVendorProduct } from "@/types/product";
 import { OrderService } from "@/services/orderService";
 import { CustomerBehaviorService } from "@/services/customerBehaviorService";
 import { JumiaInteractionService } from "@/services/jumiaInteractionService";
@@ -70,7 +70,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    if (product.stock_quantity === 0) {
+    const stockQuantity = product.source === 'jumia' ? 1 : (product as DashboardVendorProduct).stock_quantity || 0;
+    if (stockQuantity === 0) {
       toast({
         title: "Out of stock",
         description: "This product is currently out of stock.",
@@ -109,7 +110,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       await OrderService.addToCart(user.id, {
         product_id: product.id,
         product_name: product.name,
-        product_category: product.category || 'electronics',
+        product_category: product.category || (product.source === 'jumia' ? 'electronics' : 'general'),
         quantity: quantity,
         price: product.price
       });
@@ -171,23 +172,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
           );
         } else {
           await JumiaInteractionService.unlikeJumiaProduct(user.id, product.id);
-          await JumiaInteractionService.trackInteraction(
-            user.id,
-            {
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              link: product.link,
-              image: product.image
-            },
-            'unlike'
-          );
+          // Don't track 'unlike' as it's not a valid interaction type
         }
       } else {
         await CustomerBehaviorService.trackInteraction(
           user.id, 
           product.id, 
-          newLikeState ? 'like' : 'unlike'
+          'like'
         );
       }
       
@@ -319,6 +310,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     );
   }
 
+  // For vendor products, check stock_quantity safely
+  const vendorProduct = product as DashboardVendorProduct;
+  const stockQuantity = vendorProduct.stock_quantity || 0;
+
   return (
     <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       {/* Product Image */}
@@ -373,10 +368,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
 
         {/* Stock indicator */}
-        {product.stock_quantity > 0 && product.stock_quantity <= 5 && (
+        {stockQuantity > 0 && stockQuantity <= 5 && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
-              Only {product.stock_quantity} left
+              Only {stockQuantity} left
             </Badge>
           </div>
         )}
@@ -388,11 +383,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Category */}
           <div className="flex items-center justify-between">
             <Badge variant="outline" className="text-xs">
-              {product.category}
+              {vendorProduct.category}
             </Badge>
-            {product.brand && (
+            {vendorProduct.brand && (
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {product.brand}
+                {vendorProduct.brand}
               </span>
             )}
           </div>
@@ -426,9 +421,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Stock Status */}
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {product.stock_quantity > 0 ? (
+            {stockQuantity > 0 ? (
               <span className="text-green-600 dark:text-green-400">
-                In Stock ({product.stock_quantity} available)
+                In Stock ({stockQuantity} available)
               </span>
             ) : (
               <span className="text-red-600 dark:text-red-400">
@@ -443,7 +438,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <CardFooter className="p-4 pt-0">
         <div className="w-full space-y-3">
           {/* Quantity Selector */}
-          {product.stock_quantity > 0 && (
+          {stockQuantity > 0 && (
             <div className="flex items-center justify-center space-x-2">
               <Button
                 size="icon"
@@ -461,8 +456,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 size="icon"
                 variant="outline"
                 className="w-8 h-8"
-                onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                disabled={quantity >= product.stock_quantity}
+                onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
+                disabled={quantity >= stockQuantity}
               >
                 <Plus className="w-3 h-3" />
               </Button>
@@ -472,7 +467,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Add to Cart Button */}
           <Button
             onClick={handleAddToCart}
-            disabled={product.stock_quantity === 0 || isLoading}
+            disabled={stockQuantity === 0 || isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isLoading ? (
@@ -484,7 +479,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-center space-x-2">
                 <ShoppingCart className="w-4 h-4" />
                 <span>
-                  {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  {stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
                 </span>
               </div>
             )}
@@ -495,4 +490,4 @@ const ProductCard: React.FC<ProductCardProps> = ({
   );
 };
 
-export default ProductCard; 
+export default ProductCard;

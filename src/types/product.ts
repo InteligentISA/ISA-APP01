@@ -127,17 +127,19 @@ export interface ProductWithPopularity extends Product {
 type ProductSource = 'vendor' | 'jumia';
 
 export interface DashboardJumiaProduct {
-  id: string; // generated unique id for React key
+  id: string;
   name: string;
   price: number;
   rating: number;
   link: string;
   image: string;
   source: 'jumia';
+  category?: string;
+  stock_quantity?: number;
 }
 
 export interface DashboardVendorProduct extends Product {
   source: 'vendor';
 }
 
-export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct; 
+export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct;
