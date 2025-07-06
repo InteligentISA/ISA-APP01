@@ -185,8 +185,6 @@ export interface AddToCartRequest {
   product_id: string;
   product_name: string;
   product_category: string;
-  quantity: number;
-  price: number;
 }
 
 export interface UpdateCartItemRequest {

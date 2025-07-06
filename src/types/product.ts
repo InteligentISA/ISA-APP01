@@ -126,6 +126,13 @@ export interface ProductWithPopularity extends Product {
 // Add a source field to distinguish product origin
 type ProductSource = 'vendor' | 'jumia';
 
+export interface DashboardVendorProduct extends Product {
+  source: 'vendor';
+  main_image?: string;
+  description?: string;
+  category: string;
+}
+
 export interface DashboardJumiaProduct {
   id: string;
   name: string;
@@ -134,12 +141,8 @@ export interface DashboardJumiaProduct {
   link: string;
   image: string;
   source: 'jumia';
-  category?: string;
-  stock_quantity?: number;
-}
-
-export interface DashboardVendorProduct extends Product {
-  source: 'vendor';
+  category: string;
+  stock_quantity: number;
 }
 
 export type DashboardProduct = DashboardVendorProduct | DashboardJumiaProduct;

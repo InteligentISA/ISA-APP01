@@ -152,7 +152,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (!user) return;
     try {
       const result = await OrderService.getCartItems(user.id);
-      if (!result.error) {
+      if (!result.error && result.data) {
         setCartItems(result.data);
       }
     } catch (error) {
@@ -164,7 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     if (!user) return;
     try {
       const result = await OrderService.getWishlistItems(user.id);
-      if (!result.error) {
+      if (!result.error && result.data) {
         setWishlistItems(result.data);
         setLikedItems(result.data.map(item => item.product_id));
       }
@@ -187,9 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       await OrderService.addToCart(user.id, {
         product_id: product.id,
         product_name: product.name,
-        product_category: product.category || 'general',
-        quantity: 1,
-        price: product.price
+        product_category: product.category || 'general'
       });
       
       fetchCartItems();
@@ -287,6 +285,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const handleNavigateToAskISA = (query?: string) => {
     setShowWelcomeChatbot(false);
     setShowAskISA(true);
+  };
+
+  const handleRemoveFromWishlist = (productId: string) => {
+    // Find the wishlist item and remove it
+    const wishlistItem = wishlistItems.find(item => item.product_id === productId);
+    if (wishlistItem) {
+      OrderService.removeFromWishlist(user.id, productId).then(() => {
+        fetchWishlistItems();
+        toast({
+          title: "Removed from wishlist",
+          description: "Item has been removed from your wishlist.",
+        });
+      });
+    }
   };
 
   // Combine and filter products
@@ -584,7 +596,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         user={user}
-        cartItems={cartItems}
+        items={cartItems}
         onRemoveFromCart={handleRemoveFromCart}
         onUpdateQuantity={handleUpdateCartQuantity}
       />
@@ -595,13 +607,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         onClose={() => setIsWishlistOpen(false)}
         user={user}
         wishlistItems={wishlistItems}
-        onRemoveFromWishlist={(productId) => {
-          // Find the wishlist item and remove it
-          const wishlistItem = wishlistItems.find(item => item.product_id === productId);
-          if (wishlistItem) {
-            handleRemoveFromCart(wishlistItem.id);
-          }
-        }}
+        onRemoveFromWishlist={handleRemoveFromWishlist}
         onAddToCart={handleAddToCart}
       />
 
@@ -610,6 +616,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         user={user}
+        onUserUpdate={() => {}}
       />
 
       {/* Quick View Modal */}
@@ -622,7 +629,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="aspect-square">
                 <img
-                  src={selectedProduct.main_image || selectedProduct.image || '/placeholder.svg'}
+                  src={
+                    selectedProduct.source === 'vendor' 
+                      ? (selectedProduct as DashboardVendorProduct).main_image || '/placeholder.svg'
+                      : (selectedProduct as DashboardJumiaProduct).image || '/placeholder.svg'
+                  }
                   alt={selectedProduct.name}
                   className="w-full h-full object-cover rounded-lg"
                 />
@@ -630,7 +641,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user }) => {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-2xl font-bold">{selectedProduct.name}</h3>
-                  <p className="text-gray-600">{selectedProduct.description}</p>
+                  <p className="text-gray-600">
+                    {selectedProduct.source === 'vendor' 
+                      ? (selectedProduct as DashboardVendorProduct).description || 'No description available'
+                      : 'Product from Jumia marketplace'
+                    }
+                  </p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-3xl font-bold text-blue-600">
