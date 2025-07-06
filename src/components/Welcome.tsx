@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, Heart, Sparkles, Users } from "lucide-react";
 
@@ -11,12 +12,12 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
       <div className="max-w-4xl mx-auto text-center space-y-8 sm:space-y-12 animate-fade-in-up">
         <div className="space-y-4 sm:space-y-6">
           <img 
-            src="/AskISA.png" 
-            alt="AskISA Logo" 
-            className="w-32 h-32 sm:w-40 sm:h-40 mx-auto mb-6 sm:mb-8"
+            src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
+            alt="ISA Logo" 
+            className="w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-6 sm:mb-8"
           />
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-3 sm:mb-4">
-            Welcome to <span className="isa-gold">ISA</span>
+            Welcome to Your Intelligent Shopping Assistant
           </h1>
           <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed px-4">
             Your Intelligent Shopping Assistant that revolutionizes the way you discover, 
@@ -47,9 +48,9 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
         <div className="space-y-3 sm:space-y-4 px-4">
           <Button 
             onClick={onGetStarted}
-            className="isa-gold-bg text-black font-semibold px-8 sm:px-12 py-3 sm:py-4 text-base sm:text-lg rounded-full hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl w-full sm:w-auto"
+            className="bg-white text-gray-900 font-bold px-8 sm:px-12 py-4 sm:py-5 text-lg sm:text-xl rounded-full hover:bg-gray-50 transition-all duration-300 shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-gray-300 w-full sm:w-auto transform hover:scale-105"
           >
-            Try ISA
+            Ask ISA Anything
           </Button>
           <p className="text-gray-500 text-xs sm:text-sm">Join thousands of smart shoppers today</p>
         </div>
