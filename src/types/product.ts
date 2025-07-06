@@ -22,6 +22,8 @@ export interface Product {
   updated_at: string;
   currency?: string; // Default to KES (Kenyan Shillings)
   commission_percentage?: number;
+  pickup_location?: string; // Vendor pickup location
+  pickup_phone_number?: string; // Vendor phone number for pickup inquiries
 }
 
 export interface ProductCategory {

@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import VendorApplicationsSection from './VendorApplicationsSection';
+import PaymentSection from './PaymentSection';
 
 const AdminDashboard = () => {
   const { user, loading } = useAuth();
@@ -161,6 +162,9 @@ const AdminDashboard = () => {
               <div>Vendor sales and commissions section</div>
             </CardContent>
           </Card>
+
+          {/* Payment Management */}
+          <PaymentSection />
 
           {/* Add Product */}
           <Card className="md:col-span-2">

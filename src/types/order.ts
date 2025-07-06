@@ -131,7 +131,9 @@ export type PaymentMethod =
   | 'apple_pay'
   | 'google_pay'
   | 'bank_transfer'
-  | 'cash_on_delivery';
+  | 'cash_on_delivery'
+  | 'cash_on_pickup'
+  | 'mpesa';
 
 export type PaymentStatus = 
   | 'pending'
@@ -147,6 +149,10 @@ export type ShippingStatus =
   | 'in_transit'
   | 'delivered'
   | 'failed';
+
+export type DeliveryMethod = 
+  | 'pickup'
+  | 'delivery';
 
 // Request/Response types
 export interface CreateOrderRequest {
@@ -216,4 +222,12 @@ export interface OrderSearchParams {
 }
 
 // Import Product type
-import { Product } from './product'; 
+import { Product } from './product';
+
+export interface DeliveryDetails {
+  method: DeliveryMethod;
+  pickup_location?: string;
+  pickup_phone?: string;
+  delivery_address?: Address;
+  delivery_fee?: number;
+} 

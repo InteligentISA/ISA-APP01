@@ -64,6 +64,50 @@ export interface AdminSettings {
   updated_at: string;
 }
 
+export interface PaymentData {
+  id: string;
+  order_id: string;
+  order_number: string;
+  payment_method: string;
+  amount: number;
+  currency: string;
+  status: string;
+  transaction_id?: string;
+  mpesa_phone_number?: string;
+  mpesa_transaction_id?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Order details
+  customer_email: string;
+  customer_phone?: string;
+  total_amount: number;
+  
+  // Customer details
+  customer_name?: string;
+  
+  // Product details
+  products: {
+    id: string;
+    name: string;
+    quantity: number;
+    unit_price: number;
+    total_price: number;
+    vendor_id?: string;
+    vendor_name?: string;
+  }[];
+}
+
+export interface PaymentStats {
+  totalPayments: number;
+  totalAmount: number;
+  successfulPayments: number;
+  pendingPayments: number;
+  failedPayments: number;
+  mpesaPayments: number;
+  cashPayments: number;
+}
+
 export class AdminService {
   // Vendor Applications
   static async getVendorApplications(): Promise<VendorApplication[]> {
@@ -286,5 +330,262 @@ export class AdminService {
     const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
     if (error) throw error;
     return data || [];
+  }
+
+  // Fetch all successful payments with detailed information
+  static async getSuccessfulPayments(): Promise<PaymentData[]> {
+    try {
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          orders!inner(
+            id,
+            order_number,
+            customer_email,
+            customer_phone,
+            total_amount,
+            created_at,
+            profiles!orders_user_id_fkey(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .eq('status', 'succeeded')
+        .order('created_at', { ascending: false });
+
+      if (paymentsError) throw paymentsError;
+
+      if (!payments) return [];
+
+      // Fetch order items for each payment
+      const paymentsWithDetails = await Promise.all(
+        payments.map(async (payment) => {
+          const { data: orderItems, error: itemsError } = await supabase
+            .from('order_items')
+            .select(`
+              *,
+              products!inner(
+                id,
+                name,
+                vendor_id,
+                profiles!products_vendor_id_fkey(
+                  first_name,
+                  last_name
+                )
+              )
+            `)
+            .eq('order_id', payment.order_id);
+
+          if (itemsError) {
+            console.error('Error fetching order items:', itemsError);
+            return null;
+          }
+
+          const products = orderItems?.map(item => ({
+            id: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            vendor_id: item.products?.vendor_id,
+            vendor_name: item.products?.profiles 
+              ? `${item.products.profiles.first_name || ''} ${item.products.profiles.last_name || ''}`.trim()
+              : 'Unknown Vendor'
+          })) || [];
+
+          return {
+            id: payment.id,
+            order_id: payment.order_id,
+            order_number: payment.orders.order_number,
+            payment_method: payment.payment_method,
+            amount: payment.amount,
+            currency: payment.currency,
+            status: payment.status,
+            transaction_id: payment.transaction_id,
+            mpesa_phone_number: payment.mpesa_phone_number,
+            mpesa_transaction_id: payment.mpesa_transaction_id,
+            created_at: payment.created_at,
+            updated_at: payment.updated_at,
+            customer_email: payment.orders.customer_email,
+            customer_phone: payment.orders.customer_phone,
+            total_amount: payment.orders.total_amount,
+            customer_name: payment.orders.profiles 
+              ? `${payment.orders.profiles.first_name || ''} ${payment.orders.profiles.last_name || ''}`.trim()
+              : 'Unknown Customer',
+            products
+          };
+        })
+      );
+
+      return paymentsWithDetails.filter(Boolean) as PaymentData[];
+    } catch (error) {
+      console.error('Error fetching successful payments:', error);
+      throw error;
+    }
+  }
+
+  // Fetch payment statistics
+  static async getPaymentStats(): Promise<PaymentStats> {
+    try {
+      const { data: payments, error } = await supabase
+        .from('payments')
+        .select('status, payment_method, amount');
+
+      if (error) throw error;
+
+      if (!payments) {
+        return {
+          totalPayments: 0,
+          totalAmount: 0,
+          successfulPayments: 0,
+          pendingPayments: 0,
+          failedPayments: 0,
+          mpesaPayments: 0,
+          cashPayments: 0
+        };
+      }
+
+      const stats = payments.reduce((acc, payment) => {
+        acc.totalPayments++;
+        acc.totalAmount += payment.amount || 0;
+
+        switch (payment.status) {
+          case 'succeeded':
+            acc.successfulPayments++;
+            break;
+          case 'pending':
+            acc.pendingPayments++;
+            break;
+          case 'failed':
+            acc.failedPayments++;
+            break;
+        }
+
+        switch (payment.payment_method) {
+          case 'mpesa':
+            acc.mpesaPayments++;
+            break;
+          case 'cash_on_delivery':
+          case 'cash_on_pickup':
+            acc.cashPayments++;
+            break;
+        }
+
+        return acc;
+      }, {
+        totalPayments: 0,
+        totalAmount: 0,
+        successfulPayments: 0,
+        pendingPayments: 0,
+        failedPayments: 0,
+        mpesaPayments: 0,
+        cashPayments: 0
+      });
+
+      return stats;
+    } catch (error) {
+      console.error('Error fetching payment stats:', error);
+      throw error;
+    }
+  }
+
+  // Fetch recent payments (last 30 days)
+  static async getRecentPayments(limit: number = 10): Promise<PaymentData[]> {
+    try {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          orders!inner(
+            id,
+            order_number,
+            customer_email,
+            customer_phone,
+            total_amount,
+            created_at,
+            profiles!orders_user_id_fkey(
+              first_name,
+              last_name
+            )
+          )
+        `)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (paymentsError) throw paymentsError;
+
+      if (!payments) return [];
+
+      // Fetch order items for each payment
+      const paymentsWithDetails = await Promise.all(
+        payments.map(async (payment) => {
+          const { data: orderItems, error: itemsError } = await supabase
+            .from('order_items')
+            .select(`
+              *,
+              products!inner(
+                id,
+                name,
+                vendor_id,
+                profiles!products_vendor_id_fkey(
+                  first_name,
+                  last_name
+                )
+              )
+            `)
+            .eq('order_id', payment.order_id);
+
+          if (itemsError) {
+            console.error('Error fetching order items:', itemsError);
+            return null;
+          }
+
+          const products = orderItems?.map(item => ({
+            id: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            total_price: item.total_price,
+            vendor_id: item.products?.vendor_id,
+            vendor_name: item.products?.profiles 
+              ? `${item.products.profiles.first_name || ''} ${item.products.profiles.last_name || ''}`.trim()
+              : 'Unknown Vendor'
+          })) || [];
+
+          return {
+            id: payment.id,
+            order_id: payment.order_id,
+            order_number: payment.orders.order_number,
+            payment_method: payment.payment_method,
+            amount: payment.amount,
+            currency: payment.currency,
+            status: payment.status,
+            transaction_id: payment.transaction_id,
+            mpesa_phone_number: payment.mpesa_phone_number,
+            mpesa_transaction_id: payment.mpesa_transaction_id,
+            created_at: payment.created_at,
+            updated_at: payment.updated_at,
+            customer_email: payment.orders.customer_email,
+            customer_phone: payment.orders.customer_phone,
+            total_amount: payment.orders.total_amount,
+            customer_name: payment.orders.profiles 
+              ? `${payment.orders.profiles.first_name || ''} ${payment.orders.profiles.last_name || ''}`.trim()
+              : 'Unknown Customer',
+            products
+          };
+        })
+      );
+
+      return paymentsWithDetails.filter(Boolean) as PaymentData[];
+    } catch (error) {
+      console.error('Error fetching recent payments:', error);
+      throw error;
+    }
   }
 } 

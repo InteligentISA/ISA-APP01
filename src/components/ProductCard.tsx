@@ -105,13 +105,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
         });
       }
 
-      // Add to cart using OrderService (only for vendor products)
-      if (product.source !== 'jumia') {
-        await OrderService.addToCart(user.id, {
-          product_id: product.id,
-          quantity: quantity
-        });
-      }
+      // Add to cart using OrderService (for both vendor and Jumia products)
+      await OrderService.addToCart(user.id, {
+        product_id: product.id,
+        product_name: product.name,
+        product_category: product.category || 'electronics',
+        quantity: quantity,
+        price: product.price
+      });
       
       // Call parent handler if provided
       if (onAddToCart) {

@@ -52,6 +52,8 @@ interface ProductFormData {
   main_image?: string;
   images?: string[];
   commission_percentage?: number;
+  pickup_location?: string;
+  pickup_phone_number?: string;
 }
 
 const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
@@ -81,7 +83,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     is_active: true,
     main_image: "",
     images: [],
-    commission_percentage: undefined
+    commission_percentage: undefined,
+    pickup_location: "",
+    pickup_phone_number: ""
   });
 
   const [tagInput, setTagInput] = useState("");
@@ -131,10 +135,10 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.category) {
+    if (!formData.name || !formData.price || !formData.category || !formData.pickup_location || !formData.pickup_phone_number) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields including pickup location and phone number",
         variant: "destructive"
       });
       return;
@@ -202,7 +206,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       is_active: product.is_active,
       main_image: product.main_image,
       images: product.images || [],
-      commission_percentage: product.commission_percentage
+      commission_percentage: product.commission_percentage,
+      pickup_location: product.pickup_location || "",
+      pickup_phone_number: product.pickup_phone_number || ""
     });
     setShowAddDialog(true);
   };
@@ -246,7 +252,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       is_active: true,
       main_image: "",
       images: [],
-      commission_percentage: undefined
+      commission_percentage: undefined,
+      pickup_location: "",
+      pickup_phone_number: ""
     });
     setTagInput("");
   };
@@ -583,7 +591,31 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       value={formData.stock_quantity}
                       onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) }))}
                       required
-                      className="mb-4"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="pickup_location">Pickup Location *</Label>
+                    <Textarea
+                      id="pickup_location"
+                      value={formData.pickup_location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pickup_location: e.target.value }))}
+                      placeholder="Enter pickup location details (address, landmarks, etc.)"
+                      rows={3}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="pickup_phone_number">Pickup Phone Number *</Label>
+                    <Input
+                      id="pickup_phone_number"
+                      type="tel"
+                      value={formData.pickup_phone_number}
+                      onChange={(e) => setFormData(prev => ({ ...prev, pickup_phone_number: e.target.value }))}
+                      placeholder="e.g. +254700000000"
+                      required
                     />
                   </div>
                 </div>

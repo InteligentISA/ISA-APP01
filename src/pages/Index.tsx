@@ -198,7 +198,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen isa-gradient">
+    <div className="min-h-screen">
       {currentView === 'preloader' && <Preloader />}
       {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
       {currentView === 'auth-welcome' && (

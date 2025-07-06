@@ -30,7 +30,10 @@ export class OrderService {
   static async getCartItems(userId: string): Promise<CartItemWithProduct[]> {
     const { data, error } = await supabase
       .from('user_cart_items')
-      .select('*')
+      .select(`
+        *,
+        product:products(*)
+      `)
       .eq('user_id', userId)
       .order('added_at', { ascending: false });
 
@@ -113,7 +116,10 @@ export class OrderService {
   static async getWishlistItems(userId: string): Promise<WishlistItemWithProduct[]> {
     const { data, error } = await supabase
       .from('user_likes')
-      .select('*')
+      .select(`
+        *,
+        product:products(*)
+      `)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -165,9 +171,11 @@ export class OrderService {
       return sum + (item.product.price * item.quantity);
     }, 0);
 
-    const taxAmount = subtotal * 0.08; // 8% tax
-    const shippingAmount = subtotal > 50 ? 0 : 5.99; // Free shipping over $50
-    const totalAmount = subtotal + taxAmount + shippingAmount;
+    // Determine delivery method and fees
+    const isPickup = request.notes?.includes('Pickup from vendor');
+    const deliveryFee = isPickup ? 0 : 500; // 500 KES for ISA delivery
+    const taxAmount = subtotal * 0.16; // 16% VAT for Kenya
+    const totalAmount = subtotal + taxAmount + deliveryFee;
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -177,7 +185,7 @@ export class OrderService {
         user_id: userId,
         subtotal,
         tax_amount: taxAmount,
-        shipping_amount: shippingAmount,
+        shipping_amount: deliveryFee,
         total_amount: totalAmount,
         shipping_address: request.shipping_address,
         billing_address: request.billing_address,
@@ -238,8 +246,8 @@ export class OrderService {
       .from('shipping')
       .insert({
         order_id: order.id,
-        carrier: 'standard',
-        shipping_method: 'standard',
+        carrier: isPickup ? 'vendor_pickup' : 'isa_delivery',
+        shipping_method: isPickup ? 'pickup' : 'delivery',
         status: 'pending'
       })
       .select()
@@ -414,6 +422,131 @@ export class OrderService {
     });
 
     return payment;
+  }
+
+  // M-Pesa Payment Processing
+  static async processMpesaPayment(orderId: string, phoneNumber: string, amount: number): Promise<Payment> {
+    // Import MpesaService dynamically to avoid circular dependencies
+    const { MpesaService } = await import('./mpesaService');
+    
+    try {
+      // Get order details
+      const order = await this.getOrderById(orderId);
+      
+      // Initiate M-Pesa payment
+      const mpesaResponse = await MpesaService.initiatePayment({
+        phoneNumber,
+        amount,
+        orderId,
+        description: `Payment for order ${order.order_number}`
+      });
+
+      if (!mpesaResponse.success) {
+        throw new Error(mpesaResponse.message);
+      }
+
+      // Update payment record with M-Pesa details
+      const { data: payment, error } = await supabase
+        .from('payments')
+        .update({
+          status: 'processing',
+          transaction_id: mpesaResponse.transactionId,
+          mpesa_phone_number: phoneNumber,
+          mpesa_checkout_request_id: mpesaResponse.transactionId,
+          gateway_response: {
+            mpesa_checkout_request_id: mpesaResponse.transactionId,
+            phone_number: phoneNumber,
+            initiated_at: new Date().toISOString()
+          }
+        })
+        .eq('order_id', orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return payment;
+    } catch (error) {
+      console.error('M-Pesa payment error:', error);
+      throw error;
+    }
+  }
+
+  // Check M-Pesa payment status
+  static async checkMpesaPaymentStatus(orderId: string): Promise<Payment> {
+    const { MpesaService } = await import('./mpesaService');
+    
+    try {
+      // Get payment record
+      const { data: payment, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('order_id', orderId)
+        .single();
+
+      if (error) throw error;
+
+      if (!payment.gateway_response?.mpesa_checkout_request_id) {
+        throw new Error('No M-Pesa checkout request found');
+      }
+
+      // Check payment status
+      const statusResponse = await MpesaService.checkPaymentStatus(
+        payment.gateway_response.mpesa_checkout_request_id
+      );
+
+      if (statusResponse.success) {
+        // Payment successful
+        const { data: updatedPayment, error: updateError } = await supabase
+          .from('payments')
+          .update({
+            status: 'succeeded',
+            transaction_id: statusResponse.transactionId,
+            mpesa_transaction_id: statusResponse.transactionId,
+            gateway_response: {
+              ...payment.gateway_response,
+              mpesa_transaction_id: statusResponse.transactionId,
+              completed_at: new Date().toISOString()
+            }
+          })
+          .eq('order_id', orderId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+
+        // Update order status
+        await this.updateOrderStatus(orderId, {
+          order_id: orderId,
+          status: 'confirmed',
+          notes: 'M-Pesa payment completed successfully'
+        });
+
+        return updatedPayment;
+      } else {
+        // Payment failed or pending
+        const { data: updatedPayment, error: updateError } = await supabase
+          .from('payments')
+          .update({
+            status: statusResponse.errorCode === '1' ? 'processing' : 'failed',
+            gateway_response: {
+              ...payment.gateway_response,
+              last_check: new Date().toISOString(),
+              status_message: statusResponse.message
+            }
+          })
+          .eq('order_id', orderId)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+
+        return updatedPayment;
+      }
+    } catch (error) {
+      console.error('M-Pesa status check error:', error);
+      throw error;
+    }
   }
 
   static async refundPayment(paymentId: string, amount: number): Promise<Payment> {

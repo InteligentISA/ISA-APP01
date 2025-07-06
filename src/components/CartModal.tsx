@@ -5,7 +5,7 @@ import { X, Trash2, ShoppingCart, Heart, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/services/orderService";
 import { CartItemWithProduct } from "@/types/order";
-import CheckoutModal from "./CheckoutModal";
+import EnhancedCheckoutModal from "./EnhancedCheckoutModal";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -235,7 +235,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
       </div>
 
       {showCheckout && (
-        <CheckoutModal
+        <EnhancedCheckoutModal
           isOpen={showCheckout}
           onClose={() => setShowCheckout(false)}
           user={user}
