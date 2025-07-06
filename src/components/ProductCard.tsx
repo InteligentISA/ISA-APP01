@@ -1,217 +1,491 @@
-
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Heart, ShoppingCart, Eye, Star, ExternalLink } from "lucide-react";
-import { DashboardProduct, DashboardVendorProduct, DashboardJumiaProduct } from "@/types/product";
+import { Star, ShoppingCart, Heart, Eye, Plus, Minus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Product, DashboardProduct, DashboardVendorProduct } from "@/types/product";
+import { OrderService } from "@/services/orderService";
 import { CustomerBehaviorService } from "@/services/customerBehaviorService";
+import { JumiaInteractionService } from "@/services/jumiaInteractionService";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProductCardProps {
   product: DashboardProduct;
-  onQuickView: (product: DashboardProduct) => void;
+  onQuickView?: (product: DashboardProduct) => void;
   showQuickView?: boolean;
-  onAddToCart: (product: DashboardProduct) => void;
-  onToggleLike: (product: DashboardProduct) => void;
-  isLiked: boolean;
+  onAddToCart?: (product: DashboardProduct) => void;
+  onToggleLike?: (product: DashboardProduct) => void;
+  isLiked?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
-  product,
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
   onQuickView,
-  showQuickView = true,
+  showQuickView = false,
   onAddToCart,
   onToggleLike,
-  isLiked
+  isLiked = false
 }) => {
-  const isVendorProduct = product.source === 'vendor';
-  const vendorProduct = product as DashboardVendorProduct;
-  const jumiaProduct = product as DashboardJumiaProduct;
+  const [isLoading, setIsLoading] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [localIsLiked, setLocalIsLiked] = useState(isLiked);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleInteraction = async (interactionType: 'view' | 'like' | 'add_to_cart') => {
-    if (isVendorProduct) {
-      try {
-        await CustomerBehaviorService.trackInteraction('user-id', product.id, interactionType);
-      } catch (error) {
-        console.error('Failed to track interaction:', error);
+  // Track product view when component mounts
+  useEffect(() => {
+    if (user) {
+      if (product.source === 'jumia') {
+        // Track Jumia product view
+        JumiaInteractionService.trackInteraction(
+          user.id,
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            link: product.link,
+            image: product.image
+          },
+          'view',
+          {
+            category: 'electronics', // Default category for Jumia products
+            source: 'jumia'
+          }
+        );
+      } else {
+        // Track vendor product view
+        CustomerBehaviorService.trackInteraction(user.id, product.id, 'view');
       }
     }
-  };
+  }, [user, product.id, product.source]);
 
-  const handleProductClick = () => {
-    handleInteraction('view');
-    if (showQuickView) {
-      onQuickView(product);
+  const handleAddToCart = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to add items to your cart.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const stockQuantity = product.source === 'jumia' ? 1 : (product as DashboardVendorProduct).stock_quantity || 0;
+    if (stockQuantity === 0) {
+      toast({
+        title: "Out of stock",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Track the interaction based on product source
+      if (product.source === 'jumia') {
+        await JumiaInteractionService.trackInteraction(
+          user.id,
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            link: product.link,
+            image: product.image
+          },
+          'add_to_cart',
+          {
+            quantity: quantity,
+            category: 'electronics',
+            source: 'jumia'
+          }
+        );
+      } else {
+        await CustomerBehaviorService.trackInteraction(user.id, product.id, 'add_to_cart', {
+          quantity: quantity
+        });
+      }
+
+      // Add to cart using OrderService (for both vendor and Jumia products)
+      await OrderService.addToCart(user.id, {
+        product_id: product.id,
+        product_name: product.name,
+        product_category: product.category || (product.source === 'jumia' ? 'electronics' : 'general'),
+        quantity: quantity,
+        price: product.price
+      });
+      
+      // Call parent handler if provided
+      if (onAddToCart) {
+        onAddToCart(product);
+      }
+      
+      toast({
+        title: "Added to cart!",
+        description: `${product.name} has been added to your cart.`,
+      });
+      
+      // Reset quantity after adding to cart
+      setQuantity(1);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleAddToCart = () => {
-    handleInteraction('add_to_cart');
-    onAddToCart(product);
+  const handleToggleLike = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to add items to your wishlist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newLikeState = !localIsLiked;
+      
+      // Track the interaction based on product source
+      if (product.source === 'jumia') {
+        if (newLikeState) {
+          await JumiaInteractionService.trackInteraction(
+            user.id,
+            {
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              link: product.link,
+              image: product.image
+            },
+            'like',
+            {
+              category: 'electronics',
+              source: 'jumia'
+            }
+          );
+        } else {
+          await JumiaInteractionService.unlikeJumiaProduct(user.id, product.id);
+          // Don't track 'unlike' as it's not a valid interaction type
+        }
+      } else {
+        await CustomerBehaviorService.trackInteraction(
+          user.id, 
+          product.id, 
+          'like'
+        );
+      }
+      
+      setLocalIsLiked(newLikeState);
+      // Call parent handler if provided
+      if (onToggleLike) {
+        onToggleLike(product);
+      }
+      toast({
+        title: newLikeState ? "Added to wishlist!" : "Removed from wishlist",
+        description: `${product.name} has been ${newLikeState ? 'added to' : 'removed from'} your wishlist.`,
+      });
+    } catch (error) {
+      console.error('Error toggling wishlist:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update wishlist.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleToggleLike = () => {
-    handleInteraction('like');
-    onToggleLike(product);
+  const handleQuickView = () => {
+    if (!onQuickView) return;
+    onQuickView(product);
   };
 
-  // Get appropriate image URL
-  const imageUrl = isVendorProduct 
-    ? vendorProduct.main_image || '/placeholder.svg'
-    : jumiaProduct.image || '/placeholder.svg';
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
 
-  // Get stock status
-  const stockQuantity = product.stock_quantity || 0;
-  const isOutOfStock = stockQuantity === 0;
+  const renderStars = (rating: number) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
 
-  // For Jumia products, open in new tab
-  if (!isVendorProduct) {
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(
+        <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+      );
+    }
+
+    if (hasHalfStar) {
+      stars.push(
+        <Star key="half" className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+      );
+    }
+
+    const emptyStars = 5 - Math.ceil(rating);
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(
+        <Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />
+      );
+    }
+
+    return stars;
+  };
+
+  // Render for Jumia products
+  if (product.source === 'jumia') {
     return (
-      <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
-        <div className="relative overflow-hidden rounded-t-lg">
-          <img 
-            src={imageUrl}
+      <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+        <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
+          <img
+            src={product.image || '/placeholder.svg'}
             alt={product.name}
-            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          <div className="absolute top-2 left-2">
-            <Badge className="bg-orange-500 text-white">Jumia</Badge>
-          </div>
-          <div className="absolute top-2 right-2 flex gap-2">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 bg-white/80 hover:bg-white"
-              onClick={handleToggleLike}
-            >
-              <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-            </Button>
-          </div>
+          {/* Like button for Jumia */}
+          <button
+            className={`absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white shadow ${isLiked ? 'text-red-500' : 'text-gray-400'}`}
+            onClick={() => onToggleLike && onToggleLike(product)}
+            aria-label={isLiked ? 'Unlike' : 'Like'}
+          >
+            {isLiked ? <Heart className="w-5 h-5 fill-red-500" /> : <Heart className="w-5 h-5" />}
+          </button>
+          
+          {/* Jumia badge */}
+          <Badge className="absolute top-2 left-2 bg-orange-500 text-white text-xs">
+            Jumia
+          </Badge>
         </div>
-        
         <CardContent className="p-4">
-          <div className="space-y-2">
-            <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-              {product.name}
-            </h3>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-1">
-                <span className="text-lg font-bold text-gray-900">
-                  KES {product.price.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm text-gray-600">{product.rating}</span>
-              </div>
-            </div>
-
-            <div className="flex space-x-2 pt-2">
-              <a
-                href={jumiaProduct.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1"
-              >
-                <Button className="w-full" size="sm">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View on Jumia
-                </Button>
-              </a>
-            </div>
+          <div className="font-semibold text-gray-900 dark:text-white truncate mb-1">{product.name}</div>
+          <div className="text-lg font-bold text-purple-600 mb-1">KES {product.price.toLocaleString()}</div>
+          <div className="flex items-center mb-2">
+            <span className="flex items-center mr-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span key={i} className={i < Math.round(product.rating) ? 'text-yellow-400' : 'text-gray-300'}>★</span>
+              ))}
+            </span>
+            <span className="text-xs text-gray-500">{product.rating > 0 ? product.rating : 'No rating'}</span>
           </div>
+          <a
+            href={product.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full mt-2 px-4 py-2 bg-orange-500 text-white text-center rounded hover:bg-orange-600 transition"
+            onClick={() => {
+              // Track click interaction
+              if (user) {
+                JumiaInteractionService.trackInteraction(
+                  user.id,
+                  {
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    link: product.link,
+                    image: product.image
+                  },
+                  'click',
+                  {
+                    category: 'electronics',
+                    source: 'jumia'
+                  }
+                );
+              }
+            }}
+          >
+            Shop on Jumia
+          </a>
         </CardContent>
       </Card>
     );
   }
 
-  // Vendor product card
+  // For vendor products, check stock_quantity safely
+  const vendorProduct = product as DashboardVendorProduct;
+  const stockQuantity = vendorProduct.stock_quantity || 0;
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md">
-      <div className="relative overflow-hidden rounded-t-lg">
-        <img 
-          src={imageUrl}
+    <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+      {/* Product Image */}
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
+        <img
+          src={product.main_image || '/placeholder.svg'}
           alt={product.name}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
-          onClick={handleProductClick}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        {vendorProduct.is_featured && (
-          <div className="absolute top-2 left-2">
-            <Badge className="bg-yellow-500 text-white">Featured</Badge>
-          </div>
-        )}
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <Badge variant="destructive">Out of Stock</Badge>
-          </div>
-        )}
-        <div className="absolute top-2 right-2 flex gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 bg-white/80 hover:bg-white"
-            onClick={handleToggleLike}
-          >
-            <Heart className={`h-4 w-4 ${isLiked ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-          </Button>
-          {showQuickView && (
+        
+        {/* Quick Actions Overlay */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="flex space-x-2">
+            {showQuickView && (
+              <Button
+                size="icon"
+                variant="secondary"
+                className="w-10 h-10 bg-white/90 hover:bg-white text-gray-900"
+                onClick={handleQuickView}
+              >
+                <Eye className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               size="icon"
-              variant="ghost"
-              className="h-8 w-8 bg-white/80 hover:bg-white"
-              onClick={handleProductClick}
+              variant="secondary"
+              className={`w-10 h-10 ${localIsLiked ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white/90 hover:bg-white text-gray-900'}`}
+              onClick={handleToggleLike}
             >
-              <Eye className="h-4 w-4 text-gray-600" />
+              <Heart className={`w-4 h-4 ${localIsLiked ? 'fill-current' : ''}`} />
             </Button>
+          </div>
+        </div>
+
+        {/* Badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {product.is_featured && (
+            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
+              Featured
+            </Badge>
+          )}
+          {product.stock_quantity === 0 && (
+            <Badge variant="destructive" className="text-xs">
+              Out of Stock
+            </Badge>
+          )}
+          {product.original_price && product.original_price > product.price && (
+            <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">
+              {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
+            </Badge>
           )}
         </div>
+
+        {/* Stock indicator */}
+        {stockQuantity > 0 && stockQuantity <= 5 && (
+          <div className="absolute top-2 right-2">
+            <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
+              Only {stockQuantity} left
+            </Badge>
+          </div>
+        )}
       </div>
-      
+
+      {/* Product Info */}
       <CardContent className="p-4">
         <div className="space-y-2">
-          <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors cursor-pointer"
-              onClick={handleProductClick}>
-            {product.name}
-          </h3>
-          
+          {/* Category */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <span className="text-lg font-bold text-gray-900">
-                KES {product.price.toLocaleString()}
+            <Badge variant="outline" className="text-xs">
+              {vendorProduct.category}
+            </Badge>
+            {vendorProduct.brand && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {vendorProduct.brand}
               </span>
-              {vendorProduct.original_price && vendorProduct.original_price > product.price && (
-                <span className="text-sm text-gray-500 line-through">
-                  KES {vendorProduct.original_price.toLocaleString()}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center space-x-1">
-              <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm text-gray-600">{vendorProduct.rating || 0}</span>
-            </div>
-          </div>
-
-          <div className="text-sm text-gray-600">
-            {vendorProduct.category}
-            {stockQuantity > 0 && (
-              <span className="ml-2">• {stockQuantity} in stock</span>
             )}
           </div>
 
-          <div className="flex space-x-2 pt-2">
-            <Button 
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              className="flex-1" 
-              size="sm"
-            >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </Button>
+          {/* Product Name */}
+          <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 min-h-[2.5rem]">
+            {product.name}
+          </h3>
+
+          {/* Rating */}
+          <div className="flex items-center space-x-1">
+            <div className="flex">
+              {renderStars(product.rating)}
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              ({product.review_count})
+            </span>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-center space-x-2">
+            <span className="text-lg font-bold text-gray-900 dark:text-white">
+              {formatPrice(product.price)}
+            </span>
+            {product.original_price && product.original_price > product.price && (
+              <span className="text-sm text-gray-500 line-through">
+                {formatPrice(product.original_price)}
+              </span>
+            )}
+          </div>
+
+          {/* Stock Status */}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {stockQuantity > 0 ? (
+              <span className="text-green-600 dark:text-green-400">
+                In Stock ({stockQuantity} available)
+              </span>
+            ) : (
+              <span className="text-red-600 dark:text-red-400">
+                Out of Stock
+              </span>
+            )}
           </div>
         </div>
       </CardContent>
+
+      {/* Actions */}
+      <CardFooter className="p-4 pt-0">
+        <div className="w-full space-y-3">
+          {/* Quantity Selector */}
+          {stockQuantity > 0 && (
+            <div className="flex items-center justify-center space-x-2">
+              <Button
+                size="icon"
+                variant="outline"
+                className="w-8 h-8"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                disabled={quantity <= 1}
+              >
+                <Minus className="w-3 h-3" />
+              </Button>
+              <span className="w-8 text-center text-sm font-medium">
+                {quantity}
+              </span>
+              <Button
+                size="icon"
+                variant="outline"
+                className="w-8 h-8"
+                onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
+                disabled={quantity >= stockQuantity}
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+
+          {/* Add to Cart Button */}
+          <Button
+            onClick={handleAddToCart}
+            disabled={stockQuantity === 0 || isLoading}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isLoading ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Adding...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <ShoppingCart className="w-4 h-4" />
+                <span>
+                  {stockQuantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                </span>
+              </div>
+            )}
+          </Button>
+        </div>
+      </CardFooter>
     </Card>
   );
 };

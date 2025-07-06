@@ -1,17 +1,27 @@
 
 export interface QueryAnalysis {
   intent: 'product_search' | 'price_comparison' | 'recommendation' | 'general_query';
-  keywords: string[];
-  category?: string;
-  priceRange?: {
-    min?: number;
-    max?: number;
-  };
-  filters?: {
-    brand?: string;
-    rating?: number;
+  entities: {
+    products?: string[];
+    categories?: string[];
+    priceRange?: {
+      min?: number;
+      max?: number;
+    };
+    brands?: string[];
     features?: string[];
   };
+  sentiment: 'positive' | 'neutral' | 'negative';
+  confidence: number;
+}
+
+export interface ProductFilters {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  brand?: string;
+  rating?: number;
+  tags?: string[];
 }
 
 export interface AIServiceResponse {
