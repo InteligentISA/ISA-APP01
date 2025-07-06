@@ -150,7 +150,9 @@ const VendorProductManagement = () => {
         vendor_id: authUser?.id,
         price: parseFloat(formData.price.toString()),
         original_price: formData.original_price ? parseFloat(formData.original_price.toString()) : undefined,
-        stock_quantity: parseInt(formData.stock_quantity.toString())
+        stock_quantity: parseInt(formData.stock_quantity.toString()),
+        rating: 0,
+        review_count: 0
       };
 
       if (editingProduct) {
@@ -306,50 +308,6 @@ const VendorProductManagement = () => {
       images: prev.images?.filter(img => img !== imageUrl) || [],
       main_image: prev.main_image === imageUrl ? "" : prev.main_image
     }));
-  };
-
-  const handleCreateProduct = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const productData = {
-        vendor_id: user.id,
-        name: newProduct.name,
-        description: newProduct.description,
-        price: newProduct.price,
-        original_price: newProduct.original_price,
-        category: newProduct.category,
-        subcategory: newProduct.subcategory,
-        brand: newProduct.brand,
-        sku: newProduct.sku,
-        stock_quantity: newProduct.stock_quantity,
-        tags: newProduct.tags,
-        specifications: newProduct.specifications,
-        main_image: newProduct.main_image,
-        images: newProduct.images,
-        is_featured: newProduct.is_featured,
-        is_active: true,
-        rating: 0,
-        review_count: 0,
-        pickup_location: newProduct.pickup_location,
-        pickup_phone: newProduct.pickup_phone_number,
-      };
-
-      const { data, error } = await ProductService.createProduct(productData);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Product created successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create product",
-        variant: "destructive"
-      });
-    }
   };
 
   const filteredProducts = products.filter(product => {

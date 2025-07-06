@@ -1,13 +1,9 @@
 
 export interface QueryAnalysis {
-  intent: 'product_search' | 'price_comparison' | 'recommendation' | 'general_inquiry' | 'gift_suggestion';
+  intent: 'product_search' | 'price_comparison' | 'recommendation' | 'general_question';
   categories: string[];
   keywords: string[];
-  priceRange?: {
-    min?: number;
-    max?: number;
-  };
-  specificRequirements?: string[];
+  confidence: number;
 }
 
 export interface AIServiceResponse {
@@ -17,4 +13,17 @@ export interface AIServiceResponse {
   userLearning: any;
   products?: any[];
   jumiaProducts?: any[];
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
+export interface UserContext {
+  id: string;
+  preferences?: any;
+  searchHistory?: string[];
+  purchaseHistory?: any[];
 }

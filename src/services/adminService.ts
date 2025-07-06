@@ -1,591 +1,189 @@
-import { supabase } from '@/integrations/supabase/client';
+
+import { supabase } from "@/integrations/supabase/client";
+
+export interface AdminAnalytics {
+  totalUsers: number;
+  totalProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  recentActivity: any[];
+}
 
 export interface VendorApplication {
   id: string;
-  user_id: string;
   business_name: string;
   business_description: string;
   business_address: string;
   business_phone: string;
   business_email: string;
-  business_website: string;
-  tax_id: string;
+  tax_id?: string;
   status: 'pending' | 'approved' | 'rejected';
-  admin_notes: string;
-  created_at: string;
-  profiles: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-}
-
-export interface AdminAnalytics {
-  id: string;
-  date: string;
-  total_sales: number;
-  total_orders: number;
-  total_customers: number;
-  total_vendors: number;
-  commission_rate: number;
-  total_commissions: number;
   created_at: string;
   updated_at: string;
-}
-
-export interface VendorCommission {
-  id: string;
-  vendor_id: string;
-  order_id: string;
-  product_id: string;
-  sale_amount: number;
-  commission_rate: number;
-  commission_amount: number;
-  status: 'pending' | 'paid' | 'cancelled';
-  paid_at: string;
-  created_at: string;
-  profiles: {
-    first_name: string;
-    last_name: string;
-    email: string;
-  };
-  products: {
-    name: string;
-    price: number;
-  };
-}
-
-export interface AdminSettings {
-  id: string;
-  setting_key: string;
-  setting_value: any;
-  description: string;
-  updated_by: string;
-  updated_at: string;
-}
-
-export interface PaymentData {
-  id: string;
-  order_id: string;
-  order_number: string;
-  payment_method: string;
-  amount: number;
-  currency: string;
-  status: string;
-  transaction_id?: string;
-  mpesa_phone_number?: string;
-  mpesa_transaction_id?: string;
-  created_at: string;
-  updated_at: string;
-  
-  // Order details
-  customer_email: string;
-  customer_phone?: string;
-  total_amount: number;
-  
-  // Customer details
-  customer_name?: string;
-  
-  // Product details
-  products: {
-    id: string;
-    name: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-    vendor_id?: string;
-    vendor_name?: string;
-  }[];
-}
-
-export interface PaymentStats {
-  totalPayments: number;
-  totalAmount: number;
-  successfulPayments: number;
-  pendingPayments: number;
-  failedPayments: number;
-  mpesaPayments: number;
-  cashPayments: number;
+  user_id: string;
+  rejection_reason?: string;
 }
 
 export class AdminService {
-  // Vendor Applications
-  static async getVendorApplications(): Promise<VendorApplication[]> {
-    const { data, error } = await supabase
-      .from('vendor_applications')
-      .select(`
-        *,
-        profiles:user_id (
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  static async approveVendorApplication(appId: string, adminNotes: string): Promise<void> {
-    const { error } = await supabase.rpc('approve_vendor_application', {
-      app_id: appId,
-      admin_notes: adminNotes
-    });
-
-    if (error) throw error;
-  }
-
-  static async rejectVendorApplication(appId: string, adminNotes: string): Promise<void> {
-    const { error } = await supabase.rpc('reject_vendor_application', {
-      app_id: appId,
-      admin_notes: adminNotes
-    });
-
-    if (error) throw error;
-  }
-
-  static async getPendingVendorApplications(): Promise<VendorApplication[]> {
-    const { data, error } = await supabase
-      .from('vendor_applications')
-      .select(`
-        *,
-        profiles:user_id (
-          first_name,
-          last_name,
-          email
-        )
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Analytics
-  static async getAnalytics(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('admin_analytics')
-      .select('*')
-      .order('date', { ascending: false })
-      .limit(30);
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  static async calculateDailyAnalytics(date: string): Promise<void> {
-    const { error } = await supabase.rpc('calculate_daily_analytics', {
-      target_date: date
-    });
-
-    if (error) throw error;
-  }
-
-  // Vendor Commissions
-  static async getVendorCommissions(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('vendor_commissions')
-      .select(`
-        *,
-        profiles:vendor_id (
-          first_name,
-          last_name,
-          email
-        ),
-        products:product_id (
-          name,
-          price
-        )
-      `)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  static async updateCommissionStatus(commissionId: string, status: 'pending' | 'paid' | 'cancelled'): Promise<void> {
-    const { error } = await supabase
-      .from('vendor_commissions')
-      .update({ 
-        status,
-        paid_at: status === 'paid' ? new Date().toISOString() : null
-      })
-      .eq('id', commissionId);
-
-    if (error) throw error;
-  }
-
-  // Best Selling Products
-  static async getBestSellingProducts(country?: string, limit: number = 10): Promise<any[]> {
-    let query = `
-      SELECT 
-        p.id,
-        p.name,
-        p.price,
-        p.category_id,
-        pc.name as category_name,
-        COUNT(oi.id) as total_orders,
-        SUM(oi.quantity) as total_quantity,
-        SUM(oi.quantity * oi.unit_price) as total_revenue
-      FROM products p
-      LEFT JOIN product_categories pc ON p.category_id = pc.id
-      LEFT JOIN order_items oi ON p.id = oi.product_id
-      LEFT JOIN orders o ON oi.order_id = o.id
-      WHERE o.status = 'completed'
-    `;
-
-    if (country) {
-      query += ` AND o.shipping_address->>'country' = '${country}'`;
-    }
-
-    query += `
-      GROUP BY p.id, p.name, p.price, p.category_id, pc.name
-      ORDER BY total_revenue DESC
-      LIMIT ${limit}
-    `;
-
-    const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Admin Settings
-  static async getAdminSettings(): Promise<AdminSettings[]> {
-    const { data, error } = await supabase
-      .from('admin_settings')
-      .select('*')
-      .order('setting_key');
-
-    if (error) throw error;
-    return data || [];
-  }
-
-  static async updateAdminSetting(settingKey: string, settingValue: any, description?: string): Promise<void> {
-    const { error } = await supabase
-      .from('admin_settings')
-      .upsert({
-        setting_key: settingKey,
-        setting_value: settingValue,
-        description,
-        updated_by: (await supabase.auth.getUser()).data.user?.id,
-        updated_at: new Date().toISOString()
-      });
-
-    if (error) throw error;
-  }
-
-  // Sales Analytics by Country
-  static async getSalesByCountry(startDate?: string, endDate?: string): Promise<any[]> {
-    let query = `
-      SELECT 
-        o.shipping_address->>'country' as country,
-        COUNT(DISTINCT o.id) as total_orders,
-        SUM(o.total_amount) as total_sales,
-        COUNT(DISTINCT o.user_id) as unique_customers
-      FROM orders o
-      WHERE o.status = 'completed'
-    `;
-
-    if (startDate) {
-      query += ` AND o.created_at >= '${startDate}'`;
-    }
-    if (endDate) {
-      query += ` AND o.created_at <= '${endDate}'`;
-    }
-
-    query += `
-      GROUP BY o.shipping_address->>'country'
-      ORDER BY total_sales DESC
-    `;
-
-    const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Vendor Sales Summary
-  static async getVendorSalesSummary(): Promise<any[]> {
-    const query = `
-      SELECT 
-        p.id as vendor_id,
-        p.first_name,
-        p.last_name,
-        p.email,
-        COUNT(DISTINCT o.id) as total_orders,
-        SUM(oi.quantity * oi.unit_price) as total_sales,
-        SUM(vc.commission_amount) as total_commissions,
-        AVG(vc.commission_rate) as avg_commission_rate
-      FROM profiles p
-      LEFT JOIN products pr ON p.id = pr.vendor_id
-      LEFT JOIN order_items oi ON pr.id = oi.product_id
-      LEFT JOIN orders o ON oi.order_id = o.id
-      LEFT JOIN vendor_commissions vc ON o.id = vc.order_id AND pr.id = vc.product_id
-      WHERE p.role = 'vendor' AND o.status = 'completed'
-      GROUP BY p.id, p.first_name, p.last_name, p.email
-      ORDER BY total_sales DESC
-    `;
-
-    const { data, error } = await supabase.rpc('execute_sql', { sql_query: query });
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Fetch all successful payments with detailed information
-  static async getSuccessfulPayments(): Promise<PaymentData[]> {
+  // Get admin analytics
+  static async getAnalytics(): Promise<{ data: AdminAnalytics | null; error: any }> {
     try {
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          orders!inner(
-            id,
-            order_number,
-            customer_email,
-            customer_phone,
-            total_amount,
-            created_at,
-            profiles!orders_user_id_fkey(
-              first_name,
-              last_name
-            )
-          )
-        `)
-        .eq('status', 'succeeded')
-        .order('created_at', { ascending: false });
+      // Get basic counts from existing tables
+      const [usersResult, productsResult, ordersResult] = await Promise.all([
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+        supabase.from('products').select('id', { count: 'exact', head: true }),
+        supabase.from('orders').select('id, total_amount', { count: 'exact' })
+      ]);
 
-      if (paymentsError) throw paymentsError;
-
-      if (!payments) return [];
-
-      // Fetch order items for each payment
-      const paymentsWithDetails = await Promise.all(
-        payments.map(async (payment) => {
-          const { data: orderItems, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              *,
-              products!inner(
-                id,
-                name,
-                vendor_id,
-                profiles!products_vendor_id_fkey(
-                  first_name,
-                  last_name
-                )
-              )
-            `)
-            .eq('order_id', payment.order_id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return null;
-          }
-
-          const products = orderItems?.map(item => ({
-            id: item.product_id,
-            name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            vendor_id: item.products?.vendor_id,
-            vendor_name: item.products?.profiles 
-              ? `${item.products.profiles.first_name || ''} ${item.products.profiles.last_name || ''}`.trim()
-              : 'Unknown Vendor'
-          })) || [];
-
-          return {
-            id: payment.id,
-            order_id: payment.order_id,
-            order_number: payment.orders.order_number,
-            payment_method: payment.payment_method,
-            amount: payment.amount,
-            currency: payment.currency,
-            status: payment.status,
-            transaction_id: payment.transaction_id,
-            mpesa_phone_number: payment.mpesa_phone_number,
-            mpesa_transaction_id: payment.mpesa_transaction_id,
-            created_at: payment.created_at,
-            updated_at: payment.updated_at,
-            customer_email: payment.orders.customer_email,
-            customer_phone: payment.orders.customer_phone,
-            total_amount: payment.orders.total_amount,
-            customer_name: payment.orders.profiles 
-              ? `${payment.orders.profiles.first_name || ''} ${payment.orders.profiles.last_name || ''}`.trim()
-              : 'Unknown Customer',
-            products
-          };
-        })
-      );
-
-      return paymentsWithDetails.filter(Boolean) as PaymentData[];
-    } catch (error) {
-      console.error('Error fetching successful payments:', error);
-      throw error;
-    }
-  }
-
-  // Fetch payment statistics
-  static async getPaymentStats(): Promise<PaymentStats> {
-    try {
-      const { data: payments, error } = await supabase
-        .from('payments')
-        .select('status, payment_method, amount');
-
-      if (error) throw error;
-
-      if (!payments) {
-        return {
-          totalPayments: 0,
-          totalAmount: 0,
-          successfulPayments: 0,
-          pendingPayments: 0,
-          failedPayments: 0,
-          mpesaPayments: 0,
-          cashPayments: 0
-        };
+      if (usersResult.error || productsResult.error || ordersResult.error) {
+        throw new Error('Failed to fetch analytics data');
       }
 
-      const stats = payments.reduce((acc, payment) => {
-        acc.totalPayments++;
-        acc.totalAmount += payment.amount || 0;
+      // Calculate total revenue
+      const totalRevenue = ordersResult.data?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
 
-        switch (payment.status) {
-          case 'succeeded':
-            acc.successfulPayments++;
-            break;
-          case 'pending':
-            acc.pendingPayments++;
-            break;
-          case 'failed':
-            acc.failedPayments++;
-            break;
-        }
+      // Get recent activity from orders
+      const { data: recentOrders } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-        switch (payment.payment_method) {
-          case 'mpesa':
-            acc.mpesaPayments++;
-            break;
-          case 'cash_on_delivery':
-          case 'cash_on_pickup':
-            acc.cashPayments++;
-            break;
-        }
+      const analytics: AdminAnalytics = {
+        totalUsers: usersResult.count || 0,
+        totalProducts: productsResult.count || 0,
+        totalOrders: ordersResult.count || 0,
+        totalRevenue,
+        recentActivity: recentOrders || []
+      };
 
-        return acc;
-      }, {
-        totalPayments: 0,
-        totalAmount: 0,
-        successfulPayments: 0,
-        pendingPayments: 0,
-        failedPayments: 0,
-        mpesaPayments: 0,
-        cashPayments: 0
-      });
-
-      return stats;
+      return { data: analytics, error: null };
     } catch (error) {
-      console.error('Error fetching payment stats:', error);
-      throw error;
+      console.error('Error fetching analytics:', error);
+      return { data: null, error };
     }
   }
 
-  // Fetch recent payments (last 30 days)
-  static async getRecentPayments(limit: number = 10): Promise<PaymentData[]> {
+  // Get all users
+  static async getUsers(): Promise<{ data: any[] | null; error: any }> {
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments')
+      return { data, error };
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return { data: null, error };
+    }
+  }
+
+  // Update user role
+  static async updateUserRole(userId: string, role: string): Promise<{ error: any }> {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId);
+
+      return { error };
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      return { error };
+    }
+  }
+
+  // Delete user
+  static async deleteUser(userId: string): Promise<{ error: any }> {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+
+      return { error };
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return { error };
+    }
+  }
+
+  // Get all products for admin management
+  static async getAllProducts(): Promise<{ data: any[] | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      return { data, error };
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return { data: null, error };
+    }
+  }
+
+  // Update product status
+  static async updateProductStatus(productId: string, isActive: boolean): Promise<{ error: any }> {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: isActive })
+        .eq('id', productId);
+
+      return { error };
+    } catch (error) {
+      console.error('Error updating product status:', error);
+      return { error };
+    }
+  }
+
+  // Delete product
+  static async deleteProduct(productId: string): Promise<{ error: any }> {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      return { error };
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      return { error };
+    }
+  }
+
+  // Get all orders for admin management
+  static async getAllOrders(): Promise<{ data: any[] | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
         .select(`
           *,
-          orders!inner(
-            id,
-            order_number,
-            customer_email,
-            customer_phone,
-            total_amount,
-            created_at,
-            profiles!orders_user_id_fkey(
-              first_name,
-              last_name
-            )
-          )
+          order_items(*)
         `)
-        .gte('created_at', thirtyDaysAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('created_at', { ascending: false });
 
-      if (paymentsError) throw paymentsError;
-
-      if (!payments) return [];
-
-      // Fetch order items for each payment
-      const paymentsWithDetails = await Promise.all(
-        payments.map(async (payment) => {
-          const { data: orderItems, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              *,
-              products!inner(
-                id,
-                name,
-                vendor_id,
-                profiles!products_vendor_id_fkey(
-                  first_name,
-                  last_name
-                )
-              )
-            `)
-            .eq('order_id', payment.order_id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return null;
-          }
-
-          const products = orderItems?.map(item => ({
-            id: item.product_id,
-            name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            vendor_id: item.products?.vendor_id,
-            vendor_name: item.products?.profiles 
-              ? `${item.products.profiles.first_name || ''} ${item.products.profiles.last_name || ''}`.trim()
-              : 'Unknown Vendor'
-          })) || [];
-
-          return {
-            id: payment.id,
-            order_id: payment.order_id,
-            order_number: payment.orders.order_number,
-            payment_method: payment.payment_method,
-            amount: payment.amount,
-            currency: payment.currency,
-            status: payment.status,
-            transaction_id: payment.transaction_id,
-            mpesa_phone_number: payment.mpesa_phone_number,
-            mpesa_transaction_id: payment.mpesa_transaction_id,
-            created_at: payment.created_at,
-            updated_at: payment.updated_at,
-            customer_email: payment.orders.customer_email,
-            customer_phone: payment.orders.customer_phone,
-            total_amount: payment.orders.total_amount,
-            customer_name: payment.orders.profiles 
-              ? `${payment.orders.profiles.first_name || ''} ${payment.orders.profiles.last_name || ''}`.trim()
-              : 'Unknown Customer',
-            products
-          };
-        })
-      );
-
-      return paymentsWithDetails.filter(Boolean) as PaymentData[];
+      return { data, error };
     } catch (error) {
-      console.error('Error fetching recent payments:', error);
-      throw error;
+      console.error('Error fetching orders:', error);
+      return { data: null, error };
     }
   }
-} 
+
+  // Update order status
+  static async updateOrderStatus(orderId: string, status: string): Promise<{ error: any }> {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId);
+
+      return { error };
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      return { error };
+    }
+  }
+}
