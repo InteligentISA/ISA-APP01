@@ -183,8 +183,7 @@ export interface UpdateOrderStatusRequest {
 
 export interface AddToCartRequest {
   product_id: string;
-  product_name: string;
-  product_category: string;
+  quantity: number;
 }
 
 export interface UpdateCartItemRequest {
@@ -231,4 +230,4 @@ export interface DeliveryDetails {
   pickup_phone?: string;
   delivery_address?: Address;
   delivery_fee?: number;
-}
+} 

@@ -56,7 +56,7 @@ interface ProductFormData {
   pickup_phone_number?: string;
 }
 
-const VendorProductManagement = () => {
+const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -150,9 +150,7 @@ const VendorProductManagement = () => {
         vendor_id: authUser?.id,
         price: parseFloat(formData.price.toString()),
         original_price: formData.original_price ? parseFloat(formData.original_price.toString()) : undefined,
-        stock_quantity: parseInt(formData.stock_quantity.toString()),
-        rating: 0,
-        review_count: 0
+        stock_quantity: parseInt(formData.stock_quantity.toString())
       };
 
       if (editingProduct) {
@@ -757,4 +755,4 @@ const VendorProductManagement = () => {
   );
 };
 
-export default VendorProductManagement;
+export default VendorProductManagement; 

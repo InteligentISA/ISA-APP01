@@ -12,7 +12,7 @@ export class CustomerBehaviorService {
   static async trackInteraction(
     userId: string, 
     productId: string, 
-    interactionType: 'view' | 'like' | 'add_to_cart' | 'purchase' | 'review' | 'share',
+    interactionType: UserProductInteraction['interaction_type'],
     interactionData?: Record<string, any>
   ): Promise<{ data: UserProductInteraction | null; error: any }> {
     try {
@@ -21,7 +21,8 @@ export class CustomerBehaviorService {
         .insert({
           user_id: userId,
           product_id: productId,
-          interaction_type: interactionType
+          interaction_type: interactionType,
+          interaction_data: interactionData
         })
         .select()
         .single();
@@ -337,4 +338,4 @@ export class CustomerBehaviorService {
       };
     }
   }
-}
+} 
