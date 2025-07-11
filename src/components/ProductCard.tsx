@@ -9,6 +9,11 @@ import { OrderService } from "@/services/orderService";
 import { CustomerBehaviorService } from "@/services/customerBehaviorService";
 import { JumiaInteractionService } from "@/services/jumiaInteractionService";
 import { useAuth } from "@/hooks/useAuth";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { ProductService } from "@/services/productService";
 
 interface ProductCardProps {
   product: DashboardProduct;
@@ -32,6 +37,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [showReviewsDialog, setShowReviewsDialog] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   // Track product view when component mounts
   useEffect(() => {
@@ -251,6 +264,59 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return stars;
   };
 
+  const handleSubmitReview = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to submit a review.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (reviewRating < 1 || reviewRating > 5) {
+      toast({
+        title: "Invalid rating",
+        description: "Please select a rating between 1 and 5 stars.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setReviewLoading(true);
+    const { error } = await supabase.from('product_reviews').insert({
+      product_id: product.id,
+      user_id: user.id,
+      rating: reviewRating,
+      title: reviewTitle,
+      comment: reviewComment,
+      is_verified_purchase: false
+    });
+    setReviewLoading(false);
+    if (error) {
+      toast({
+        title: "Error submitting review",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Review submitted!",
+        description: "Thank you for your feedback.",
+      });
+      setShowReviewDialog(false);
+      setReviewRating(0);
+      setReviewTitle("");
+      setReviewComment("");
+    }
+  };
+
+  const handleOpenReviews = async () => {
+    setShowReviewsDialog(true);
+    setReviewsLoading(true);
+    const { data, error } = await ProductService.getProductReviews(product.id);
+    setReviews(data || []);
+    setReviewsLoading(false);
+  };
+
   // Render for Jumia products
   if (product.source === 'jumia') {
     return (
@@ -404,10 +470,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Rating */}
           <div className="flex items-center space-x-1">
-            <div className="flex">
+            <div className="flex cursor-pointer" onClick={product.source === 'vendor' ? handleOpenReviews : undefined} title="View all reviews">
               {renderStars(product.rating)}
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer" onClick={product.source === 'vendor' ? handleOpenReviews : undefined}>
               ({product.review_count})
             </span>
           </div>
@@ -489,8 +555,104 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </div>
             )}
           </Button>
+
+          {product.source === 'vendor' && (
+            <>
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => setShowReviewDialog(true)}
+              >
+                Rate this product
+              </Button>
+              <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Rate {product.name}</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(star => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setReviewRating(star)}
+                          className={star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}
+                          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                        >
+                          <Star className="w-6 h-6" />
+                        </button>
+                      ))}
+                    </div>
+                    <Input
+                      placeholder="Title (optional)"
+                      value={reviewTitle}
+                      onChange={e => setReviewTitle(e.target.value)}
+                      maxLength={100}
+                    />
+                    <Textarea
+                      placeholder="Write your review (optional)"
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      onClick={handleSubmitReview}
+                      disabled={reviewLoading || reviewRating < 1 || reviewRating > 5}
+                      className="w-full"
+                    >
+                      {reviewLoading ? 'Submitting...' : 'Submit Review'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
       </CardFooter>
+
+      {product.source === 'vendor' && (
+        <Dialog open={showReviewsDialog} onOpenChange={setShowReviewsDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Reviews for {product.name}</DialogTitle>
+            </DialogHeader>
+            <div className="max-h-96 overflow-y-auto">
+              {reviewsLoading ? (
+                <div className="text-center py-8">Loading reviews...</div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">No reviews yet.</div>
+              ) : (
+                <ul className="space-y-4">
+                  {reviews.map((review) => (
+                    <li key={review.id} className="border-b pb-2">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-sm">
+                          {review.profiles?.first_name || 'User'} {review.profiles?.last_name || ''}
+                        </span>
+                        <span className="text-xs text-gray-400">{new Date(review.created_at).toLocaleDateString()}</span>
+                        <span className="flex items-center ml-2">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`} />
+                          ))}
+                        </span>
+                      </div>
+                      {review.title && <div className="font-medium text-gray-800 dark:text-gray-100">{review.title}</div>}
+                      {review.comment && <div className="text-gray-700 dark:text-gray-300 text-sm">{review.comment}</div>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowReviewsDialog(false)} className="w-full">Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Card>
   );
 };

@@ -96,15 +96,14 @@ const AdminDashboard = () => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
+  // Remove the set as admin UI and logic. Only allow access if role is 'admin'.
   if (!role) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Setting up Admin Access</h2>
-          <p className="text-gray-600 mb-4">Click the button below to set yourself as admin for testing.</p>
-          <Button onClick={setAsAdmin} disabled={settingAdmin}>
-            {settingAdmin ? 'Setting Admin...' : 'Set as Admin'}
-          </Button>
+          <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You do not have admin privileges.</p>
+          <Button onClick={() => navigate('/')}>Go Home</Button>
         </div>
       </div>
     );

@@ -11,6 +11,7 @@ import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
 import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
@@ -20,6 +21,7 @@ const Index = () => {
   const [profileCompletionOpen, setProfileCompletionOpen] = useState(false);
   const [profileCompletionData, setProfileCompletionData] = useState<any>(null);
   const { user: authUser, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
@@ -48,9 +50,43 @@ const Index = () => {
 
     // If user is already authenticated, go to dashboard
     if (authUser) {
-      console.log('User is authenticated, going to dashboard');
+      console.log('User is authenticated, checking role for redirection');
       setUser(authUser);
-      setCurrentView('dashboard');
+      // Fetch user profile to check role and approval
+      UserProfileService.getUserProfile(authUser.id).then(profile => {
+        if (profile) {
+          if (profile.role === 'admin') {
+            window.location.href = '/admin';
+            return;
+          }
+          if (profile.user_type === 'vendor') {
+            // Check vendor approval status
+            if (profile.status === 'approved' || profile.user_type === 'vendor_approved') {
+              setCurrentView('vendor-dashboard');
+              return;
+            } else if (profile.status === 'rejected' || profile.user_type === 'vendor_rejected') {
+              // Vendor rejected, show regular dashboard
+              setCurrentView('dashboard');
+              toast({
+                title: 'Your application was rejected.',
+                description: 'Please contact support for more information.',
+                variant: 'destructive',
+              });
+              return;
+            } else {
+              // Vendor not approved, show regular dashboard
+              setCurrentView('dashboard');
+              toast({
+                title: 'Your application is pending approval.',
+                description: 'Please wait for the administrator to review your application.',
+                variant: 'destructive',
+              });
+              return;
+            }
+          }
+        }
+        setCurrentView('dashboard');
+      });
       return;
     }
 
@@ -79,12 +115,32 @@ const Index = () => {
         ? `${userData.first_name} ${userData.last_name}`
         : userData.email?.split('@')[0] || 'User',
       avatar: userData.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.email || 'user'}`,
-      userType: userData.user_type || 'customer'
+      userType: userData.user_type || userData.userType || 'customer',
+      status: userData.status || 'approved' // Default to approved for non-vendors
     };
     
     setUser(formattedUser);
     if (formattedUser.userType === 'vendor') {
-      setCurrentView('vendor-dashboard');
+      // Check if vendor is approved
+      if (formattedUser.status === 'approved' || formattedUser.userType === 'vendor_approved') {
+        setCurrentView('vendor-dashboard');
+      } else if (formattedUser.status === 'rejected' || formattedUser.userType === 'vendor_rejected') {
+        // Vendor rejected, show regular dashboard
+        setCurrentView('dashboard');
+        toast({
+          title: 'Your application was rejected.',
+          description: 'Please contact support for more information.',
+          variant: 'destructive',
+        });
+      } else {
+        // Vendor is pending approval, show regular dashboard with message
+        setCurrentView('dashboard');
+        toast({
+          title: 'Your application is pending approval.',
+          description: 'Please wait for the administrator to review your application.',
+          variant: 'destructive',
+        });
+      }
     } else {
       setCurrentView('dashboard');
     }

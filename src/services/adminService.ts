@@ -128,39 +128,158 @@ export class AdminService {
   }
 
   static async approveVendorApplication(appId: string, adminNotes: string): Promise<void> {
-    const { error } = await supabase.rpc('approve_vendor_application', {
-      app_id: appId,
-      admin_notes: adminNotes
-    });
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status: 'approved',
+          admin_notes: adminNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', appId)
+        .eq('user_type', 'vendor');
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error approving vendor application:', error);
+        throw error;
+      }
+      
+      console.log('AdminService: Vendor application approved successfully');
+    } catch (error) {
+      console.error('Error approving vendor application:', error);
+      throw error;
+    }
   }
 
   static async rejectVendorApplication(appId: string, adminNotes: string): Promise<void> {
-    const { error } = await supabase.rpc('reject_vendor_application', {
-      app_id: appId,
-      admin_notes: adminNotes
-    });
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status: 'rejected',
+          admin_notes: adminNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', appId)
+        .eq('user_type', 'vendor');
 
-    if (error) throw error;
+      if (error) {
+        console.error('Error rejecting vendor application:', error);
+        throw error;
+      }
+      
+      console.log('AdminService: Vendor application rejected successfully');
+    } catch (error) {
+      console.error('Error rejecting vendor application:', error);
+      throw error;
+    }
   }
 
   static async getPendingVendorApplications(): Promise<VendorApplication[]> {
-    const { data, error } = await supabase
-      .from('vendor_applications')
-      .select(`
-        *,
-        profiles:user_id (
+    try {
+      console.log('AdminService: Fetching pending vendor applications...');
+      
+      // Get all vendors with their details including email
+      const { data: vendors, error } = await supabase
+        .from('profiles')
+        .select('id,first_name,last_name,email,phone_number,company,business_type,status,admin_notes,created_at')
+        .eq('user_type', 'vendor')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching vendors:', error);
+        throw error;
+      }
+
+      console.log('AdminService: Found vendors:', vendors?.length || 0);
+
+      // Transform the data to match VendorApplication interface
+      return (vendors || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.company || 'N/A',
+        business_description: profile.business_type || 'N/A',
+        business_address: 'N/A',
+        business_phone: profile.phone_number || 'N/A',
+        business_email: profile.email,
+        business_website: 'N/A',
+        tax_id: 'N/A',
+        status: profile.status || 'pending',
+        admin_notes: profile.admin_notes || '',
+        created_at: profile.created_at,
+        profiles: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching vendor applications:', error);
+      throw error;
+    }
+  }
+
+  // Alternative method if the database function doesn't work
+  static async getPendingVendorApplicationsAlternative(): Promise<VendorApplication[]> {
+    try {
+      console.log('AdminService: Fetching pending vendor applications (alternative method)...');
+      
+      // First, get all vendors from profiles
+      const { data: vendors, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
           first_name,
           last_name,
-          email
-        )
-      `)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false });
+          phone_number,
+          company,
+          business_type,
+          status,
+          created_at
+        `)
+        .eq('user_type', 'vendor')
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) {
+        console.error('Error fetching vendors:', error);
+        throw error;
+      }
+
+      console.log('AdminService: Found vendors:', vendors?.length || 0);
+
+      // Filter to only show pending vendors
+      const pendingVendors = vendors?.filter(vendor => 
+        !vendor.status || vendor.status === 'pending'
+      ) || [];
+
+      console.log('AdminService: Pending vendors:', pendingVendors.length);
+
+      // For now, we'll use a placeholder email since we can't easily fetch from auth.users
+      // In a real implementation, you might need to store email in profiles or use a different approach
+      return pendingVendors.map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.company || 'N/A',
+        business_description: profile.business_type || 'N/A',
+        business_address: 'N/A',
+        business_phone: profile.phone_number || 'N/A',
+        business_email: 'Email not available', // Placeholder since we can't fetch from auth.users
+        business_website: 'N/A',
+        tax_id: 'N/A',
+        status: profile.status || 'pending',
+        admin_notes: '',
+        created_at: profile.created_at,
+        profiles: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: 'Email not available' // Placeholder
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching vendor applications:', error);
+      throw error;
+    }
   }
 
   // Analytics
@@ -355,87 +474,59 @@ export class AdminService {
         .eq('status', 'succeeded')
         .order('created_at', { ascending: false });
 
-      if (paymentsError) throw paymentsError;
+      if (paymentsError) {
+        console.warn('Payments table does not exist or error occurred:', paymentsError);
+        return []; // Return empty array if payments table doesn't exist
+      }
 
       if (!payments) return [];
 
-      // Fetch order items for each payment
-      const paymentsWithDetails = await Promise.all(
-        payments.map(async (payment) => {
-          const { data: orderItems, error: itemsError } = await supabase
-            .from('order_items')
-            .select(`
-              *,
-              products!inner(
-                id,
-                name,
-                vendor_id,
-                profiles!products_vendor_id_fkey(
-                  first_name,
-                  last_name
-                )
-              )
-            `)
-            .eq('order_id', payment.order_id);
-
-          if (itemsError) {
-            console.error('Error fetching order items:', itemsError);
-            return null;
-          }
-
-          const products = orderItems?.map(item => ({
-            id: item.product_id,
-            name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            total_price: item.total_price,
-            vendor_id: item.products?.vendor_id,
-            vendor_name: item.products?.profiles 
-              ? `${item.products.profiles.first_name || ''} ${item.products.profiles.last_name || ''}`.trim()
-              : 'Unknown Vendor'
-          })) || [];
-
-          return {
-            id: payment.id,
-            order_id: payment.order_id,
-            order_number: payment.orders.order_number,
-            payment_method: payment.payment_method,
-            amount: payment.amount,
-            currency: payment.currency,
-            status: payment.status,
-            transaction_id: payment.transaction_id,
-            mpesa_phone_number: payment.mpesa_phone_number,
-            mpesa_transaction_id: payment.mpesa_transaction_id,
-            created_at: payment.created_at,
-            updated_at: payment.updated_at,
-            customer_email: payment.orders.customer_email,
-            customer_phone: payment.orders.customer_phone,
-            total_amount: payment.orders.total_amount,
-            customer_name: payment.orders.profiles 
-              ? `${payment.orders.profiles.first_name || ''} ${payment.orders.profiles.last_name || ''}`.trim()
-              : 'Unknown Customer',
-            products
-          };
-        })
-      );
-
-      return paymentsWithDetails.filter(Boolean) as PaymentData[];
+      return payments.map(payment => {
+        const order = payment.orders;
+        const customer = order.profiles;
+        
+        return {
+          id: payment.id,
+          order_id: payment.order_id,
+          order_number: order.order_number,
+          payment_method: payment.payment_method,
+          amount: payment.amount,
+          currency: payment.currency,
+          status: payment.status,
+          transaction_id: payment.transaction_id,
+          mpesa_phone_number: payment.mpesa_phone_number,
+          mpesa_transaction_id: payment.mpesa_transaction_id,
+          created_at: payment.created_at,
+          updated_at: payment.updated_at,
+          
+          // Order details
+          customer_email: order.customer_email,
+          customer_phone: order.customer_phone,
+          total_amount: order.total_amount,
+          
+          // Customer details
+          customer_name: customer ? `${customer.first_name} ${customer.last_name}` : 'Unknown',
+          
+          // Product details (simplified for now)
+          products: []
+        };
+      });
     } catch (error) {
       console.error('Error fetching successful payments:', error);
-      throw error;
+      return []; // Return empty array on error
     }
   }
 
   // Fetch payment statistics
   static async getPaymentStats(): Promise<PaymentStats> {
     try {
-      const { data: payments, error } = await supabase
+      const { data, error } = await supabase
         .from('payments')
         .select('status, payment_method, amount');
 
-      if (error) throw error;
-
-      if (!payments) {
+      if (error) {
+        console.warn('Payments table does not exist or error occurred:', error);
+        // Return default stats if payments table doesn't exist
         return {
           totalPayments: 0,
           totalAmount: 0,
@@ -447,6 +538,7 @@ export class AdminService {
         };
       }
 
+      const payments = data || [];
       const stats = payments.reduce((acc, payment) => {
         acc.totalPayments++;
         acc.totalAmount += payment.amount || 0;
@@ -455,11 +547,11 @@ export class AdminService {
           case 'succeeded':
             acc.successfulPayments++;
             break;
-          case 'pending':
-            acc.pendingPayments++;
-            break;
           case 'failed':
             acc.failedPayments++;
+            break;
+          case 'pending':
+            acc.pendingPayments++;
             break;
         }
 
@@ -467,8 +559,7 @@ export class AdminService {
           case 'mpesa':
             acc.mpesaPayments++;
             break;
-          case 'cash_on_delivery':
-          case 'cash_on_pickup':
+          case 'cash':
             acc.cashPayments++;
             break;
         }
@@ -487,7 +578,16 @@ export class AdminService {
       return stats;
     } catch (error) {
       console.error('Error fetching payment stats:', error);
-      throw error;
+      // Return default stats on error
+      return {
+        totalPayments: 0,
+        totalAmount: 0,
+        successfulPayments: 0,
+        pendingPayments: 0,
+        failedPayments: 0,
+        mpesaPayments: 0,
+        cashPayments: 0
+      };
     }
   }
 

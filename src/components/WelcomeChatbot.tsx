@@ -67,8 +67,12 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
           <CardContent className="p-0 h-full flex flex-col bg-gray-50">
             {/* ISA Avatar and Header */}
             <div className="text-center p-4 sm:p-8 pb-4 sm:pb-6 bg-white">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-2xl sm:text-3xl font-bold text-white shadow-lg">
-                ISA
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
+                <img
+                  src="/AskISA.png"
+                  alt="ISA Logo"
+                  className="w-full h-full object-contain bg-white rounded-full shadow"
+                />
               </div>
             </div>
 

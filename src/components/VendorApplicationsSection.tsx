@@ -24,13 +24,15 @@ const VendorApplicationsSection = () => {
   const fetchVendorApplications = async () => {
     setLoading(true);
     try {
+      console.log('Fetching vendor applications...');
       const data = await AdminService.getPendingVendorApplications();
+      console.log('Vendor applications fetched:', data);
       setApplications(data);
     } catch (error) {
       console.error('Error fetching applications:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch vendor applications",
+        description: `Failed to fetch vendor applications: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -183,6 +185,9 @@ const VendorApplicationsSection = () => {
                       <div className="text-sm">
                         <div>{application.business_phone}</div>
                         <div>{application.business_email}</div>
+                        {application.admin_notes && (
+                          <div className="text-xs text-gray-500 mt-1">Admin Notes: {application.admin_notes}</div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

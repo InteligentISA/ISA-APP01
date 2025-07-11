@@ -51,6 +51,13 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
           >
             Try ISA
           </Button>
+          {/* <div className="flex justify-center">
+            <img
+              src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png"
+              alt="ISA Logo"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-white rounded-full shadow"
+            />
+          </div> */}
           <p className="text-gray-500 text-xs sm:text-sm">Join thousands of smart shoppers today</p>
         </div>
       </div>

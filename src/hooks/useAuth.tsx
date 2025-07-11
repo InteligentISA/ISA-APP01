@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       // Add a timeout to prevent hanging
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 15000); // Increased to 15 seconds
       });
       
       const profilePromise = UserProfileService.getUserProfile(userId);
@@ -52,7 +52,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setUserProfile(profile);
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      setUserProfile(null);
+      // Don't set userProfile to null on timeout, keep existing profile
+      if (error instanceof Error && error.message.includes('timeout')) {
+        console.warn('Profile fetch timed out, keeping existing profile');
+      } else {
+        setUserProfile(null);
+      }
     }
   };
 

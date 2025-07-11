@@ -7,6 +7,7 @@ import { ArrowLeft, Mail, Lock, User, MapPin, Calendar, Store, ShoppingBag, Phon
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthSignUpProps {
   onBack: () => void;
@@ -130,6 +131,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
         location: `${customerData.constituency}, ${customerData.county}`,
         gender: customerData.gender,
         phone_number: customerData.phoneNumber,
+        email: customerData.email,
         user_type: userType,
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customerData.firstName}`
       } : {
@@ -138,11 +140,13 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
         company: vendorData.company,
         business_type: vendorData.businessType,
         phone_number: vendorData.phoneNumber,
+        email: vendorData.email,
         user_type: userType,
+        status: 'pending', // Mark vendor as pending for approval
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
       };
 
-      const { error } = await signUp(currentData.email, currentData.password, userData);
+      const { error, user } = await signUp(currentData.email, currentData.password, userData);
       
       if (error) {
         toast({
@@ -151,9 +155,33 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
           variant: "destructive"
         });
       } else {
+        // After signup, update the profile with all vendor info and status pending
+        if (userType === 'vendor' && user?.id) {
+          // Update the profile with all vendor info and status pending
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              user_type: 'vendor',
+              status: 'pending',
+              company: vendorData.company,
+              business_type: vendorData.businessType,
+              phone_number: vendorData.phoneNumber,
+              email: vendorData.email
+            })
+            .eq('id', user.id);
+          if (updateError) {
+            toast({
+              title: "Profile Update Failed",
+              description: updateError.message,
+              variant: "destructive"
+            });
+          }
+        }
         toast({
           title: "Account created!",
-          description: `Welcome to ISA as a ${userType}! Please check your email to verify your account.`,
+          description: userType === 'vendor' 
+            ? "Your vendor application has been submitted! Please wait for admin approval."
+            : `Welcome to ISA as a ${userType}! Please check your email to verify your account.`,
         });
         
         // Create user object for the app
@@ -173,6 +201,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
           businessType: vendorData.businessType,
           phoneNumber: vendorData.phoneNumber,
           userType: userType,
+          status: 'pending', // Mark vendor as pending for approval
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
         };
         

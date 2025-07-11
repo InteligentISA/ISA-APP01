@@ -27,6 +27,10 @@ export interface UpdateProfileData {
   avatar_url?: string;
   company?: string;
   business_type?: string;
+  email?: string;
+  user_type?: string;
+  status?: string;
+  admin_notes?: string;
 }
 
 export class UserProfileService {
