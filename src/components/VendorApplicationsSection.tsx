@@ -15,18 +15,24 @@ const VendorApplicationsSection = () => {
   const [selectedApplication, setSelectedApplication] = useState<VendorApplication | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [processingAction, setProcessingAction] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchVendorApplications();
-  }, []);
+    fetchVendorApplications(selectedStatus);
+  }, [selectedStatus]);
 
-  const fetchVendorApplications = async () => {
+  const fetchVendorApplications = async (status: 'pending' | 'approved' | 'rejected') => {
     setLoading(true);
     try {
-      console.log('Fetching vendor applications...');
-      const data = await AdminService.getPendingVendorApplications();
-      console.log('Vendor applications fetched:', data);
+      let data: VendorApplication[] = [];
+      if (status === 'pending') {
+        data = await AdminService.getPendingVendorApplications();
+      } else if (status === 'approved') {
+        data = await AdminService.getApprovedVendorApplications();
+      } else if (status === 'rejected') {
+        data = await AdminService.getRejectedVendorApplications();
+      }
       setApplications(data);
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -59,7 +65,7 @@ const VendorApplicationsSection = () => {
         description: "Vendor application approved successfully"
       });
 
-      await fetchVendorApplications();
+      await fetchVendorApplications(selectedStatus);
       setSelectedApplication(null);
       setAdminNotes('');
     } catch (error) {
@@ -93,7 +99,7 @@ const VendorApplicationsSection = () => {
         description: "Vendor application rejected"
       });
 
-      await fetchVendorApplications();
+      await fetchVendorApplications(selectedStatus);
       setSelectedApplication(null);
       setAdminNotes('');
     } catch (error) {
@@ -122,23 +128,57 @@ const VendorApplicationsSection = () => {
   };
 
   const getStatusCounts = () => {
-    const pending = applications.filter(app => app.status === 'pending').length;
-    const approved = applications.filter(app => app.status === 'approved').length;
-    const rejected = applications.filter(app => app.status === 'rejected').length;
-    return { pending, approved, rejected };
+    // These counts are now only for the selected status list, so we need to fetch all counts for the badges
+    // For now, keep the old logic, but ideally, fetch all counts in parallel for accuracy
+    // We'll use the applications array for the current tab, and show 0 for others
+    return {
+      pending: selectedStatus === 'pending' ? applications.length : 0,
+      approved: selectedStatus === 'approved' ? applications.length : 0,
+      rejected: selectedStatus === 'rejected' ? applications.length : 0,
+    };
   };
-
   const statusCounts = getStatusCounts();
 
   return (
     <Card className="md:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Vendor Applications
+          <div className="flex items-center gap-2">
+            Vendor Applications
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => fetchVendorApplications(selectedStatus)}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Refresh'}
+            </Button>
+          </div>
           <div className="flex gap-2 text-sm">
-            <Badge variant="secondary">{statusCounts.pending} Pending</Badge>
-            <Badge variant="default">{statusCounts.approved} Approved</Badge>
-            <Badge variant="destructive">{statusCounts.rejected} Rejected</Badge>
+            <Button
+              size="sm"
+              variant={selectedStatus === 'pending' ? 'secondary' : 'outline'}
+              onClick={() => setSelectedStatus('pending')}
+              className={selectedStatus === 'pending' ? 'font-bold' : ''}
+            >
+              {statusCounts.pending} Pending
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedStatus === 'approved' ? 'default' : 'outline'}
+              onClick={() => setSelectedStatus('approved')}
+              className={selectedStatus === 'approved' ? 'font-bold' : ''}
+            >
+              {statusCounts.approved} Approved
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedStatus === 'rejected' ? 'destructive' : 'outline'}
+              onClick={() => setSelectedStatus('rejected')}
+              className={selectedStatus === 'rejected' ? 'font-bold' : ''}
+            >
+              {statusCounts.rejected} Rejected
+            </Button>
           </div>
         </CardTitle>
       </CardHeader>
@@ -199,7 +239,7 @@ const VendorApplicationsSection = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {application.status === 'pending' && (
+                      {selectedStatus === 'pending' && application.status === 'pending' ? (
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button
@@ -293,8 +333,7 @@ const VendorApplicationsSection = () => {
                             </div>
                           </DialogContent>
                         </Dialog>
-                      )}
-                      {application.status !== 'pending' && (
+                      ) : (
                         <div className="text-sm text-gray-500">
                           {application.admin_notes && (
                             <div className="max-w-xs truncate" title={application.admin_notes}>

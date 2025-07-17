@@ -95,23 +95,7 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
                 Sign in
               </Button>
               
-              <div className="text-center pt-4 space-y-2">
-                <button
-                  className="text-sm text-blue-600 hover:underline block"
-                  onClick={() => {
-                    // Navigate to sign in with forgot password mode
-                    onNavigateToSignIn();
-                  }}
-                >
-                  Forgot your password?
-                </button>
-                <button
-                  className="text-sm text-blue-600 hover:underline block"
-                  onClick={onNavigateToVendorSignUp}
-                >
-                  Join as a vendor instead
-                </button>
-              </div>
+              
             </div>
           </CardContent>
         </Card>

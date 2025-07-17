@@ -128,25 +128,35 @@ export class ProductService {
   // Create a new product (for vendors)
   static async createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<{ data: Product | null; error: any }> {
     try {
+      console.log('Creating product with data:', product);
+      
       const { data, error } = await supabase
         .from('products')
         .insert([product])
-        .select()
+        .select('*')
         .single();
 
-      return { data, error };
+      if (error) {
+        console.error('Product creation error:', error);
+        return { data: null, error };
+      }
+
+      console.log('Product created successfully:', data);
+      return { data, error: null };
     } catch (error) {
+      console.error('Product creation exception:', error);
       return { data: null, error };
     }
   }
 
   // Update a product (for vendors)
-  static async updateProduct(id: string, updates: Partial<Product>): Promise<{ data: Product | null; error: any }> {
+  static async updateProduct(id: string, updates: Partial<Product>, userId: string): Promise<{ data: Product | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('products')
         .update(updates)
         .eq('id', id)
+        .eq('vendor_id', userId)
         .select()
         .single();
 

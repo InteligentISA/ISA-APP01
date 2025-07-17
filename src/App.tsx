@@ -9,6 +9,8 @@ import NotFound from "./pages/NotFound";
 import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import AdminDashboard from "./components/AdminDashboard";
+import React, { useEffect } from "react";
+import { initMixpanel } from "./lib/mixpanel";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +38,9 @@ const AppContent = () => {
 };
 
 function App() {
+  useEffect(() => {
+    initMixpanel();
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class">

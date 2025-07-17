@@ -224,7 +224,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
               )}
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             {!userProfile ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -379,6 +379,17 @@ const ProfileModal = ({ isOpen, onClose, user, onUserUpdate }: ProfileModalProps
               </div>
             )}
             
+            {/* Add View Shipping Records button at the bottom */}
+            <div className="flex justify-center mt-6">
+              <Button
+                variant="outline"
+                onClick={() => window.open('/my-shipping', '_blank')}
+                className="w-full"
+              >
+                View My Shipping Records
+              </Button>
+            </div>
+
             <div className="flex gap-2 pt-4">
               {!isEditing ? (
                 <Button 

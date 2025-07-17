@@ -108,26 +108,46 @@ export class ImageUploadService {
       const filename = `${timestamp}-${randomString}.${extension}`;
       const filePath = `${folder}/${filename}`;
 
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, compressedBlob, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // Use product-images bucket first since it's properly configured
+      const bucketNames = ['product-images', 'lovable-uploads', 'avatars'];
+      let uploadError = null;
+      let uploadedData = null;
 
-      if (error) {
-        return { url: '', path: '', error: error.message };
+      for (const bucketName of bucketNames) {
+        try {
+          const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(filePath, compressedBlob, {
+              cacheControl: '3600',
+              upsert: false
+            });
+
+          if (!error) {
+            uploadedData = data;
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from(bucketName)
+              .getPublicUrl(filePath);
+
+            return {
+              url: urlData.publicUrl,
+              path: filePath
+            };
+          } else {
+            uploadError = error;
+            console.log(`Failed to upload to bucket ${bucketName}:`, error.message);
+          }
+        } catch (bucketError) {
+          console.log(`Error with bucket ${bucketName}:`, bucketError);
+          uploadError = bucketError;
+        }
       }
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      return {
-        url: urlData.publicUrl,
-        path: filePath
+      // If all buckets failed, return the last error
+      return { 
+        url: '', 
+        path: '', 
+        error: uploadError?.message || 'All storage buckets are unavailable. Please contact support.' 
       };
     } catch (error) {
       return {
@@ -141,11 +161,27 @@ export class ImageUploadService {
   // Delete image from Supabase Storage
   static async deleteImage(filePath: string): Promise<{ error?: string }> {
     try {
-      const { error } = await supabase.storage
-        .from('product-images')
-        .remove([filePath]);
+      // Try to delete from different buckets
+      const bucketNames = ['product-images', 'lovable-uploads', 'avatars'];
+      let deleteError = null;
 
-      return { error: error?.message };
+      for (const bucketName of bucketNames) {
+        try {
+          const { error } = await supabase.storage
+            .from(bucketName)
+            .remove([filePath]);
+
+          if (!error) {
+            return { error: undefined }; // Successfully deleted
+          } else {
+            deleteError = error;
+          }
+        } catch (bucketError) {
+          deleteError = bucketError;
+        }
+      }
+
+      return { error: deleteError?.message || 'Failed to delete image from all buckets' };
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Delete failed' };
     }

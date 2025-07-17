@@ -6,22 +6,26 @@ import AuthSignUp from "@/components/AuthSignUp";
 import AuthSignIn from "@/components/AuthSignIn";
 import Dashboard from "@/components/Dashboard";
 import VendorDashboard from "@/components/VendorDashboard";
+import PendingApproval from "@/components/PendingApproval";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
+import MyShipping from './MyShipping';
 import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'askisa' | 'gifts'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'askisa' | 'gifts' | 'forgot-password'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [profileCompletionOpen, setProfileCompletionOpen] = useState(false);
   const [profileCompletionData, setProfileCompletionData] = useState<any>(null);
-  const { user: authUser, loading: authLoading } = useAuth();
+  const { user: authUser, loading: authLoading, userProfile } = useAuth();
   const { toast } = useToast();
+  const [resetEmail, setResetEmail] = useState("");
 
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
@@ -74,13 +78,8 @@ const Index = () => {
               });
               return;
             } else {
-              // Vendor not approved, show regular dashboard
-              setCurrentView('dashboard');
-              toast({
-                title: 'Your application is pending approval.',
-                description: 'Please wait for the administrator to review your application.',
-                variant: 'destructive',
-              });
+              // Vendor not approved, show pending approval page
+              setCurrentView('pending-approval');
               return;
             }
           }
@@ -102,6 +101,21 @@ const Index = () => {
       clearTimeout(timer);
     };
   }, [authLoading, authUser]);
+
+  // Automatically prompt profile completion for any logged-in user with incomplete profile
+  useEffect(() => {
+    if (!authLoading && authUser) {
+      if (!userProfile || !isProfileComplete(userProfile)) {
+        setProfileCompletionData({
+          email: authUser.email,
+          first_name: userProfile?.first_name || "",
+          last_name: userProfile?.last_name || "",
+          user_type: userProfile?.user_type || "customer"
+        });
+        setProfileCompletionOpen(true);
+      }
+    }
+  }, [authLoading, authUser, userProfile]);
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
@@ -133,13 +147,8 @@ const Index = () => {
           variant: 'destructive',
         });
       } else {
-        // Vendor is pending approval, show regular dashboard with message
-        setCurrentView('dashboard');
-        toast({
-          title: 'Your application is pending approval.',
-          description: 'Please wait for the administrator to review your application.',
-          variant: 'destructive',
-        });
+        // Vendor is pending approval, show pending approval page
+        setCurrentView('pending-approval');
       }
     } else {
       setCurrentView('dashboard');
@@ -183,9 +192,59 @@ const Index = () => {
     setCurrentView('gifts');
   };
 
+  const handleRefreshApprovalStatus = async () => {
+    if (user?.id) {
+      try {
+        const profile = await UserProfileService.getUserProfile(user.id);
+        if (profile) {
+          const formattedUser = {
+            ...profile,
+            name: profile.first_name && profile.last_name 
+              ? `${profile.first_name} ${profile.last_name}`
+              : profile.email?.split('@')[0] || 'User',
+            avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.email || 'user'}`,
+            userType: profile.user_type || 'customer',
+            status: profile.status || 'approved'
+          };
+          
+          setUser(formattedUser);
+          
+          if (formattedUser.userType === 'vendor') {
+            if (formattedUser.status === 'approved') {
+              setCurrentView('vendor-dashboard');
+              toast({
+                title: 'Application Approved!',
+                description: 'Welcome to the vendor dashboard!',
+              });
+            } else if (formattedUser.status === 'rejected') {
+              setCurrentView('dashboard');
+              toast({
+                title: 'Application Rejected',
+                description: 'Please contact support for more information.',
+                variant: 'destructive',
+              });
+            } else {
+              // Still pending
+              toast({
+                title: 'Still Pending',
+                description: 'Your application is still under review.',
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing approval status:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to check approval status.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+
   const handleForgotPassword = () => {
-    // For now, just show a toast or alert
-    alert('Password reset functionality will be implemented soon.');
+    setCurrentView('forgot-password');
   };
 
   const isProfileComplete = (profile: any) => {
@@ -263,7 +322,7 @@ const Index = () => {
           onAuthSuccess={handleAuthSuccess}
           onNavigateToSignIn={() => setCurrentView('auth-signin')}
           onNavigateToSignUp={() => setCurrentView('auth-signup')}
-          onNavigateToVendorSignUp={() => setCurrentView('vendor-signup')}
+          onNavigateToVendorSignUp={() => setCurrentView('auth-signup')}
           onGoogleAuthSuccess={onGoogleAuthSuccess}
         />
       )}
@@ -271,14 +330,6 @@ const Index = () => {
         <AuthSignUp 
           onBack={() => setCurrentView('auth-welcome')}
           onAuthSuccess={handleAuthSuccess}
-          userType="customer"
-        />
-      )}
-      {currentView === 'vendor-signup' && (
-        <AuthSignUp 
-          onBack={() => setCurrentView('auth-welcome')}
-          onAuthSuccess={handleAuthSuccess}
-          userType="vendor"
         />
       )}
       {currentView === 'auth-signin' && (
@@ -303,6 +354,13 @@ const Index = () => {
           onLogout={handleLogout}
         />
       )}
+      {currentView === 'pending-approval' && (
+        <PendingApproval 
+          user={user} 
+          onLogout={handleLogout}
+          onRefresh={handleRefreshApprovalStatus}
+        />
+      )}
       {currentView === 'askisa' && (
         <AskISA
           user={user}
@@ -320,6 +378,64 @@ const Index = () => {
           onToggleLike={handleToggleLike}
           likedItems={likedItems}
         />
+      )}
+      {currentView === 'my-shipping' && (
+        <MyShipping />
+      )}
+      {currentView === 'forgot-password' && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="light">
+            <div className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200 max-h-[90vh] overflow-y-auto rounded-xl p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">Reset Password</h2>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  const { error } = await useAuth().resetPassword(resetEmail);
+                  if (error) {
+                    toast({
+                      title: 'Reset Failed',
+                      description: error.message,
+                      variant: 'destructive',
+                    });
+                  } else {
+                    toast({
+                      title: 'Reset Email Sent',
+                      description: 'Check your email for password reset instructions.',
+                    });
+                    setCurrentView('auth-signin');
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <label htmlFor="reset-email" className="block mb-1 text-sm font-medium text-gray-700">Email</label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="w-full"
+                    value={resetEmail}
+                    onChange={e => setResetEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-lg font-semibold"
+                >
+                  Send Reset Email
+                </button>
+                <button
+                  type="button"
+                  className="w-full mt-2 text-blue-600 hover:underline text-sm"
+                  onClick={() => setCurrentView('auth-signin')}
+                >
+                  Back to Sign In
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
       {profileCompletionOpen && (
         <ProfileCompletionModal

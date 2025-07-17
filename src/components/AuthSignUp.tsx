@@ -8,11 +8,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface AuthSignUpProps {
   onBack: () => void;
   onAuthSuccess: (user: any) => void;
-  userType: 'customer' | 'vendor';
 }
 
 const countyConstituencyData = {
@@ -65,8 +66,9 @@ const countyConstituencyData = {
   "Lamu County": ["Lamu East", "Lamu West"]
 };
 
-const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
+const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [userType, setUserType] = useState<'customer' | 'vendor' | null>(null);
   const [customerData, setCustomerData] = useState({
     firstName: "",
     lastName: "",
@@ -89,30 +91,45 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
     password: "",
     confirmPassword: ""
   });
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
 
+  // Sync email/password fields between both states
+  const handleCommonInputChange = (field: 'email' | 'password' | 'confirmPassword', value: string) => {
+    setCustomerData(prev => ({ ...prev, [field]: value }));
+    setVendorData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleCustomerInputChange = (field: string, value: string) => {
-    setCustomerData(prev => {
-      const newData = { ...prev, [field]: value };
-      // Reset constituency when county changes
-      if (field === 'county') {
-        newData.constituency = "";
-      }
-      return newData;
-    });
+    if (["email", "password", "confirmPassword"].includes(field)) {
+      handleCommonInputChange(field as any, value);
+    } else {
+      setCustomerData(prev => {
+        const newData = { ...prev, [field]: value };
+        if (field === 'county') {
+          newData.constituency = "";
+        }
+        return newData;
+      });
+    }
   };
 
   const handleVendorInputChange = (field: string, value: string) => {
-    setVendorData(prev => ({ ...prev, [field]: value }));
+    if (["email", "password", "confirmPassword"].includes(field)) {
+      handleCommonInputChange(field as any, value);
+    } else {
+      setVendorData(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userType) return;
+    if (!agreedToTerms) return;
     setIsLoading(true);
-    
     const currentData = userType === 'customer' ? customerData : vendorData;
-    
     if (currentData.password !== currentData.confirmPassword) {
       toast({
         title: "Error",
@@ -122,7 +139,6 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
       setIsLoading(false);
       return;
     }
-    
     try {
       const userData = userType === 'customer' ? {
         first_name: customerData.firstName,
@@ -142,12 +158,10 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
         phone_number: vendorData.phoneNumber,
         email: vendorData.email,
         user_type: userType,
-        status: 'pending', // Mark vendor as pending for approval
+        status: 'pending',
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
       };
-
-      const { error, user } = await signUp(currentData.email, currentData.password, userData);
-      
+      const { error } = await signUp(currentData.email, currentData.password, userData);
       if (error) {
         toast({
           title: "Sign Up Failed",
@@ -155,10 +169,10 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
           variant: "destructive"
         });
       } else {
-        // After signup, update the profile with all vendor info and status pending
-        if (userType === 'vendor' && user?.id) {
-          // Update the profile with all vendor info and status pending
-          const { error: updateError } = await supabase
+        if (userType === 'vendor') {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Try to update the profile using the email (since we don't have user.id)
+          const { data: updateData, error: updateError } = await supabase
             .from('profiles')
             .update({
               user_type: 'vendor',
@@ -168,7 +182,8 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
               phone_number: vendorData.phoneNumber,
               email: vendorData.email
             })
-            .eq('id', user.id);
+            .eq('email', vendorData.email)
+            .select();
           if (updateError) {
             toast({
               title: "Profile Update Failed",
@@ -183,8 +198,6 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
             ? "Your vendor application has been submitted! Please wait for admin approval."
             : `Welcome to ISA as a ${userType}! Please check your email to verify your account.`,
         });
-        
-        // Create user object for the app
         const appUser = userType === 'customer' ? {
           name: `${customerData.firstName} ${customerData.lastName}`,
           email: customerData.email,
@@ -201,10 +214,9 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
           businessType: vendorData.businessType,
           phoneNumber: vendorData.phoneNumber,
           userType: userType,
-          status: 'pending', // Mark vendor as pending for approval
+          status: 'pending',
           avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
         };
-        
         onAuthSuccess(appUser);
       }
     } catch (error) {
@@ -223,6 +235,11 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
     return countyConstituencyData[customerData.county as keyof typeof countyConstituencyData] || [];
   };
 
+  // Check if email, password, and confirmPassword are filled
+  const canSelectType =
+    (customerData.email && customerData.password && customerData.confirmPassword) ||
+    (vendorData.email && vendorData.password && vendorData.confirmPassword);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="light">
@@ -237,38 +254,96 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <CardTitle className="text-2xl font-bold text-gray-900">
-              {userType === 'customer' ? 'Create Your Account' : 'Apply as Vendor'}
+              Create Your Account
             </CardTitle>
-            {userType === 'customer' && (
-              <div className="flex items-center justify-center mt-2">
-                <ShoppingBag className="w-5 h-5 mr-2 text-blue-600" />
-                <span className="text-gray-600">Join as a Customer</span>
-              </div>
-            )}
-            {userType === 'vendor' && (
-              <div className="flex items-center justify-center mt-2">
-                <Store className="w-5 h-5 mr-2 text-blue-600" />
-                <span className="text-gray-600">Apply to Sell Products</span>
-              </div>
-            )}
           </CardHeader>
           <CardContent className="px-8">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {userType === 'customer' ? (
+              {/* Common fields */}
+              <div>
+                <Label htmlFor="signup-email" className="mb-1 block">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="signup-email"
+                    type="email"
+                    placeholder="Email"
+                    className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                    value={customerData.email}
+                    onChange={e => handleCommonInputChange('email', e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="signup-password" className="mb-1 block">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="Password"
+                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                      value={customerData.password}
+                      onChange={e => handleCommonInputChange('password', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="signup-confirm-password" className="mb-1 block">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                    <Input
+                      id="signup-confirm-password"
+                      type="password"
+                      placeholder="Confirm Password"
+                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                      value={customerData.confirmPassword}
+                      onChange={e => handleCommonInputChange('confirmPassword', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* User type selection, only after common fields are filled */}
+              {canSelectType && (
+                <div className="flex items-center justify-center gap-4 mt-2">
+                  <Button
+                    type="button"
+                    variant={userType === 'customer' ? 'default' : 'outline'}
+                    className={userType === 'customer' ? 'bg-blue-600 text-white' : ''}
+                    onClick={() => setUserType('customer')}
+                  >
+                    <ShoppingBag className="w-5 h-5 mr-2" /> Customer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={userType === 'vendor' ? 'default' : 'outline'}
+                    className={userType === 'vendor' ? 'bg-blue-600 text-white' : ''}
+                    onClick={() => setUserType('vendor')}
+                  >
+                    <Store className="w-5 h-5 mr-2" /> Vendor
+                  </Button>
+                </div>
+              )}
+              {/* User type specific fields */}
+              {userType === 'customer' && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="customer-first-name" className="mb-1 block">First Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
+                        <Input
                           id="customer-first-name"
-                          type="text" 
-                          placeholder="First Name" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          type="text"
+                          placeholder="First Name"
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={customerData.firstName}
-                          onChange={(e) => handleCustomerInputChange('firstName', e.target.value)}
-                          required 
+                          onChange={e => handleCustomerInputChange('firstName', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -276,14 +351,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                       <Label htmlFor="customer-last-name" className="mb-1 block">Last Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
+                        <Input
                           id="customer-last-name"
-                          type="text" 
-                          placeholder="Last Name" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          type="text"
+                          placeholder="Last Name"
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={customerData.lastName}
-                          onChange={(e) => handleCustomerInputChange('lastName', e.target.value)}
-                          required 
+                          onChange={e => handleCustomerInputChange('lastName', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -292,26 +367,26 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                     <Label htmlFor="customer-dob" className="mb-1 block">Date of Birth</Label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         id="customer-dob"
-                        type="date" 
-                        placeholder="Date of Birth" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        type="date"
+                        placeholder="Date of Birth"
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         value={customerData.dob}
-                        onChange={(e) => handleCustomerInputChange('dob', e.target.value)}
-                        required 
+                        onChange={e => handleCustomerInputChange('dob', e.target.value)}
+                        required
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label className="mb-1 block">County</Label>
-                      <Select value={customerData.county} onValueChange={(value) => handleCustomerInputChange('county', value)}>
+                      <Select value={customerData.county} onValueChange={value => handleCustomerInputChange('county', value)}>
                         <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                           <SelectValue placeholder="Select County" className="text-gray-500" />
                         </SelectTrigger>
                         <SelectContent className="bg-white border-gray-300 z-50">
-                          {Object.keys(countyConstituencyData).map((county) => (
+                          {Object.keys(countyConstituencyData).map(county => (
                             <SelectItem key={county} value={county} className="text-gray-900 hover:bg-gray-100">
                               {county}
                             </SelectItem>
@@ -321,16 +396,16 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                     </div>
                     <div>
                       <Label className="mb-1 block">Constituency</Label>
-                      <Select 
-                        value={customerData.constituency} 
-                        onValueChange={(value) => handleCustomerInputChange('constituency', value)}
+                      <Select
+                        value={customerData.constituency}
+                        onValueChange={value => handleCustomerInputChange('constituency', value)}
                         disabled={!customerData.county}
                       >
                         <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                           <SelectValue placeholder="Select Constituency" className="text-gray-500" />
                         </SelectTrigger>
                         <SelectContent className="bg-white border-gray-300 z-50">
-                          {getAvailableConstituencies().map((constituency) => (
+                          {getAvailableConstituencies().map(constituency => (
                             <SelectItem key={constituency} value={constituency} className="text-gray-900 hover:bg-gray-100">
                               {constituency}
                             </SelectItem>
@@ -341,7 +416,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                   </div>
                   <div>
                     <Label className="mb-1 block">Gender</Label>
-                    <Select value={customerData.gender} onValueChange={(value) => handleCustomerInputChange('gender', value)}>
+                    <Select value={customerData.gender} onValueChange={value => handleCustomerInputChange('gender', value)}>
                       <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                         <SelectValue placeholder="Select Gender" className="text-gray-500" />
                       </SelectTrigger>
@@ -357,79 +432,33 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                     <Label htmlFor="customer-phone" className="mb-1 block">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         id="customer-phone"
-                        type="tel" 
-                        placeholder="Phone Number" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        type="tel"
+                        placeholder="Phone Number"
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         value={customerData.phoneNumber}
-                        onChange={(e) => handleCustomerInputChange('phoneNumber', e.target.value)}
-                        required 
+                        onChange={e => handleCustomerInputChange('phoneNumber', e.target.value)}
+                        required
                       />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="customer-email" className="mb-1 block">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        id="customer-email"
-                        type="email" 
-                        placeholder="Email" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={customerData.email}
-                        onChange={(e) => handleCustomerInputChange('email', e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="customer-password" className="mb-1 block">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
-                          id="customer-password"
-                          type="password" 
-                          placeholder="Password" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                          value={customerData.password}
-                          onChange={(e) => handleCustomerInputChange('password', e.target.value)}
-                          required 
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="customer-confirm-password" className="mb-1 block">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
-                          id="customer-confirm-password"
-                          type="password" 
-                          placeholder="Confirm Password" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                          value={customerData.confirmPassword}
-                          onChange={(e) => handleCustomerInputChange('confirmPassword', e.target.value)}
-                          required 
-                        />
-                      </div>
                     </div>
                   </div>
                 </>
-              ) : (
+              )}
+              {userType === 'vendor' && (
                 <>
                   <div>
                     <Label htmlFor="vendor-company" className="mb-1 block">Company Name</Label>
                     <div className="relative">
                       <Building className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         id="vendor-company"
-                        type="text" 
-                        placeholder="Company Name" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        type="text"
+                        placeholder="Company Name"
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         value={vendorData.company}
-                        onChange={(e) => handleVendorInputChange('company', e.target.value)}
-                        required 
+                        onChange={e => handleVendorInputChange('company', e.target.value)}
+                        required
                       />
                     </div>
                   </div>
@@ -437,14 +466,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                     <Label htmlFor="vendor-business-type" className="mb-1 block">Type of Business/Products</Label>
                     <div className="relative">
                       <Store className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         id="vendor-business-type"
-                        type="text" 
-                        placeholder="Type of Business/Products" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        type="text"
+                        placeholder="Type of Business/Products"
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         value={vendorData.businessType}
-                        onChange={(e) => handleVendorInputChange('businessType', e.target.value)}
-                        required 
+                        onChange={e => handleVendorInputChange('businessType', e.target.value)}
+                        required
                       />
                     </div>
                   </div>
@@ -453,14 +482,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                       <Label htmlFor="vendor-first-name" className="mb-1 block">Rep First Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
+                        <Input
                           id="vendor-first-name"
-                          type="text" 
-                          placeholder="Rep First Name" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          type="text"
+                          placeholder="Rep First Name"
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={vendorData.firstName}
-                          onChange={(e) => handleVendorInputChange('firstName', e.target.value)}
-                          required 
+                          onChange={e => handleVendorInputChange('firstName', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -468,14 +497,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                       <Label htmlFor="vendor-last-name" className="mb-1 block">Rep Last Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
+                        <Input
                           id="vendor-last-name"
-                          type="text" 
-                          placeholder="Rep Last Name" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                          type="text"
+                          placeholder="Rep Last Name"
+                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={vendorData.lastName}
-                          onChange={(e) => handleVendorInputChange('lastName', e.target.value)}
-                          required 
+                          onChange={e => handleVendorInputChange('lastName', e.target.value)}
+                          required
                         />
                       </div>
                     </div>
@@ -484,86 +513,58 @@ const AuthSignUp = ({ onBack, onAuthSuccess, userType }: AuthSignUpProps) => {
                     <Label htmlFor="vendor-phone" className="mb-1 block">Phone Number</Label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
+                      <Input
                         id="vendor-phone"
-                        type="tel" 
-                        placeholder="Phone Number" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
+                        type="tel"
+                        placeholder="Phone Number"
+                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         value={vendorData.phoneNumber}
-                        onChange={(e) => handleVendorInputChange('phoneNumber', e.target.value)}
-                        required 
+                        onChange={e => handleVendorInputChange('phoneNumber', e.target.value)}
+                        required
                       />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="vendor-email" className="mb-1 block">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input 
-                        id="vendor-email"
-                        type="email" 
-                        placeholder="Email" 
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                        value={vendorData.email}
-                        onChange={(e) => handleVendorInputChange('email', e.target.value)}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="vendor-password" className="mb-1 block">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
-                          id="vendor-password"
-                          type="password" 
-                          placeholder="Password" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                          value={vendorData.password}
-                          onChange={(e) => handleVendorInputChange('password', e.target.value)}
-                          required 
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="vendor-confirm-password" className="mb-1 block">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                        <Input 
-                          id="vendor-confirm-password"
-                          type="password" 
-                          placeholder="Confirm Password" 
-                          className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
-                          value={vendorData.confirmPassword}
-                          onChange={(e) => handleVendorInputChange('confirmPassword', e.target.value)}
-                          required 
-                        />
-                      </div>
                     </div>
                   </div>
                 </>
               )}
-              
-              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12" disabled={isLoading}>
-                {isLoading ? "Creating account..." : `Create ${userType} account`}
-              </Button>
-
-              {userType === 'vendor' && (
-                <div className="text-center pt-4">
-                  <p className="text-sm text-gray-600">
-                    Already have an account?{' '}
+              {/* Terms of Service Checkbox */}
+              {(userType === 'customer' || userType === 'vendor') && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={checked => setAgreedToTerms(Boolean(checked))}
+                  />
+                  <label htmlFor="terms" className="text-sm text-gray-700 select-none">
+                    I agree to the{' '}
                     <button
                       type="button"
                       className="text-blue-600 hover:underline"
-                      onClick={onBack}
+                      onClick={() => setShowTerms(true)}
                     >
-                      Sign in
+                      Terms of Service
                     </button>
-                  </p>
+                  </label>
                 </div>
               )}
+              <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12" disabled={isLoading || !userType || !agreedToTerms}>
+                {isLoading
+                  ? "Creating account..."
+                  : userType
+                    ? `Create ${userType} account`
+                    : "Continue"}
+              </Button>
             </form>
+            {/* Terms of Service Dialog */}
+            <Dialog open={showTerms} onOpenChange={setShowTerms}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Terms of Service</DialogTitle>
+                  <DialogDescription>
+                    Terms of service coming soon
+                  </DialogDescription>
+                </DialogHeader>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

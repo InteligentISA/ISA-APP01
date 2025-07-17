@@ -69,40 +69,23 @@ export class MpesaService {
   // Initiate STK Push (M-Pesa payment request)
   static async initiatePayment(request: MpesaPaymentRequest): Promise<MpesaPaymentResponse> {
     try {
-      const accessToken = await this.getAccessToken();
-      const timestamp = this.getTimestamp();
-      const password = this.generatePassword();
-
-      const payload = {
-        BusinessShortCode: this.BUSINESS_SHORT_CODE,
-        Password: password,
-        Timestamp: timestamp,
-        TransactionType: 'CustomerPayBillOnline',
-        Amount: Math.round(request.amount), // Amount in whole numbers
-        PartyA: request.phoneNumber,
-        PartyB: this.BUSINESS_SHORT_CODE,
-        PhoneNumber: request.phoneNumber,
-        CallBackURL: `${window.location.origin}/api/mpesa/callback`,
-        AccountReference: request.orderId,
-        TransactionDesc: request.description
-      };
-
-      const response = await fetch(`${this.BASE_URL}/mpesa/stkpush/v1/processrequest`, {
+      // Call backend proxy instead of Safaricom API directly
+      const response = await fetch('/api/mpesa/initiate', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phoneNumber: request.phoneNumber,
+          amount: Math.round(request.amount),
+          orderId: request.orderId,
+          description: request.description
+        })
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.errorMessage || 'Payment initiation failed');
+        throw new Error(data.error || 'Payment initiation failed');
       }
 
-      const data = await response.json();
-      
       if (data.ResponseCode === '0') {
         return {
           success: true,

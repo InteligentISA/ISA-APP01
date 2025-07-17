@@ -157,26 +157,29 @@ export class OrderService {
   // Order Management
   static async createOrder(userId: string, request: CreateOrderRequest): Promise<OrderWithDetails> {
     // Start a transaction
-    const { data: orderNumber } = await supabase.rpc('generate_order_number');
-    
+    const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
+    if (orderNumberError) throw orderNumberError;
+    if (!orderNumber || typeof orderNumber !== 'string') {
+      throw new Error('Failed to generate order number');
+    }
     // Get cart items for the user
     const cartItems = await this.getCartItems(userId);
-    
     if (cartItems.length === 0) {
       throw new Error('Cart is empty');
     }
-
     // Calculate totals
     const subtotal = cartItems.reduce((sum, item) => {
       return sum + (item.product.price * item.quantity);
     }, 0);
-
     // Determine delivery method and fees
     const isPickup = request.notes?.includes('Pickup from vendor');
     const deliveryFee = isPickup ? 0 : 500; // 500 KES for ISA delivery
     const taxAmount = subtotal * 0.16; // 16% VAT for Kenya
     const totalAmount = subtotal + taxAmount + deliveryFee;
-
+    // Validate required fields
+    if (!request.shipping_address || !request.billing_address || !request.customer_email) {
+      throw new Error('Missing required order fields');
+    }
     // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -191,11 +194,11 @@ export class OrderService {
         billing_address: request.billing_address,
         customer_email: request.customer_email,
         customer_phone: request.customer_phone,
-        notes: request.notes
+        notes: request.notes,
+        fulfillment_method: isPickup ? 'pickup' : 'delivery'
       })
       .select()
       .single();
-
     if (orderError) throw orderError;
 
     // Create order items
@@ -224,7 +227,8 @@ export class OrderService {
     // Decrement stock for each product
     await Promise.all(cartItems.map(async (cartItem) => {
       const newStock = (cartItem.product.stock_quantity || 0) - cartItem.quantity;
-      await ProductService.updateProduct(cartItem.product_id, { stock_quantity: Math.max(0, newStock) });
+      // Ensure only the vendor can update their product
+      await ProductService.updateProduct(cartItem.product_id, { stock_quantity: Math.max(0, newStock) }, userId);
     }));
 
     // Create payment record
@@ -595,19 +599,30 @@ export class OrderService {
 
   // Vendor-specific methods
   static async getVendorOrders(vendorId: string): Promise<OrderWithDetails[]> {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        items:order_items(*),
-        payment:payments(*),
-        shipping:shipping(*),
-        status_history:order_status_history(*)
-      `)
-      .eq('items.product.vendor_id', vendorId);
+    try {
+      // Get orders that have items from this vendor
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*),
+          payment:payments(*),
+          status_history:order_status_history(*)
+        `)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return data || [];
+      if (error) throw error;
+
+      // Filter orders to only include those with items from this vendor
+      const vendorOrders = (data || []).filter(order => 
+        order.items?.some((item: any) => item.vendor_id === vendorId)
+      );
+
+      return vendorOrders;
+    } catch (error) {
+      console.error('Error fetching vendor orders:', error);
+      return [];
+    }
   }
 
   // Utility methods

@@ -502,6 +502,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
               </span>
             )}
           </div>
+
+          {/* Vendor Information for vendor products */}
+          {product.source === 'vendor' && (
+            <div className="space-y-1">
+              <div className="flex items-center space-x-1">
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  Local Vendor
+                </Badge>
+              </div>
+              {product.pickup_location && (
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Pickup:</span> {product.pickup_location}
+                </div>
+              )}
+              {product.pickup_phone_number && (
+                <div className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Contact:</span> {product.pickup_phone_number}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
 

@@ -129,7 +129,32 @@ export class AdminService {
 
   static async approveVendorApplication(appId: string, adminNotes: string): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('AdminService: Approving vendor application:', { appId, adminNotes });
+      
+      // First, check if the profile exists and is a vendor
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, user_type, status')
+        .eq('id', appId)
+        .single();
+
+      if (checkError) {
+        console.error('Error checking existing profile:', checkError);
+        throw checkError;
+      }
+
+      console.log('AdminService: Existing profile:', existingProfile);
+
+      if (!existingProfile) {
+        throw new Error('Profile not found');
+      }
+
+      if (existingProfile.user_type !== 'vendor') {
+        throw new Error('Profile is not a vendor');
+      }
+
+      // Update the profile
+      const { data: updateData, error } = await supabase
         .from('profiles')
         .update({ 
           status: 'approved',
@@ -137,14 +162,15 @@ export class AdminService {
           updated_at: new Date().toISOString()
         })
         .eq('id', appId)
-        .eq('user_type', 'vendor');
+        .eq('user_type', 'vendor')
+        .select();
 
       if (error) {
         console.error('Error approving vendor application:', error);
         throw error;
       }
       
-      console.log('AdminService: Vendor application approved successfully');
+      console.log('AdminService: Vendor application approved successfully:', updateData);
     } catch (error) {
       console.error('Error approving vendor application:', error);
       throw error;
@@ -153,7 +179,32 @@ export class AdminService {
 
   static async rejectVendorApplication(appId: string, adminNotes: string): Promise<void> {
     try {
-      const { error } = await supabase
+      console.log('AdminService: Rejecting vendor application:', { appId, adminNotes });
+      
+      // First, check if the profile exists and is a vendor
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, user_type, status')
+        .eq('id', appId)
+        .single();
+
+      if (checkError) {
+        console.error('Error checking existing profile:', checkError);
+        throw checkError;
+      }
+
+      console.log('AdminService: Existing profile:', existingProfile);
+
+      if (!existingProfile) {
+        throw new Error('Profile not found');
+      }
+
+      if (existingProfile.user_type !== 'vendor') {
+        throw new Error('Profile is not a vendor');
+      }
+
+      // Update the profile
+      const { data: updateData, error } = await supabase
         .from('profiles')
         .update({ 
           status: 'rejected',
@@ -161,14 +212,15 @@ export class AdminService {
           updated_at: new Date().toISOString()
         })
         .eq('id', appId)
-        .eq('user_type', 'vendor');
+        .eq('user_type', 'vendor')
+        .select();
 
       if (error) {
         console.error('Error rejecting vendor application:', error);
         throw error;
       }
       
-      console.log('AdminService: Vendor application rejected successfully');
+      console.log('AdminService: Vendor application rejected successfully:', updateData);
     } catch (error) {
       console.error('Error rejecting vendor application:', error);
       throw error;
@@ -179,6 +231,20 @@ export class AdminService {
     try {
       console.log('AdminService: Fetching pending vendor applications...');
       
+      // First, let's check what's in the profiles table
+      const { data: allProfiles, error: allProfilesError } = await supabase
+        .from('profiles')
+        .select('id,first_name,last_name,email,phone_number,company,business_type,status,admin_notes,created_at,user_type')
+        .order('created_at', { ascending: false });
+
+      if (allProfilesError) {
+        console.error('Error fetching all profiles:', allProfilesError);
+        throw allProfilesError;
+      }
+
+      console.log('AdminService: All profiles:', allProfiles?.length || 0);
+      console.log('AdminService: Profile details:', allProfiles);
+
       // Get all vendors with their details including email
       const { data: vendors, error } = await supabase
         .from('profiles')
@@ -193,6 +259,55 @@ export class AdminService {
       }
 
       console.log('AdminService: Found vendors:', vendors?.length || 0);
+      console.log('AdminService: Vendor details:', vendors);
+
+      // Transform the data to match VendorApplication interface
+      const transformedVendors = (vendors || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.company || 'N/A',
+        business_description: profile.business_type || 'N/A',
+        business_address: 'N/A',
+        business_phone: profile.phone_number || 'N/A',
+        business_email: profile.email,
+        business_website: 'N/A',
+        tax_id: 'N/A',
+        status: profile.status || 'pending',
+        admin_notes: profile.admin_notes || '',
+        created_at: profile.created_at,
+        profiles: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email
+        }
+      }));
+
+      console.log('AdminService: Transformed vendors:', transformedVendors);
+      return transformedVendors;
+    } catch (error) {
+      console.error('Error fetching vendor applications:', error);
+      throw error;
+    }
+  }
+
+  static async getAllVendorApplications(): Promise<VendorApplication[]> {
+    try {
+      console.log('AdminService: Fetching all vendor applications...');
+      
+      // Get all vendors regardless of status
+      const { data: vendors, error } = await supabase
+        .from('profiles')
+        .select('id,first_name,last_name,email,phone_number,company,business_type,status,admin_notes,created_at')
+        .eq('user_type', 'vendor')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all vendors:', error);
+        throw error;
+      }
+
+      console.log('AdminService: Found all vendors:', vendors?.length || 0);
+      console.log('AdminService: All vendor details:', vendors);
 
       // Transform the data to match VendorApplication interface
       return (vendors || []).map(profile => ({
@@ -215,7 +330,85 @@ export class AdminService {
         }
       }));
     } catch (error) {
-      console.error('Error fetching vendor applications:', error);
+      console.error('Error fetching all vendor applications:', error);
+      throw error;
+    }
+  }
+
+  static async getApprovedVendorApplications(): Promise<VendorApplication[]> {
+    try {
+      const { data: vendors, error } = await supabase
+        .from('profiles')
+        .select('id,first_name,last_name,email,phone_number,company,business_type,status,admin_notes,created_at')
+        .eq('user_type', 'vendor')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching approved vendors:', error);
+        throw error;
+      }
+
+      return (vendors || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.company || 'N/A',
+        business_description: profile.business_type || 'N/A',
+        business_address: 'N/A',
+        business_phone: profile.phone_number || 'N/A',
+        business_email: profile.email,
+        business_website: 'N/A',
+        tax_id: 'N/A',
+        status: profile.status || 'approved',
+        admin_notes: profile.admin_notes || '',
+        created_at: profile.created_at,
+        profiles: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching approved vendor applications:', error);
+      throw error;
+    }
+  }
+
+  static async getRejectedVendorApplications(): Promise<VendorApplication[]> {
+    try {
+      const { data: vendors, error } = await supabase
+        .from('profiles')
+        .select('id,first_name,last_name,email,phone_number,company,business_type,status,admin_notes,created_at')
+        .eq('user_type', 'vendor')
+        .eq('status', 'rejected')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching rejected vendors:', error);
+        throw error;
+      }
+
+      return (vendors || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.company || 'N/A',
+        business_description: profile.business_type || 'N/A',
+        business_address: 'N/A',
+        business_phone: profile.phone_number || 'N/A',
+        business_email: profile.email,
+        business_website: 'N/A',
+        tax_id: 'N/A',
+        status: profile.status || 'rejected',
+        admin_notes: profile.admin_notes || '',
+        created_at: profile.created_at,
+        profiles: {
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: profile.email
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching rejected vendor applications:', error);
       throw error;
     }
   }

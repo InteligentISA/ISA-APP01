@@ -239,8 +239,16 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         throw new Error(mpesaResponse.message);
       }
 
-    } catch (error) {
-      console.error('M-Pesa payment error:', error);
+    } catch (error: any) {
+      // Improved error logging
+      if (error?.message) {
+        console.error('M-Pesa payment error:', error.message, error);
+      } else {
+        console.error('M-Pesa payment error:', error);
+      }
+      if (error?.data) {
+        console.error('Error data:', error.data);
+      }
       toast({
         title: "Payment Failed",
         description: error instanceof Error ? error.message : "M-Pesa payment failed. Please try again.",
@@ -308,11 +316,19 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         description: `Your order #${order.order_number} has been confirmed.`,
       });
 
-    } catch (error) {
-      console.error('Checkout error:', error);
+    } catch (error: any) {
+      // Improved error logging
+      if (error?.message) {
+        console.error('Checkout error:', error.message, error);
+      } else {
+        console.error('Checkout error:', error);
+      }
+      if (error?.data) {
+        console.error('Error data:', error.data);
+      }
       toast({
         title: "Checkout Failed",
-        description: "There was an error processing your order. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your order. Please try again.",
         variant: "destructive"
       });
     } finally {
