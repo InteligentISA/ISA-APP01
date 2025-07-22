@@ -84,6 +84,13 @@ export class AIService {
     analysis: QueryAnalysis;
     shouldSearchProducts: boolean;
     userLearning: any;
+    structuredCategoryInfo?: {
+      main_category?: string;
+      subcategory?: string;
+      sub_subcategory?: string;
+      min_price?: number;
+      max_price?: number;
+    };
   }> {
     try {
       // Create context for GPT
@@ -99,11 +106,18 @@ export class AIService {
       // Update user learning data
       const userLearning = await this.updateUserLearning(userContext, message, analysis);
       
+      // If product query, extract structured info
+      let structuredCategoryInfo = undefined;
+      if (isProductQuery) {
+        structuredCategoryInfo = await this.extractStructuredCategoryInfo(message);
+      }
+
       return {
         response: gptResponse,
         analysis,
         shouldSearchProducts: isProductQuery,
-        userLearning
+        userLearning,
+        structuredCategoryInfo
       };
     } catch (error) {
       console.error('Error processing message with GPT:', error);
@@ -157,7 +171,39 @@ INSTRUCTIONS:
 RESPONSE:`;
   }
 
-  private static async callGPT(context: string): Promise<string> {
+  /**
+   * Use GPT-4 to extract structured category and price info from a user query.
+   * Returns: { main_category, subcategory, sub_subcategory, min_price, max_price }
+   */
+  static async extractStructuredCategoryInfo(query: string): Promise<{
+    main_category?: string;
+    subcategory?: string;
+    sub_subcategory?: string;
+    min_price?: number;
+    max_price?: number;
+  }> {
+    const prompt = `Given the following user request, extract the main category, subcategory, sub-subcategory (if any), and price range (min, max) in JSON format. Use the following format:\n\n{
+  "main_category": string, // e.g. "Alcoholic Beverages"
+  "subcategory": string,   // e.g. "Wine"
+  "sub_subcategory": string, // e.g. "Red Wine" or null
+  "min_price": number,     // e.g. 0
+  "max_price": number      // e.g. 2000
+}\n\nIf a field is not present, use null.\n\nUser said: "${query}"\n\nReturn only the JSON object, nothing else.`;
+    const response = await this.callGPT(prompt, 'gpt-4');
+    try {
+      // Find the first JSON object in the response
+      const match = response.match(/\{[\s\S]*\}/);
+      if (match) {
+        return JSON.parse(match[0]);
+      }
+      return {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  // Patch callGPT to accept a model override
+  private static async callGPT(context: string, modelOverride?: string): Promise<string> {
     if (!this.OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured');
     }
@@ -170,7 +216,7 @@ RESPONSE:`;
           'Authorization': `Bearer ${this.OPENAI_API_KEY}`
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
+          model: modelOverride || 'gpt-3.5-turbo',
           messages: [
             {
               role: 'system',
@@ -198,7 +244,6 @@ RESPONSE:`;
       return data.choices[0].message.content.trim();
     } catch (error) {
       console.error('GPT API call failed:', error);
-      // If error is 429, return a user-friendly message
       if (error instanceof Error && error.message.includes('429')) {
         return 'The AI service is temporarily busy or rate-limited. Please try again in a minute.';
       }

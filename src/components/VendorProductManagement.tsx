@@ -56,6 +56,147 @@ interface ProductFormData {
   pickup_phone_number?: string;
 }
 
+// 1. Add the full category tree and types at the top
+export interface CategoryNode {
+  name: string;
+  sub?: CategoryNode[];
+  extraFields?: string[];
+}
+
+export const CATEGORY_TREE: CategoryNode[] = [
+  { name: "Electronics", sub: [
+    { name: "Mobile Phones & Tablets", sub: [
+      { name: "Smartphones" },
+      { name: "Feature Phones" },
+      { name: "Tablets" },
+      { name: "Phone Accessories", sub: [
+        { name: "Chargers" },
+        { name: "Cases & Covers" },
+        { name: "Screen Protectors" },
+        { name: "Power Banks" }
+      ] }
+    ] },
+    { name: "Computers & Accessories", sub: [
+      { name: "Laptops" },
+      { name: "Desktops" },
+      { name: "Monitors" },
+      { name: "Keyboards & Mice" },
+      { name: "Printers & Scanners" },
+      { name: "Computer Components", sub: [
+        { name: "RAM" },
+        { name: "Hard Drives or SSD" },
+        { name: "Graphics Cards" }
+      ] }
+    ] },
+    { name: "TV, Audio & Video", sub: [
+      { name: "Televisions" },
+      { name: "Home Theaters" },
+      { name: "Speakers" },
+      { name: "Projectors" },
+      { name: "Soundbars" }
+    ] },
+    { name: "Cameras & Accessories", sub: [
+      { name: "Digital Cameras" },
+      { name: "DSLR & Mirrorless Cameras" },
+      { name: "Camera Lenses" },
+      { name: "Tripods & Stabilizers" },
+      { name: "Security Cameras" }
+    ] }
+  ], extraFields: ["RAM", "Storage", "Processor", "Display Size"] },
+  { name: "Fashion", sub: [
+    { name: "Women's Fashion", sub: [
+      { name: "Clothing" }, { name: "Shoes" }, { name: "Handbags & Wallets" }, { name: "Jewelry & Watches" }, { name: "Lingerie & Sleepwear" }
+    ] },
+    { name: "Men's Fashion", sub: [
+      { name: "Clothing" }, { name: "Shoes" }, { name: "Belts & Wallets" }, { name: "Watches" }
+    ] },
+    { name: "Kids & Baby Fashion", sub: [
+      { name: "Girls’ Clothing" }, { name: "Boys’ Clothing" }, { name: "Baby Clothing" }, { name: "School Uniforms" }, { name: "Shoes" }
+    ] }
+  ] },
+  { name: "Swimwear", sub: [
+    { name: "Women’s Swimwear", sub: [
+      { name: "One-Piece Swimsuits" }, { name: "Bikinis" }, { name: "Tankinis" }, { name: "Swim Dresses" }, { name: "Cover-ups & Sarongs" }, { name: "Plus Size Swimwear" }, { name: "Maternity Swimwear" }
+    ] },
+    { name: "Men’s Swimwear", sub: [
+      { name: "Swim Trunks" }, { name: "Board Shorts" }, { name: "Briefs" }, { name: "Jammers" }
+    ] },
+    { name: "Kids’ Swimwear", sub: [
+      { name: "Girls’ Swimsuits" }, { name: "One-Piece" }, { name: "Two-Piece" }, { name: "Boys’ Swimsuits" }, { name: "Swim Shorts" }, { name: "Rash Guards" }, { name: "Swim Diapers" }
+    ] },
+    { name: "Accessories", sub: [
+      { name: "Swimming Goggles" }, { name: "Swim Caps" }, { name: "Beach Towels" }, { name: "Flip-Flops" }, { name: "Swim Bags" }, { name: "UV Protection Swimwear" }
+    ] }
+  ] },
+  { name: "Home & Living", sub: [
+    { name: "Furniture", sub: [
+      { name: "Beds & Mattresses" }, { name: "Sofas & Couches" }, { name: "Dining Sets" }, { name: "Wardrobes" }, { name: "Office Desks" }
+    ] },
+    { name: "Home Décor", sub: [
+      { name: "Curtains" }, { name: "Wall Art" }, { name: "Rugs & Carpets" }, { name: "Lighting" }, { name: "Clocks" }
+    ] },
+    { name: "Kitchen & Dining", sub: [
+      { name: "Cookware" }, { name: "Bakeware" }, { name: "Dinner Sets" }, { name: "Utensils" }, { name: "Storage Containers" }
+    ] },
+    { name: "Home Essentials", sub: [
+      { name: "Brooms & Mops" }, { name: "Laundry Baskets" }, { name: "Buckets & Basins" }, { name: "Dustbins" }
+    ] }
+  ] },
+  { name: "Books & Stationery", sub: [
+    { name: "Academic Books" }, { name: "Novels" }, { name: "Religious Books" }, { name: "Notebooks & Diaries" }, { name: "Pens & Pencils" }, { name: "Calculators" }, { name: "Art Supplies" }
+  ] },
+  { name: "Baby Products", sub: [
+    { name: "Diapers & Wipes" }, { name: "Baby Food" }, { name: "Baby Bath & Skincare" }, { name: "Nursing & Feeding" }, { name: "Baby Gear", sub: [
+      { name: "Strollers" }, { name: "Car Seats" }, { name: "Baby Carriers" }
+    ] }
+  ] },
+  { name: "Health & Beauty", sub: [
+    { name: "Beauty", sub: [
+      { name: "Makeup" }, { name: "Skincare" }, { name: "Haircare" }, { name: "Fragrances" }, { name: "Beauty Tools" }
+    ] }
+  ] },
+  { name: "Tools & Home Improvement", sub: [
+    { name: "Power Tools" }, { name: "Hand Tools" }, { name: "Plumbing Supplies" }, { name: "Electrical Fixtures" }, { name: "Paint & Wall Treatments" }
+  ] },
+  { name: "Automotive", sub: [
+    { name: "Car Accessories", sub: [
+      { name: "Seat Covers" }, { name: "Air Fresheners" }, { name: "Car Vacuum Cleaners" }
+    ] },
+    { name: "Spear parts" }, { name: "Motor Oil & Fluids" }, { name: "Tyres & Rims" }, { name: "Motorcycles & Scooters" }, { name: "Helmets & Riding Gear" }
+  ] },
+  { name: "Travel & Luggage", sub: [
+    { name: "Suitcases" }, { name: "Travel Backpacks" }, { name: "Duffel Bags" }, { name: "Travel Accessories" }
+  ] },
+  { name: "Groceries", sub: [
+    { name: "Beverages", sub: [
+      { name: "Water" }, { name: "Juice" }, { name: "Soft Drinks" }
+    ] },
+    { name: "Dry Foods", sub: [
+      { name: "Rice" }, { name: "Pasta" }, { name: "Cereals" }, { name: "Snacks" }
+    ] },
+    { name: "Spices & Condiments", sub: [
+      { name: "Household Essentials" }, { name: "Tissue Paper" }, { name: "Detergents" }, { name: "Cleaning Products" }
+    ] }
+  ] },
+  { name: "Office & Industrial", sub: [
+    { name: "Office Furniture" }, { name: "Printers & Toners" }, { name: "Office Electronics" }, { name: "Packaging Materials" }, { name: "Safety & Security Equipment" }
+  ] },
+  { name: "Alcoholic Beverages", sub: [
+    { name: "Beer", sub: [
+      { name: "Lager" }, { name: "Stout" }, { name: "Ale" }, { name: "Craft Beer" }, { name: "Non-Alcoholic Beer" }
+    ] },
+    { name: "Wine", sub: [
+      { name: "Red Wine" }, { name: "Merlot" }, { name: "Cabernet Sauvignon" }, { name: "Shiraz" }, { name: "White Wine" }, { name: "Chardonnay" }, { name: "Sauvignon Blanc" }, { name: "Rosé Wine" }, { name: "Sparkling Wine" }, { name: "Champagne" }, { name: "Prosecco" }, { name: "Fortified Wine" }, { name: "Port" }, { name: "Sherry" }
+    ] },
+    { name: "Spirits", sub: [
+      { name: "Whisky" }, { name: "Scotch Whisky" }, { name: "Bourbon" }, { name: "Irish Whiskey" }, { name: "Vodka" }, { name: "Gin" }
+    ] },
+    { name: "Alcohol Gift Sets & Accessories", sub: [
+      { name: "Gift Packs (Assorted)" }, { name: "Wine Openers" }, { name: "Hip Flasks" }, { name: "Whiskey Stones" }, { name: "Bar Sets & Glassware" }
+    ] }
+  ] }
+];
+
 const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,6 +230,26 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   });
 
   const [tagInput, setTagInput] = useState("");
+
+  // 2. Replace category state with cascading selection state
+  const [mainCategory, setMainCategory] = useState<string>("");
+  const [subCategory, setSubCategory] = useState<string>("");
+  const [subSubCategory, setSubSubCategory] = useState<string>("");
+  const [extraFields, setExtraFields] = useState<{ [key: string]: string }>({});
+
+  // 3. Helper to get subcategories for a given main category
+  const getSubcategories = (main: string) => {
+    const node = CATEGORY_TREE.find(cat => cat.name === main);
+    return node?.sub || [];
+  };
+  const getSubSubcategories = (main: string, sub: string) => {
+    const node = CATEGORY_TREE.find(cat => cat.name === main)?.sub?.find(s => s.name === sub);
+    return node?.sub || [];
+  };
+  const getExtraFields = (main: string) => {
+    const node = CATEGORY_TREE.find(cat => cat.name === main);
+    return node?.extraFields || [];
+  };
 
   // Fetch vendor's products
   useEffect(() => {
@@ -135,10 +296,10 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !formData.category || !formData.pickup_location || !formData.pickup_phone_number) {
+    if (!formData.name || !formData.price || !mainCategory || !subCategory || !subSubCategory) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields including pickup location and phone number",
+        description: "Please fill in all required fields including main category, subcategory, and sub-subcategory",
         variant: "destructive"
       });
       return;
@@ -150,12 +311,23 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         vendor_id: authUser?.id,
         price: parseFloat(formData.price.toString()),
         original_price: formData.original_price ? parseFloat(formData.original_price.toString()) : undefined,
-        stock_quantity: parseInt(formData.stock_quantity.toString())
+        stock_quantity: parseInt(formData.stock_quantity.toString()),
+        main_category: mainCategory,
+        subcategory: subCategory,
+        sub_subcategory: subSubCategory,
+        ...(mainCategory === 'Electronics' ? {
+          ram: extraFields['RAM'] || null,
+          storage: extraFields['Storage'] || null,
+          processor: extraFields['Processor'] || null,
+          display_size: extraFields['Display Size'] || null,
+        } : {}),
+        rating: 0,
+        review_count: 0,
       };
 
       if (editingProduct) {
         // Update existing product
-        const result = await ProductService.updateProduct(editingProduct.id, productData);
+        const result = await ProductService.updateProduct(editingProduct.id, productData, authUser?.id);
         if (result.error) {
           throw new Error(result.error.message);
         }
@@ -317,10 +489,13 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   });
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
-    }).format(price);
+      currency: 'KES',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price).replace('KSh', 'Ksh');
   };
 
   return (
@@ -425,24 +600,27 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     alt={product.name}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />
-                  <div className="absolute top-2 right-2 flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="secondary"
-                      className="w-8 h-8 bg-white/90 hover:bg-white"
-                      onClick={() => handleEdit(product)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="destructive"
-                      className="w-8 h-8 bg-red-500/90 hover:bg-red-500"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {/* Only show edit/delete if vendor owns the product */}
+                  {product.vendor_id === authUser?.id && (
+                    <div className="absolute top-2 right-2 flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="w-8 h-8 bg-white/90 hover:bg-white"
+                        onClick={() => handleEdit(product)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="destructive"
+                        className="w-8 h-8 bg-red-500/90 hover:bg-red-500"
+                        onClick={() => handleDelete(product.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <div className="absolute top-2 left-2 flex gap-1">
                     {product.is_featured && (
                       <Badge className="bg-yellow-500 text-white">Featured</Badge>
@@ -547,30 +725,64 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="subcategory">Subcategory</Label>
-                    <Input
-                      id="subcategory"
-                      value={formData.subcategory}
-                      onChange={(e) => setFormData(prev => ({ ...prev, subcategory: e.target.value }))}
-                      placeholder="Enter subcategory"
-                    />
-                  </div>
+                <div>
+                  <Label>Main Category *</Label>
+                  <select value={mainCategory} onChange={e => {
+                    setMainCategory(e.target.value);
+                    setSubCategory("");
+                    setSubSubCategory("");
+                    setFormData(prev => ({ ...prev, main_category: e.target.value }));
+                  }} required>
+                    <option value="">Select Main Category</option>
+                    {CATEGORY_TREE.map(cat => (
+                      <option key={cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
                 </div>
+                {mainCategory && getSubcategories(mainCategory).length > 0 && (
+                  <div>
+                    <Label>Subcategory *</Label>
+                    <select value={subCategory} onChange={e => {
+                      setSubCategory(e.target.value);
+                      setSubSubCategory("");
+                      setFormData(prev => ({ ...prev, subcategory: e.target.value }));
+                    }} required>
+                      <option value="">Select Subcategory</option>
+                      {getSubcategories(mainCategory).map(sub => (
+                        <option key={sub.name} value={sub.name}>{sub.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {mainCategory && subCategory && getSubSubcategories(mainCategory, subCategory).length > 0 && (
+                  <div>
+                    <Label>Sub-Subcategory</Label>
+                    <select value={subSubCategory} onChange={e => {
+                      setSubSubCategory(e.target.value);
+                      setFormData(prev => ({ ...prev, sub_subcategory: e.target.value }));
+                    }}>
+                      <option value="">Select Sub-Subcategory</option>
+                      {getSubSubcategories(mainCategory, subCategory).map(subsub => (
+                        <option key={subsub.name} value={subsub.name}>{subsub.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {mainCategory === 'Electronics' && getExtraFields(mainCategory).length > 0 && (
+                  <div>
+                    {getExtraFields(mainCategory).map(field => (
+                      <div key={field}>
+                        <Label>{field}</Label>
+                        <input
+                          type="text"
+                          value={extraFields[field] || ''}
+                          onChange={e => setExtraFields(prev => ({ ...prev, [field]: e.target.value }))}
+                          placeholder={`Enter ${field}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -579,7 +791,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       id="sku"
                       value={formData.sku}
                       onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                      placeholder="Enter SKU"
+                      placeholder="Enter SKU Code"
                     />
                   </div>
                   <div>
@@ -626,7 +838,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                   <div>
                     <Label htmlFor="price">Now (Current Price) *</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold">Ksh</span>
                       <Input
                         id="price"
                         type="number"
@@ -635,14 +847,19 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
                         required
                         placeholder="e.g. 19500"
-                        className="pl-10 mb-4"
+                        className="pl-14 mb-1"
                       />
+                      {formData.price > 0 && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          You will receive <span className="font-semibold">{Math.floor(formData.price * 0.9)}</span>Ksh, <span className="font-semibold">{Math.ceil(formData.price * 0.1)}</span>Ksh goes to ISA maintenance
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="original_price">Was (Original Price)</Label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 font-bold">Ksh</span>
                       <Input
                         id="original_price"
                         type="number"
@@ -650,7 +867,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         value={formData.original_price ?? ''}
                         onChange={e => setFormData(prev => ({ ...prev, original_price: e.target.value ? parseFloat(e.target.value) : undefined }))}
                         placeholder="e.g. 20000"
-                        className="pl-10 mb-4"
+                        className="pl-14 mb-4"
                       />
                     </div>
                   </div>

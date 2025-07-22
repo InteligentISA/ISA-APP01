@@ -282,16 +282,16 @@ const VendorApplicationsSection = () => {
                                   <label className="text-sm font-medium">Business Description</label>
                                   <p className="text-sm">{application.business_description}</p>
                                 </div>
-                                {application.business_website && (
+                                {(application.profiles?.company_website || application.business_website) && (
                                   <div>
                                     <label className="text-sm font-medium">Website</label>
-                                    <p className="text-sm">{application.business_website}</p>
+                                    <p className="text-sm">{application.profiles?.company_website || application.business_website}</p>
                                   </div>
                                 )}
-                                {application.tax_id && (
+                                {(application.profiles?.tax_id || application.tax_id) && (
                                   <div>
                                     <label className="text-sm font-medium">Tax ID</label>
-                                    <p className="text-sm">{application.tax_id}</p>
+                                    <p className="text-sm">{application.profiles?.tax_id || application.tax_id}</p>
                                   </div>
                                 )}
                               </div>

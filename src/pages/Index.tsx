@@ -103,6 +103,7 @@ const Index = () => {
   }, [authLoading, authUser]);
 
   // Automatically prompt profile completion for any logged-in user with incomplete profile
+  /*
   useEffect(() => {
     if (!authLoading && authUser) {
       if (!userProfile || !isProfileComplete(userProfile)) {
@@ -116,6 +117,7 @@ const Index = () => {
       }
     }
   }, [authLoading, authUser, userProfile]);
+  */
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
@@ -437,6 +439,7 @@ const Index = () => {
           </div>
         </div>
       )}
+      {/*
       {profileCompletionOpen && (
         <ProfileCompletionModal
           isOpen={profileCompletionOpen}
@@ -445,6 +448,7 @@ const Index = () => {
           onClose={() => setProfileCompletionOpen(false)}
         />
       )}
+      */}
     </div>
   );
 };

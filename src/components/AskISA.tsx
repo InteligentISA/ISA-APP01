@@ -15,6 +15,7 @@ import {
   SidebarInset
 } from "@/components/ui/sidebar";
 import { AIService } from "@/services/aiService";
+import { ProductService } from '@/services/productService';
 // import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
 
 interface Message {
@@ -113,12 +114,30 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
           timestamp: m.timestamp
         }))
       );
+
+      // NEW: Use structuredCategoryInfo for precise product search
+      let ownProducts: any[] = [];
+      if (aiResult.structuredCategoryInfo && (aiResult.structuredCategoryInfo.main_category || aiResult.structuredCategoryInfo.subcategory)) {
+        const filters: any = {};
+        if (aiResult.structuredCategoryInfo.main_category) filters.category = aiResult.structuredCategoryInfo.main_category;
+        if (aiResult.structuredCategoryInfo.subcategory) filters.subcategory = aiResult.structuredCategoryInfo.subcategory;
+        if (aiResult.structuredCategoryInfo.sub_subcategory) filters.sub_subcategory = aiResult.structuredCategoryInfo.sub_subcategory;
+        if (aiResult.structuredCategoryInfo.min_price !== undefined) filters.minPrice = aiResult.structuredCategoryInfo.min_price;
+        if (aiResult.structuredCategoryInfo.max_price !== undefined) filters.maxPrice = aiResult.structuredCategoryInfo.max_price;
+        const { data } = await ProductService.getProducts({ filters, limit: 15 });
+        ownProducts = data;
+      }
+
       // If aiResult contains products and jumiaProducts, combine and limit
       let combinedProducts: any[] = [];
-      if (aiResult.products || aiResult.jumiaProducts) {
+      if (ownProducts.length > 0 || aiResult.jumiaProducts) {
+        const jumia = aiResult.jumiaProducts || [];
+        combinedProducts = [...ownProducts, ...jumia.slice(0, Math.max(0, 15 - ownProducts.length))];
+        setProductResults(combinedProducts);
+        setJumiaResults(jumia.slice(0, Math.max(0, 15 - ownProducts.length)));
+      } else if (aiResult.products || aiResult.jumiaProducts) {
         const own = aiResult.products || [];
         const jumia = aiResult.jumiaProducts || [];
-        // Show own products first, then Jumia, limit to 10-15
         combinedProducts = [...own, ...jumia.slice(0, Math.max(0, 15 - own.length))];
         setProductResults(combinedProducts);
         setJumiaResults(jumia.slice(0, Math.max(0, 15 - own.length)));

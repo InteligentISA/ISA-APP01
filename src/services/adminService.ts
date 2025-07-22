@@ -118,7 +118,9 @@ export class AdminService {
         profiles:user_id (
           first_name,
           last_name,
-          email
+          email,
+          tax_id,
+          company_website
         )
       `)
       .order('created_at', { ascending: false });
