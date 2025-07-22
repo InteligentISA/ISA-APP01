@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       chat_history: {
@@ -161,9 +166,52 @@ export type Database = {
           },
         ]
       }
+      order_status_history: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           actual_delivery_date: string | null
+          billing_address: Json
           created_at: string | null
           currency: string | null
           customer_email: string
@@ -190,6 +238,7 @@ export type Database = {
         }
         Insert: {
           actual_delivery_date?: string | null
+          billing_address?: Json
           created_at?: string | null
           currency?: string | null
           customer_email: string
@@ -216,6 +265,7 @@ export type Database = {
         }
         Update: {
           actual_delivery_date?: string | null
+          billing_address?: Json
           created_at?: string | null
           currency?: string | null
           customer_email?: string
@@ -246,6 +296,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number | null
+          id: string
+          order_id: string
+          payment_method: string | null
+          status: string | null
+        }
+        Insert: {
+          amount?: number | null
+          id?: string
+          order_id: string
+          payment_method?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number | null
+          id?: string
+          order_id?: string
+          payment_method?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_order"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -362,22 +444,30 @@ export type Database = {
           category: string
           commission_percentage: number | null
           created_at: string | null
+          currency: string | null
           description: string | null
+          display_size: string | null
           id: string
           images: string[] | null
           is_active: boolean | null
           is_featured: boolean | null
+          main_category: string | null
           main_image: string | null
           name: string
           original_price: number | null
           pickup_location: string | null
           pickup_phone: string | null
+          pickup_phone_number: string | null
           price: number
+          processor: string | null
+          ram: string | null
           rating: number | null
           review_count: number | null
           sku: string | null
           specifications: Json | null
           stock_quantity: number | null
+          storage: string | null
+          sub_subcategory: string | null
           subcategory: string | null
           tags: string[] | null
           updated_at: string | null
@@ -388,22 +478,30 @@ export type Database = {
           category: string
           commission_percentage?: number | null
           created_at?: string | null
+          currency?: string | null
           description?: string | null
+          display_size?: string | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          main_category?: string | null
           main_image?: string | null
           name: string
           original_price?: number | null
           pickup_location?: string | null
           pickup_phone?: string | null
+          pickup_phone_number?: string | null
           price: number
+          processor?: string | null
+          ram?: string | null
           rating?: number | null
           review_count?: number | null
           sku?: string | null
           specifications?: Json | null
           stock_quantity?: number | null
+          storage?: string | null
+          sub_subcategory?: string | null
           subcategory?: string | null
           tags?: string[] | null
           updated_at?: string | null
@@ -414,22 +512,30 @@ export type Database = {
           category?: string
           commission_percentage?: number | null
           created_at?: string | null
+          currency?: string | null
           description?: string | null
+          display_size?: string | null
           id?: string
           images?: string[] | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          main_category?: string | null
           main_image?: string | null
           name?: string
           original_price?: number | null
           pickup_location?: string | null
           pickup_phone?: string | null
+          pickup_phone_number?: string | null
           price?: number
+          processor?: string | null
+          ram?: string | null
           rating?: number | null
           review_count?: number | null
           sku?: string | null
           specifications?: Json | null
           stock_quantity?: number | null
+          storage?: string | null
+          sub_subcategory?: string | null
           subcategory?: string | null
           tags?: string[] | null
           updated_at?: string | null
@@ -447,9 +553,14 @@ export type Database = {
       }
       profiles: {
         Row: {
+          admin_notes: string | null
           avatar_url: string | null
+          business_type: string | null
+          company: string | null
+          company_website: string | null
           created_at: string | null
           date_of_birth: string | null
+          email: string | null
           first_name: string | null
           gender: string | null
           id: string
@@ -458,12 +569,20 @@ export type Database = {
           phone_number: string | null
           preferences: Json | null
           role: string | null
+          status: string | null
+          tax_id: string | null
           updated_at: string | null
+          user_type: string | null
         }
         Insert: {
+          admin_notes?: string | null
           avatar_url?: string | null
+          business_type?: string | null
+          company?: string | null
+          company_website?: string | null
           created_at?: string | null
           date_of_birth?: string | null
+          email?: string | null
           first_name?: string | null
           gender?: string | null
           id: string
@@ -472,12 +591,20 @@ export type Database = {
           phone_number?: string | null
           preferences?: Json | null
           role?: string | null
+          status?: string | null
+          tax_id?: string | null
           updated_at?: string | null
+          user_type?: string | null
         }
         Update: {
+          admin_notes?: string | null
           avatar_url?: string | null
+          business_type?: string | null
+          company?: string | null
+          company_website?: string | null
           created_at?: string | null
           date_of_birth?: string | null
+          email?: string | null
           first_name?: string | null
           gender?: string | null
           id?: string
@@ -486,9 +613,62 @@ export type Database = {
           phone_number?: string | null
           preferences?: Json | null
           role?: string | null
+          status?: string | null
+          tax_id?: string | null
           updated_at?: string | null
+          user_type?: string | null
         }
         Relationships: []
+      }
+      shipping: {
+        Row: {
+          actual_delivery_date: string | null
+          carrier: string
+          created_at: string | null
+          estimated_delivery_date: string | null
+          id: string
+          order_id: string
+          shipping_method: string
+          status: string
+          tracking_number: string | null
+          tracking_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actual_delivery_date?: string | null
+          carrier: string
+          created_at?: string | null
+          estimated_delivery_date?: string | null
+          id?: string
+          order_id: string
+          shipping_method: string
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actual_delivery_date?: string | null
+          carrier?: string
+          created_at?: string | null
+          estimated_delivery_date?: string | null
+          id?: string
+          order_id?: string
+          shipping_method?: string
+          status?: string
+          tracking_number?: string | null
+          tracking_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_cart_items: {
         Row: {
@@ -526,6 +706,27 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "user_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_cart_items_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -560,6 +761,27 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_likes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_likes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_popularity"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "user_likes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_likes_user_id_fkey"
             columns: ["user_id"]
@@ -656,6 +878,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_searches: {
         Row: {
           created_at: string | null
@@ -732,9 +978,46 @@ export type Database = {
       }
     }
     Functions: {
+      approve_vendor_application: {
+        Args: { application_id: string; admin_notes?: string }
+        Returns: boolean
+      }
       generate_order_number: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_vendor_applications_with_emails: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          email: string
+          phone_number: string
+          company: string
+          business_type: string
+          status: string
+          created_at: string
+        }[]
+      }
+      has_role: {
+        Args: { _user_id: string; _role: string }
+        Returns: boolean
+      }
+      is_vendor_order: {
+        Args: {
+          order_row: Database["public"]["Tables"]["orders"]["Row"]
+          vendor: string
+        }
+        Returns: boolean
+      }
+      reject_vendor_application: {
+        Args: { application_id: string; admin_notes?: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -746,21 +1029,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -778,14 +1065,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -801,14 +1090,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -824,14 +1115,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -839,14 +1132,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

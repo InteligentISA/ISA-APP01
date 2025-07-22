@@ -1,4 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { UserProfile } from "@/types/user";
+import { PaymentData, PaymentStats, VendorApplication } from "@/types/admin";
+
+// Export types for use in other components
+export type { PaymentData, PaymentStats, VendorApplication } from "@/types/admin";
 
 export interface VendorApplication {
   id: string;

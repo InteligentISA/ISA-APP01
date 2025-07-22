@@ -62,35 +62,9 @@ const AdminDashboard = () => {
     }
   };
 
-  const setAsAdmin = async () => {
-    if (!user) return;
-    
-    setSettingAdmin(true);
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: 'admin' })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "You are now an admin!"
-      });
-
-      setRole('admin');
-    } catch (error) {
-      console.error('Error setting admin role:', error);
-      toast({
-        title: "Error",
-        description: "Failed to set admin role",
-        variant: "destructive"
-      });
-    } finally {
-      setSettingAdmin(false);
-    }
-  };
+  // SECURITY: Admin role assignment removed - use proper role management system
+  // const setAsAdmin functionality has been removed for security
+  // Admins must be assigned through database-level role management
 
   if (loading || !user) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
