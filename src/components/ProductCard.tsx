@@ -200,7 +200,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         await CustomerBehaviorService.trackInteraction(
           user.id, 
           product.id, 
-          newLikeState ? 'like' : 'unlike'
+          newLikeState ? 'like' : 'like'
         );
       }
       

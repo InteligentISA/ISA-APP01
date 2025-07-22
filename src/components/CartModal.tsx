@@ -11,6 +11,7 @@ interface CartModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: any;
+  cartItems: CartItemWithProduct[];
   onRemoveFromCart: (productId: string) => void;
   onUpdateQuantity: (cartItemId: string, quantity: number) => void;
 }
