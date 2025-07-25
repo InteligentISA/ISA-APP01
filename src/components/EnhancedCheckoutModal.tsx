@@ -35,7 +35,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const [orderNumber, setOrderNumber] = useState('');
   const [currentStep, setCurrentStep] = useState<'delivery' | 'payment' | 'mpesa' | 'complete'>('delivery');
   
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('pickup');
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('delivery');
   const [deliveryAddress, setDeliveryAddress] = useState<Address>({
     street: '',
     city: '',
@@ -129,18 +129,6 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
     }
   };
 
-  const handleDeliveryMethodChange = (method: DeliveryMethod) => {
-    setDeliveryMethod(method);
-    if (method === 'pickup') {
-      setPaymentMethod('mpesa');
-      setCalculatedDeliveryFee(0);
-      setDeliveryFeeDetails(null);
-    } else {
-      // Calculate delivery fee when switching to delivery
-      calculateDeliveryFeeForAddress();
-    }
-  };
-
   const handleNextStep = () => {
     if (currentStep === 'delivery') {
       // Validate delivery information
@@ -198,20 +186,8 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
           product_id: item.product_id,
           quantity: item.quantity
         })),
-        shipping_address: deliveryMethod === 'delivery' ? deliveryAddress : {
-          street: 'Pickup from vendor',
-          city: 'Vendor Location',
-          state: 'N/A',
-          zip: 'N/A',
-          country: 'Kenya'
-        },
-        billing_address: deliveryMethod === 'delivery' ? deliveryAddress : {
-          street: 'Pickup from vendor',
-          city: 'Vendor Location',
-          state: 'N/A',
-          zip: 'N/A',
-          country: 'Kenya'
-        },
+        shipping_address: deliveryAddress,
+        billing_address: deliveryAddress,
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${notes}`,
@@ -267,20 +243,8 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
           product_id: item.product_id,
           quantity: item.quantity
         })),
-        shipping_address: deliveryMethod === 'delivery' ? deliveryAddress : {
-          street: 'Pickup from vendor',
-          city: 'Vendor Location',
-          state: 'N/A',
-          zip: 'N/A',
-          country: 'Kenya'
-        },
-        billing_address: deliveryMethod === 'delivery' ? deliveryAddress : {
-          street: 'Pickup from vendor',
-          city: 'Vendor Location',
-          state: 'N/A',
-          zip: 'N/A',
-          country: 'Kenya'
-        },
+        shipping_address: deliveryAddress,
+        billing_address: deliveryAddress,
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${notes}`,
@@ -444,152 +408,113 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
         <CardContent className="p-6 space-y-6">
           {currentStep === 'delivery' && (
             <>
-              {/* Delivery Method Selection */}
+              {/* Delivery Method Selection - Only ISA Delivery */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Delivery Method</h3>
-                <RadioGroup value={deliveryMethod} onValueChange={(value: DeliveryMethod) => handleDeliveryMethodChange(value)}>
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
-                      <RadioGroupItem value="pickup" id="pickup" />
-                      <div className="flex items-center space-x-3">
-                        <Store className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <Label htmlFor="pickup" className="text-base font-medium">Pickup from Vendor</Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">Collect your items from the vendor location</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
-                      <RadioGroupItem value="delivery" id="delivery" />
-                      <div className="flex items-center space-x-3">
-                        <Truck className="w-5 h-5 text-green-600" />
-                        <div>
-                          <Label htmlFor="delivery" className="text-base font-medium">ISA Delivery</Label>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">We'll deliver to your address (KES 500 fee)</p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
+                  <Truck className="w-5 h-5 text-green-600" />
+                  <div>
+                    <Label className="text-base font-medium">ISA Delivery</Label>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">We'll deliver to your address (KES 500 fee)</p>
                   </div>
-                </RadioGroup>
+                </div>
               </div>
 
-              {/* Pickup Information */}
-              {deliveryMethod === 'pickup' && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                  <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Pickup Information</h4>
-                  {cartItems.map((item, index) => (
-                    <div key={index} className="mb-3 last:mb-0">
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">{item.product.name}</p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <MapPin className="w-3 h-3 inline mr-1" />
-                        {item.product.pickup_location || 'Pickup location not specified'}
-                      </p>
-                      <p className="text-xs text-blue-700 dark:text-blue-300">
-                        <Phone className="w-3 h-3 inline mr-1" />
-                        {item.product.pickup_phone_number || 'Phone number not specified'}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Delivery Address */}
-              {deliveryMethod === 'delivery' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Delivery Address
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <Label htmlFor="street">Street Address</Label>
-                      <Input
-                        id="street"
-                        value={deliveryAddress.street}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
-                        placeholder="123 Main St"
-                        className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="city">City</Label>
-                      <Input
-                        id="city"
-                        value={deliveryAddress.city}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
-                        placeholder="Nairobi"
-                        className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="state">County</Label>
-                      <Input
-                        id="state"
-                        value={deliveryAddress.state}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, state: e.target.value }))}
-                        placeholder="Nairobi"
-                        className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="zip">Postal Code</Label>
-                      <Input
-                        id="zip"
-                        value={deliveryAddress.zip}
-                        onChange={(e) => setDeliveryAddress(prev => ({ ...prev, zip: e.target.value }))}
-                        placeholder="00100"
-                        className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                      />
-                    </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <MapPin className="w-5 h-5 mr-2" />
+                  Delivery Address
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <Label htmlFor="street">Street Address</Label>
+                    <Input
+                      id="street"
+                      value={deliveryAddress.street}
+                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
+                      placeholder="123 Main St"
+                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                    />
                   </div>
-                  
-                  {/* Delivery Fee Details */}
-                  {deliveryMethod === 'delivery' && (
-                    <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Delivery Fee Details</h4>
-                      {isCalculatingDeliveryFee ? (
-                        <div className="flex items-center space-x-2">
-                          <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Calculating delivery fee...</span>
-                        </div>
-                      ) : deliveryFeeDetails ? (
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-300">Base Fee:</span>
-                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.baseFee)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-300">Distance Fee ({deliveryFeeDetails.distance}km):</span>
-                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.distanceFee)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-300">Weight Fee:</span>
-                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.weightFee)}</span>
-                          </div>
-                          {deliveryFeeDetails.fragileFee > 0 && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600 dark:text-gray-300">Fragile Items:</span>
-                              <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.fragileFee)}</span>
-                            </div>
-                          )}
-                          <Separator />
-                          <div className="flex justify-between font-semibold">
-                            <span className="text-gray-900 dark:text-white">Total Delivery Fee:</span>
-                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.totalFee)}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            Estimated delivery: {deliveryFeeDetails.estimatedDeliveryTime}
-                          </p>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-600 dark:text-gray-300">
-                          Enter your address to calculate delivery fee
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <div>
+                    <Label htmlFor="city">City</Label>
+                    <Input
+                      id="city"
+                      value={deliveryAddress.city}
+                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="Nairobi"
+                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="state">County</Label>
+                    <Input
+                      id="state"
+                      value={deliveryAddress.state}
+                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, state: e.target.value }))}
+                      placeholder="Nairobi"
+                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="zip">Postal Code</Label>
+                    <Input
+                      id="zip"
+                      value={deliveryAddress.zip}
+                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, zip: e.target.value }))}
+                      placeholder="00100"
+                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                    />
+                  </div>
                 </div>
-              )}
+                
+                {/* Delivery Fee Details */}
+                {deliveryMethod === 'delivery' && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Delivery Fee Details</h4>
+                    {isCalculatingDeliveryFee ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">Calculating delivery fee...</span>
+                      </div>
+                    ) : deliveryFeeDetails ? (
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Base Fee:</span>
+                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.baseFee)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Distance Fee ({deliveryFeeDetails.distance}km):</span>
+                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.distanceFee)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 dark:text-gray-300">Weight Fee:</span>
+                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.weightFee)}</span>
+                        </div>
+                        {deliveryFeeDetails.fragileFee > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-gray-600 dark:text-gray-300">Fragile Items:</span>
+                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.fragileFee)}</span>
+                          </div>
+                        )}
+                        <Separator />
+                        <div className="flex justify-between font-semibold">
+                          <span className="text-gray-900 dark:text-white">Total Delivery Fee:</span>
+                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.totalFee)}</span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Estimated delivery: {deliveryFeeDetails.estimatedDeliveryTime}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Enter your address to calculate delivery fee
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <Separator />
 
@@ -638,10 +563,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="mpesa">M-Pesa</SelectItem>
-                    <SelectItem value="cash_on_delivery">Cash on Delivery</SelectItem>
-                    {deliveryMethod === 'pickup' && (
-                      <SelectItem value="cash_on_pickup">Cash on Pickup</SelectItem>
-                    )}
+                    <SelectItem value="airtel_money">Airtel Money</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -698,7 +620,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
             </>
           )}
 
-          {currentStep === 'mpesa' && (
+          {currentStep === 'mpesa' && paymentMethod === 'mpesa' && (
             <>
               {/* M-Pesa Payment */}
               <div>
@@ -724,6 +646,38 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                     />
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Enter your M-Pesa registered phone number. You will receive a payment prompt on your phone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+          {currentStep === 'mpesa' && paymentMethod === 'airtel_money' && (
+            <>
+              {/* Airtel Money Payment */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <Lock className="w-5 h-5 mr-2" />
+                  Airtel Money Payment
+                </h3>
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
+                  <p className="text-sm text-red-800 dark:text-red-200">
+                    You will receive an Airtel Money prompt on your phone to complete the payment of {formatPrice(totalAmount)}.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="airtel_number">Airtel Money Phone Number</Label>
+                    <Input
+                      id="airtel_number"
+                      type="tel"
+                      value={mpesaNumber}
+                      onChange={(e) => setMpesaNumber(e.target.value)}
+                      placeholder="254700000000"
+                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Enter your Airtel Money registered phone number. You will receive a payment prompt on your phone.
                     </p>
                   </div>
                 </div>

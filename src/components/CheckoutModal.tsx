@@ -41,7 +41,8 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     email: user?.email || '',
     phone: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mpesa');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   const { toast } = useToast();
@@ -82,13 +83,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes,
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        phone_number: phoneNumber // Add phone number to order
       });
 
       await OrderService.processPayment(order.id, {
         order_id: order.id,
         payment_method: paymentMethod,
-        amount: totalAmount
+        amount: totalAmount,
+        phone_number: phoneNumber // Add phone number to payment processing
       });
 
       setOrderNumber(order.order_number);
@@ -268,14 +271,28 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="stripe">Credit/Debit Card</SelectItem>
-                <SelectItem value="paypal">PayPal</SelectItem>
-                <SelectItem value="apple_pay">Apple Pay</SelectItem>
-                <SelectItem value="google_pay">Google Pay</SelectItem>
-                <SelectItem value="cash_on_delivery">Cash on Delivery</SelectItem>
+                <SelectItem value="mpesa">M-Pesa</SelectItem>
+                <SelectItem value="airtel_money">Airtel Money</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {['mpesa', 'airtel_money'].includes(paymentMethod) && (
+            <div>
+              <Label htmlFor="phone_number">{paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} Phone Number</Label>
+              <Input
+                id="phone_number"
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="254700000000"
+                className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter your {paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} registered phone number. You will receive a payment prompt on your phone.
+              </p>
+            </div>
+          )}
 
           <Separator />
 

@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import Carousel from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
 
@@ -45,6 +46,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [showReviewsDialog, setShowReviewsDialog] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
 
   // Track product view when component mounts
   useEffect(() => {
@@ -317,6 +319,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setReviewsLoading(false);
   };
 
+  // Helper to get all images for carousel
+  const productImages = [
+    product.main_image,
+    ...(product.images || []).filter(img => img !== product.main_image)
+  ].filter(Boolean);
+
   // Render for Jumia products
   if (product.source === 'jumia') {
     return (
@@ -394,32 +402,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
-        
-        {/* Quick Actions Overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <div className="flex space-x-2">
-            {showQuickView && (
-              <Button
-                size="icon"
-                variant="secondary"
-                className="w-10 h-10 bg-white/90 hover:bg-white text-gray-900"
-                onClick={handleQuickView}
-              >
-                <Eye className="w-4 h-4" />
-              </Button>
-            )}
-            <Button
-              size="icon"
-              variant="secondary"
-              className={`w-10 h-10 ${localIsLiked ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white/90 hover:bg-white text-gray-900'}`}
-              onClick={handleToggleLike}
-            >
-              <Heart className={`w-4 h-4 ${localIsLiked ? 'fill-current' : ''}`} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Badges */}
+        {/* Like button (bottom left) */}
+        <button
+          className={`absolute bottom-2 left-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white shadow ${isLiked ? 'text-red-500' : 'text-gray-400'}`}
+          onClick={() => onToggleLike && onToggleLike(product)}
+          aria-label={isLiked ? 'Unlike' : 'Like'}
+        >
+          {isLiked ? <Heart className="w-5 h-5 fill-red-500" /> : <Heart className="w-5 h-5" />}
+        </button>
+        {/* View button (bottom right) */}
+        <button
+          className="absolute bottom-2 right-2 z-10 p-2 rounded-full bg-white/80 hover:bg-white shadow text-gray-700"
+          onClick={() => setShowViewModal(true)}
+          aria-label="View"
+        >
+          <Eye className="w-5 h-5" />
+        </button>
+        {/* Badges, stock, etc. remain as before */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {product.is_featured && (
             <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
@@ -470,10 +469,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Rating */}
           <div className="flex items-center space-x-1">
-            <div className="flex cursor-pointer" onClick={product.source === 'vendor' ? handleOpenReviews : undefined} title="View all reviews">
+            <div className="flex cursor-pointer" onClick={() => setShowViewModal(true)} title="View all reviews">
               {renderStars(product.rating)}
             </div>
-            <span className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer" onClick={product.source === 'vendor' ? handleOpenReviews : undefined}>
+            <span className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer" onClick={() => setShowViewModal(true)}>
               ({product.review_count})
             </span>
           </div>
@@ -674,6 +673,63 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </DialogContent>
         </Dialog>
       )}
+
+      {/* View Modal: Carousel + Reviews */}
+      <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-yellow-100 to-pink-100 dark:from-yellow-900/20 dark:to-pink-900/20 p-4">
+            <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{product.name}</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 flex flex-col md:flex-row gap-6">
+            {/* Image Carousel */}
+            <div className="flex-1 min-w-[200px]">
+              {/* Replace with your carousel component or a simple image slider */}
+              <Carousel images={productImages} />
+            </div>
+            {/* Product Details & Reviews */}
+            <div className="flex-1 min-w-[200px]">
+              <div className="mb-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  {renderStars(product.rating)}
+                  <span className="text-sm text-gray-600">({product.review_count} reviews)</span>
+                </div>
+                <div className="text-lg font-bold text-gray-900 mb-2">{formatPrice(product.price)}</div>
+                <div className="text-sm text-gray-700 mb-2">{product.description}</div>
+              </div>
+              <div className="max-h-48 overflow-y-auto rounded bg-gray-50 p-2">
+                {reviewsLoading ? (
+                  <div className="text-center py-8">Loading reviews...</div>
+                ) : reviews.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">No reviews yet.</div>
+                ) : (
+                  <ul className="space-y-4">
+                    {reviews.map((review) => (
+                      <li key={review.id} className="border-b pb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm">
+                            {review.profiles?.first_name || 'User'} {review.profiles?.last_name || ''}
+                          </span>
+                          <span className="text-xs text-gray-400">{new Date(review.created_at).toLocaleDateString()}</span>
+                          <span className="flex items-center ml-2">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'text-yellow-400' : 'text-gray-300'}`} />
+                            ))}
+                          </span>
+                        </div>
+                        {review.title && <div className="font-medium text-gray-800 dark:text-gray-100">{review.title}</div>}
+                        {review.comment && <div className="text-gray-700 dark:text-gray-300 text-sm">{review.comment}</div>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowViewModal(false)} className="w-full">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

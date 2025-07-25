@@ -80,11 +80,8 @@ const PaymentSection: React.FC = () => {
     switch (method) {
       case 'mpesa':
         return '📱';
-      case 'cash_on_delivery':
-      case 'cash_on_pickup':
-        return '💵';
-      case 'stripe':
-        return '💳';
+      case 'airtel_money':
+        return '📲';
       default:
         return '💳';
     }
@@ -94,12 +91,8 @@ const PaymentSection: React.FC = () => {
     switch (method) {
       case 'mpesa':
         return 'M-Pesa';
-      case 'cash_on_delivery':
-        return 'Cash on Delivery';
-      case 'cash_on_pickup':
-        return 'Cash on Pickup';
-      case 'stripe':
-        return 'Credit Card';
+      case 'airtel_money':
+        return 'Airtel Money';
       default:
         return method;
     }
@@ -227,13 +220,20 @@ const PaymentSection: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="bg-orange-50 p-4 rounded-lg">
+            <div className="bg-red-50 p-4 rounded-lg">
               <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-orange-600" />
+                <Phone className="w-5 h-5 text-red-600" />
                 <div>
-                  <p className="text-sm text-gray-600">Total Transactions</p>
-                  <p className="text-lg font-bold text-orange-900">{stats.totalPayments}</p>
+                  <p className="text-sm text-gray-600">Airtel Money Payments</p>
+                  <p className="text-lg font-bold text-red-900">{stats.airtelMoneyPayments ?? 0}</p>
                 </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-orange-600" />
+              <div>
+                <p className="text-sm text-gray-600">Total Transactions</p>
+                <p className="text-lg font-bold text-orange-900">{stats.totalPayments}</p>
               </div>
             </div>
           </div>
@@ -259,9 +259,7 @@ const PaymentSection: React.FC = () => {
             <SelectContent>
               <SelectItem value="all">All Methods</SelectItem>
               <SelectItem value="mpesa">M-Pesa</SelectItem>
-              <SelectItem value="cash_on_delivery">Cash on Delivery</SelectItem>
-              <SelectItem value="cash_on_pickup">Cash on Pickup</SelectItem>
-              <SelectItem value="stripe">Credit Card</SelectItem>
+              <SelectItem value="airtel_money">Airtel Money</SelectItem>
             </SelectContent>
           </Select>
           <Select value={filterStatus} onValueChange={setFilterStatus}>

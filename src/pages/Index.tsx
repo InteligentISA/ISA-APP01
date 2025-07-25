@@ -15,6 +15,11 @@ import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { isPremiumUser } from "@/lib/utils";
+import TierUpgradeModal from "@/components/TierUpgradeModal";
+import { supabase } from "@/integrations/supabase/client";
+import { MpesaService } from "@/services/mpesaService";
+import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'askisa' | 'gifts' | 'forgot-password'>('preloader');
@@ -26,6 +31,9 @@ const Index = () => {
   const { user: authUser, loading: authLoading, userProfile } = useAuth();
   const { toast } = useToast();
   const [resetEmail, setResetEmail] = useState("");
+  const [showTierModal, setShowTierModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState<"weekly" | "monthly" | "annual" | null>(null);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
 
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
@@ -191,6 +199,27 @@ const Index = () => {
   };
 
   const handleNavigateToGifts = () => {
+    if (!isPremiumUser(user)) {
+      setShowTierModal(true);
+      return;
+    }
+    setCurrentView('gifts');
+  };
+
+  const handleUpgrade = async (plan: "weekly" | "monthly" | "annual") => {
+    setPendingPlan(plan);
+    // Here, you would trigger your payment flow (e.g., Mpesa, Airtel, Stripe, etc.)
+    // For demo, we'll just update the plan in Supabase directly
+    // Set plan_expiry based on plan
+    let expiry = new Date();
+    if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
+    if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
+    if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
+    await supabase.from('profiles').update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) }).eq('id', user.id);
+    // Optionally, refetch user profile here
+    setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
+    setShowTierModal(false);
+    setPendingPlan(null);
     setCurrentView('gifts');
   };
 
@@ -314,6 +343,56 @@ const Index = () => {
     }
   };
 
+  const handlePayAndUpgrade = async (plan, paymentMethod, phoneNumber) => {
+    setUpgradeLoading(true);
+    let paymentResponse;
+    try {
+      if (paymentMethod === "mpesa") {
+        paymentResponse = await MpesaService.initiatePayment({
+          phoneNumber,
+          amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
+          orderId: user.id + "-" + Date.now(),
+          description: `ISA Premium ${plan} plan`
+        });
+      } else {
+        paymentResponse = await AirtelService.initiatePayment({
+          phoneNumber,
+          amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
+          orderId: user.id + "-" + Date.now(),
+          description: `ISA Premium ${plan} plan`
+        });
+      }
+      if (paymentResponse.success) {
+        let expiry = new Date();
+        if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
+        if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
+        if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
+        await supabase.from('profiles').update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) }).eq('id', user.id);
+        setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
+        setShowTierModal(false);
+        toast({
+          title: "Upgrade Successful!",
+          description: "You are now a premium user. Enjoy all features!",
+        });
+        setCurrentView('gifts');
+      } else {
+        toast({
+          title: "Payment Failed",
+          description: paymentResponse.message,
+          variant: "destructive"
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Payment Error",
+        description: err.message || "An error occurred during payment.",
+        variant: "destructive"
+      });
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {currentView === 'preloader' && <Preloader />}
@@ -370,16 +449,20 @@ const Index = () => {
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
           likedItems={likedItems}
+          maxChats={isPremiumUser(user) ? 100 : 20}
+          onUpgrade={() => setShowTierModal(true)}
         />
       )}
       {currentView === 'gifts' && (
-        <GiftsSection
-          user={user}
-          onBack={handleBackToDashboard}
-          onAddToCart={handleAddToCart}
-          onToggleLike={handleToggleLike}
-          likedItems={likedItems}
-        />
+        isPremiumUser(user) ? (
+          <GiftsSection
+            user={user}
+            onBack={handleBackToDashboard}
+            onAddToCart={handleAddToCart}
+            onToggleLike={handleToggleLike}
+            likedItems={likedItems}
+          />
+        ) : null // Modal is shown instead
       )}
       {currentView === 'my-shipping' && (
         <MyShipping />
@@ -449,6 +532,12 @@ const Index = () => {
         />
       )}
       */}
+      <TierUpgradeModal
+        isOpen={showTierModal}
+        onClose={() => setShowTierModal(false)}
+        onPay={handlePayAndUpgrade}
+        loading={upgradeLoading}
+      />
     </div>
   );
 };

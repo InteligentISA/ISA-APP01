@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/sidebar";
 import { AIService } from "@/services/aiService";
 import { ProductService } from '@/services/productService';
+import TierUpgradeModal from "@/components/TierUpgradeModal";
+import { supabase } from "@/integrations/supabase/client";
 // import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
 
 interface Message {
@@ -46,14 +48,18 @@ interface AskISAProps {
   onAddToCart: (product: any) => void;
   onToggleLike: (productId: string) => void;
   likedItems: string[];
+  maxChats: number;
+  onUpgrade: () => void;
 }
 
-const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAProps) => {
+const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats, onUpgrade }: AskISAProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [productResults, setProductResults] = useState<any[]>([]);
   const [jumiaResults, setJumiaResults] = useState<JumiaProduct[]>([]);
+  const [chatCount, setChatCount] = useState(user?.chat_count || 0);
+  const [showTierModal, setShowTierModal] = useState(false);
 
   // Load chat history from localStorage on mount
   useEffect(() => {
@@ -76,6 +82,11 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
+    if (chatCount >= maxChats) {
+      setShowTierModal(true);
+      if (onUpgrade) onUpgrade();
+      return;
+    }
 
     const newUserMessage: Message = {
       id: Date.now(),
@@ -152,6 +163,9 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
         timestamp: new Date()
       };
       setMessages(prev => [...prev, isaResponse]);
+      setChatCount(prev => prev + 1);
+      // Update chat_count in Supabase
+      await supabase.from('profiles').update({ chat_count: chatCount + 1 }).eq('id', user.id);
     } catch (err) {
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
@@ -389,6 +403,14 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems }: AskISAP
           </div>
         </SidebarInset>
       </div>
+      <TierUpgradeModal
+        isOpen={showTierModal}
+        onClose={() => setShowTierModal(false)}
+        onSelectPlan={(plan) => {
+          setShowTierModal(false);
+          if (onUpgrade) onUpgrade();
+        }}
+      />
     </SidebarProvider>
   );
 };

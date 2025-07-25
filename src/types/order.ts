@@ -126,14 +126,8 @@ export type OrderStatus =
   | 'refunded';
 
 export type PaymentMethod = 
-  | 'stripe'
-  | 'paypal'
-  | 'apple_pay'
-  | 'google_pay'
-  | 'bank_transfer'
-  | 'cash_on_delivery'
-  | 'cash_on_pickup'
-  | 'mpesa';
+  | 'mpesa'
+  | 'airtel_money';
 
 export type PaymentStatus = 
   | 'pending'
@@ -151,7 +145,6 @@ export type ShippingStatus =
   | 'failed';
 
 export type DeliveryMethod = 
-  | 'pickup'
   | 'delivery';
 
 // Request/Response types
