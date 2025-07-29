@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -24,12 +24,13 @@ import {
   TrendingUp,
   AlertCircle
 } from "lucide-react";
-import { Product } from "@/types/product";
+import { Product, ProductAttribute, ProductImage } from "@/types/product";
 import { ProductService } from "@/services/productService";
 import { ImageUploadService } from "@/services/imageUploadService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import EnhancedImageUpload, { ProductImageData } from "./EnhancedImageUpload";
+import ImageUpload from "./ImageUpload";
+import ProductAttributes from "./ProductAttributes";
 
 interface VendorProductManagementProps {
   user: any;
@@ -51,7 +52,6 @@ interface ProductFormData {
   is_active: boolean;
   main_image?: string;
   images?: string[];
-  product_images?: ProductImageData[];
   commission_percentage?: number;
   pickup_location?: string;
   pickup_phone_number?: string;
@@ -112,18 +112,18 @@ export const CATEGORY_TREE: CategoryNode[] = [
       { name: "Clothing" }, { name: "Shoes" }, { name: "Belts & Wallets" }, { name: "Watches" }
     ] },
     { name: "Kids & Baby Fashion", sub: [
-      { name: "Girls’ Clothing" }, { name: "Boys’ Clothing" }, { name: "Baby Clothing" }, { name: "School Uniforms" }, { name: "Shoes" }
+      { name: "Girls' Clothing" }, { name: "Boys' Clothing" }, { name: "Baby Clothing" }, { name: "School Uniforms" }, { name: "Shoes" }
     ] }
   ] },
   { name: "Swimwear", sub: [
-    { name: "Women’s Swimwear", sub: [
+    { name: "Women's Swimwear", sub: [
       { name: "One-Piece Swimsuits" }, { name: "Bikinis" }, { name: "Tankinis" }, { name: "Swim Dresses" }, { name: "Cover-ups & Sarongs" }, { name: "Plus Size Swimwear" }, { name: "Maternity Swimwear" }
     ] },
-    { name: "Men’s Swimwear", sub: [
+    { name: "Men's Swimwear", sub: [
       { name: "Swim Trunks" }, { name: "Board Shorts" }, { name: "Briefs" }, { name: "Jammers" }
     ] },
-    { name: "Kids’ Swimwear", sub: [
-      { name: "Girls’ Swimsuits" }, { name: "One-Piece" }, { name: "Two-Piece" }, { name: "Boys’ Swimsuits" }, { name: "Swim Shorts" }, { name: "Rash Guards" }, { name: "Swim Diapers" }
+    { name: "Kids' Swimwear", sub: [
+      { name: "Girls' Swimsuits" }, { name: "One-Piece" }, { name: "Two-Piece" }, { name: "Boys' Swimsuits" }, { name: "Swim Shorts" }, { name: "Rash Guards" }, { name: "Swim Diapers" }
     ] },
     { name: "Accessories", sub: [
       { name: "Swimming Goggles" }, { name: "Swim Caps" }, { name: "Beach Towels" }, { name: "Flip-Flops" }, { name: "Swim Bags" }, { name: "UV Protection Swimwear" }
@@ -208,6 +208,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [categories, setCategories] = useState<string[]>([]);
   const { toast } = useToast();
   const { user: authUser } = useAuth();
+  const [banReasonDialogOpen, setBanReasonDialogOpen] = useState(false);
+  const [banReasonText, setBanReasonText] = useState("");
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
@@ -225,11 +227,13 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     is_active: true,
     main_image: "",
     images: [],
-    product_images: [],
     commission_percentage: undefined,
     pickup_location: "",
     pickup_phone_number: ""
   });
+
+  const [productAttributes, setProductAttributes] = useState<Omit<ProductAttribute, 'id' | 'product_id' | 'created_at' | 'updated_at'>[]>([]);
+  const [productImages, setProductImages] = useState<Omit<ProductImage, 'id' | 'product_id' | 'created_at' | 'updated_at'>[]>([]);
 
   const [tagInput, setTagInput] = useState("");
 
@@ -262,8 +266,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // For now, we'll fetch all products. In a real app, you'd filter by vendor_id
-      const result = await ProductService.getProducts();
+      const result = await ProductService.getProductsByVendor(user.id);
       if (result.error) {
         toast({
           title: "Error",
@@ -271,7 +274,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
           variant: "destructive"
         });
       } else {
-        setProducts(result.data);
+        setProducts(result.data || []);
       }
     } catch (error) {
       toast({
@@ -298,41 +301,26 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.price || !mainCategory || !subCategory) {
+    if (!formData.name || !formData.price || !mainCategory) {
       toast({
         title: "Validation Error",
-        description: "Please fill in all required fields including main category and subcategory",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate that at least one image is provided
-    if (!formData.product_images || formData.product_images.length === 0) {
-      toast({
-        title: "Validation Error",
-        description: "Please add at least one product image",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      // Get main image from product_images
-      const mainImage = formData.product_images.find(img => img.is_main_image);
-      const mainImageUrl = mainImage?.image_url || formData.product_images[0]?.image_url;
-
       const productData = {
         ...formData,
-        vendor_id: authUser?.id,
+        vendor_id: user.id,
         price: parseFloat(formData.price.toString()),
         original_price: formData.original_price ? parseFloat(formData.original_price.toString()) : undefined,
         stock_quantity: parseInt(formData.stock_quantity.toString()),
+        main_category: mainCategory,
         category: mainCategory,
         subcategory: subCategory,
-        sub_subcategory: subSubCategory || null,
-        main_image: mainImageUrl,
-        images: formData.product_images.map(img => img.image_url),
+        sub_subcategory: subSubCategory,
         ...(mainCategory === 'Electronics' ? {
           ram: extraFields['RAM'] || null,
           storage: extraFields['Storage'] || null,
@@ -343,26 +331,38 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         review_count: 0,
       };
 
+      let productId: string;
+
       if (editingProduct) {
-        // Update existing product
-        const result = await ProductService.updateProduct(editingProduct.id, productData, authUser?.id);
+        const result = await ProductService.updateProduct(editingProduct.id, productData, user.id);
         if (result.error) {
           throw new Error(result.error.message);
         }
+        productId = editingProduct.id;
         toast({
           title: "Success",
           description: "Product updated successfully"
         });
       } else {
-        // Create new product
         const result = await ProductService.createProduct(productData);
         if (result.error) {
           throw new Error(result.error.message);
         }
+        productId = result.data[0].id;
         toast({
           title: "Success",
           description: "Product created successfully"
         });
+      }
+
+      // Save product attributes if it's a fashion item
+      if (mainCategory === 'Fashion' && productAttributes.length > 0) {
+        await ProductService.updateProductAttributes(productId, productAttributes);
+      }
+
+      // Save product images with descriptions
+      if (productImages.length > 0) {
+        await ProductService.updateProductImages(productId, productImages);
       }
 
       setShowAddDialog(false);
@@ -388,25 +388,20 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       category: product.category,
       subcategory: product.subcategory || "",
       brand: product.brand || "",
-      stock_quantity: product.stock_quantity,
+      stock_quantity: product.stock_quantity || 0,
       sku: product.sku || "",
       tags: product.tags || [],
       specifications: product.specifications || {},
-      is_featured: product.is_featured,
-      is_active: product.is_active,
+      is_featured: product.is_featured || false,
+      is_active: product.is_active !== undefined ? product.is_active : true,
       main_image: product.main_image,
       images: product.images || [],
-      product_images: [], // Will be populated from API if needed
       commission_percentage: product.commission_percentage,
       pickup_location: product.pickup_location || "",
       pickup_phone_number: product.pickup_phone_number || ""
     });
-    
-    // Set category hierarchy if available
-    if (product.category) {
-      setMainCategory(product.category);
-    }
-    
+    setMainCategory(product.category);
+    setSubCategory(product.subcategory || "");
     setShowAddDialog(true);
   };
 
@@ -449,7 +444,6 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       is_active: true,
       main_image: "",
       images: [],
-      product_images: [],
       commission_percentage: undefined,
       pickup_location: "",
       pickup_phone_number: ""
@@ -459,6 +453,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     setSubCategory("");
     setSubSubCategory("");
     setExtraFields({});
+    setProductAttributes([]);
+    setProductImages([]);
   };
 
   const addTag = () => {
@@ -478,12 +474,48 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     }));
   };
 
-  // Handle enhanced image changes
-  const handleImagesChange = (images: ProductImageData[]) => {
+  // Handle image upload
+  const handleImageUpload = (result: any) => {
+    if (result.error) {
+      toast({
+        title: "Upload Failed",
+        description: result.error,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Set as main image if no main image exists
+    if (!formData.main_image) {
+      setFormData(prev => ({ ...prev, main_image: result.url }));
+    }
+
+    // Add to images array
     setFormData(prev => ({
       ...prev,
-      product_images: images
+      images: [...(prev.images || []), result.url]
     }));
+
+    // Add to product images with description
+    const newImage: Omit<ProductImage, 'id' | 'product_id' | 'created_at' | 'updated_at'> = {
+      image_url: result.url,
+      image_description: `Image ${productImages.length + 1}`,
+      display_order: productImages.length,
+      is_main_image: productImages.length === 0
+    };
+
+    setProductImages(prev => [...prev, newImage]);
+  };
+
+  // Handle image removal
+  const handleImageRemove = (imageUrl: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images?.filter(img => img !== imageUrl) || [],
+      main_image: prev.main_image === imageUrl ? "" : prev.main_image
+    }));
+
+    setProductImages(prev => prev.filter(img => img.image_url !== imageUrl));
   };
 
   const filteredProducts = products.filter(product => {
@@ -505,63 +537,63 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-3 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Product Management</h1>
-              <p className="text-gray-600 text-sm md:text-base">Manage your product catalog</p>
+              <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
+              <p className="text-gray-600">Manage your product catalog</p>
             </div>
-            <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+            <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="w-4 h-4 mr-2" />
               Add Product
             </Button>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <Card>
-              <CardContent className="p-3 md:p-4">
+              <CardContent className="p-4">
                 <div className="flex items-center">
-                  <Package className="w-6 h-6 md:w-8 md:h-8 text-blue-600 flex-shrink-0" />
-                  <div className="ml-2 md:ml-3 min-w-0 flex-1">
-                    <p className="text-xs md:text-sm text-gray-600">Total Products</p>
-                    <p className="text-lg md:text-2xl font-bold">{products.length}</p>
+                  <Package className="w-8 h-8 text-blue-600" />
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-600">Total Products</p>
+                    <p className="text-2xl font-bold">{products.length}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-3 md:p-4">
+              <CardContent className="p-4">
                 <div className="flex items-center">
-                  <TrendingUp className="w-6 h-6 md:w-8 md:h-8 text-green-600 flex-shrink-0" />
-                  <div className="ml-2 md:ml-3 min-w-0 flex-1">
-                    <p className="text-xs md:text-sm text-gray-600">Active Products</p>
-                    <p className="text-lg md:text-2xl font-bold">{products.filter(p => p.is_active).length}</p>
+                  <TrendingUp className="w-8 h-8 text-green-600" />
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-600">Active Products</p>
+                    <p className="text-2xl font-bold">{products.filter(p => p.is_active).length}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-3 md:p-4">
+              <CardContent className="p-4">
                 <div className="flex items-center">
-                  <Star className="w-6 h-6 md:w-8 md:h-8 text-yellow-600 flex-shrink-0" />
-                  <div className="ml-2 md:ml-3 min-w-0 flex-1">
-                    <p className="text-xs md:text-sm text-gray-600">Featured</p>
-                    <p className="text-lg md:text-2xl font-bold">{products.filter(p => p.is_featured).length}</p>
+                  <Star className="w-8 h-8 text-yellow-600" />
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-600">Featured</p>
+                    <p className="text-2xl font-bold">{products.filter(p => p.is_featured).length}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-3 md:p-4">
+              <CardContent className="p-4">
                 <div className="flex items-center">
-                  <AlertCircle className="w-6 h-6 md:w-8 md:h-8 text-red-600 flex-shrink-0" />
-                  <div className="ml-2 md:ml-3 min-w-0 flex-1">
-                    <p className="text-xs md:text-sm text-gray-600">Out of Stock</p>
-                    <p className="text-lg md:text-2xl font-bold">{products.filter(p => p.stock_quantity === 0).length}</p>
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                  <div className="ml-3">
+                    <p className="text-sm text-gray-600">Out of Stock</p>
+                    <p className="text-2xl font-bold">{products.filter(p => (p.stock_quantity || 0) === 0).length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -569,7 +601,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
           </div>
 
           {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -577,18 +609,18 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 text-sm md:text-base"
+                  className="pl-10"
                 />
               </div>
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full sm:w-48 text-sm md:text-base">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="All">All Categories</SelectItem>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
+                {CATEGORY_TREE.map(category => (
+                  <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -596,63 +628,85 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {filteredProducts.map((product) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-2">Loading products...</span>
+            </div>
+          ) : filteredProducts.map((product) => (
             <Card key={product.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <div className="relative">
                   <img
                     src={product.main_image || product.images?.[0] || '/placeholder.svg'}
                     alt={product.name}
-                    className="w-full h-40 md:h-48 object-cover rounded-t-lg"
+                    className="w-full h-48 object-cover rounded-t-lg"
                   />
-                  {/* Only show edit/delete if vendor owns the product */}
-                  {product.vendor_id === authUser?.id && (
-                    <div className="absolute top-2 right-2 flex gap-1">
-                      <Button
-                        size="icon"
-                        variant="secondary"
-                        className="w-7 h-7 md:w-8 md:h-8 bg-white/90 hover:bg-white"
-                        onClick={() => handleEdit(product)}
-                      >
-                        <Edit className="w-3 h-3 md:w-4 md:h-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="destructive"
-                        className="w-7 h-7 md:w-8 md:h-8 bg-red-500/90 hover:bg-red-500"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="absolute top-2 right-2 flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="secondary"
+                      className="w-8 h-8 bg-white/90 hover:bg-white"
+                      onClick={() => handleEdit(product)}
+                      disabled={product.banned}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="destructive"
+                      className="w-8 h-8 bg-red-500/90 hover:bg-red-500"
+                      onClick={() => handleDelete(product.id)}
+                      disabled={product.banned}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                   <div className="absolute top-2 left-2 flex gap-1">
                     {product.is_featured && (
-                      <Badge className="bg-yellow-500 text-white text-xs">Featured</Badge>
+                      <Badge className="bg-yellow-500 text-white">Featured</Badge>
                     )}
                     {!product.is_active && (
-                      <Badge variant="destructive" className="text-xs">Inactive</Badge>
+                      <Badge variant="destructive">Inactive</Badge>
+                    )}
+                    {product.banned && (
+                      <Badge className="bg-red-600 text-white">Banned by ISA team</Badge>
                     )}
                   </div>
                 </div>
                 
-                <div className="p-3 md:p-4">
-                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm md:text-base">{product.name}</h3>
-                  <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
+                <div className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
                   
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-base md:text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
-                    <Badge variant="secondary" className="text-xs">{product.category}</Badge>
+                    <span className="text-lg font-bold text-gray-900">Ksh {product.price?.toLocaleString()}</span>
+                    <Badge variant="secondary">{product.category}</Badge>
                   </div>
                   
-                  <div className="flex items-center justify-between text-xs md:text-sm text-gray-600">
-                    <span>Stock: {product.stock_quantity}</span>
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>Stock: {product.stock_quantity || 0}</span>
                     <div className="flex items-center">
-                      <Star className="w-3 h-3 md:w-4 md:h-4 fill-yellow-400 text-yellow-400 mr-1" />
-                      <span>{product.rating.toFixed(1)} ({product.review_count})</span>
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
+                      <span>{(product.rating || 0).toFixed(1)} ({product.review_count || 0})</span>
                     </div>
                   </div>
+                  {product.banned && product.banned_reason && (
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 border-red-400 hover:bg-red-50"
+                        onClick={() => {
+                          setBanReasonText(product.banned_reason || "");
+                          setBanReasonDialogOpen(true);
+                        }}
+                      >
+                        View Ban Reason
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -660,17 +714,17 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         </div>
 
         {filteredProducts.length === 0 && !loading && (
-          <div className="text-center py-8 md:py-12">
-            <Package className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-3 md:mb-4" />
-            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600 mb-4 text-sm md:text-base">
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-600 mb-4">
               {searchQuery || selectedCategory !== "All" 
                 ? "Try adjusting your search or filters"
                 : "Get started by adding your first product"
               }
             </p>
             {!searchQuery && selectedCategory === "All" && (
-              <Button onClick={() => setShowAddDialog(true)} className="w-full sm:w-auto">
+              <Button onClick={() => setShowAddDialog(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
@@ -681,20 +735,23 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl">
+            <DialogTitle>
               {editingProduct ? "Edit Product" : "Add New Product"}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              {editingProduct ? "Edit product information and details." : "Add a new product to your inventory."}
+            </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-                <TabsTrigger value="basic" className="text-xs md:text-sm">Basic Info</TabsTrigger>
-                <TabsTrigger value="pricing" className="text-xs md:text-sm">Pricing</TabsTrigger>
-                <TabsTrigger value="media" className="text-xs md:text-sm">Media</TabsTrigger>
-                <TabsTrigger value="advanced" className="text-xs md:text-sm">Advanced</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="pricing">Pricing</TabsTrigger>
+                <TabsTrigger value="media">Media</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
@@ -738,7 +795,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     setSubCategory("");
                     setSubSubCategory("");
                     setFormData(prev => ({ ...prev, category: value }));
-                  }} required>
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Main Category" />
                     </SelectTrigger>
@@ -749,14 +806,15 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     </SelectContent>
                   </Select>
                 </div>
+
                 {mainCategory && getSubcategories(mainCategory).length > 0 && (
                   <div>
-                    <Label>Subcategory *</Label>
+                    <Label>Subcategory</Label>
                     <Select value={subCategory} onValueChange={(value) => {
                       setSubCategory(value);
                       setSubSubCategory("");
                       setFormData(prev => ({ ...prev, subcategory: value }));
-                    }} required>
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Subcategory" />
                       </SelectTrigger>
@@ -768,12 +826,12 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     </Select>
                   </div>
                 )}
+
                 {mainCategory && subCategory && getSubSubcategories(mainCategory, subCategory).length > 0 && (
                   <div>
                     <Label>Sub-Subcategory</Label>
                     <Select value={subSubCategory} onValueChange={(value) => {
                       setSubSubCategory(value);
-                      setFormData(prev => ({ ...prev, sub_subcategory: value }));
                     }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Sub-Subcategory" />
@@ -786,6 +844,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     </Select>
                   </div>
                 )}
+
                 {mainCategory === 'Electronics' && getExtraFields(mainCategory).length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {getExtraFields(mainCategory).map(field => (
@@ -800,6 +859,16 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       </div>
                     ))}
                   </div>
+                )}
+
+                {/* Product Attributes for Fashion */}
+                {mainCategory === 'Fashion' && (
+                  <ProductAttributes
+                    category={mainCategory}
+                    subcategory={subCategory}
+                    attributes={productAttributes}
+                    onAttributesChange={setProductAttributes}
+                  />
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -819,7 +888,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       type="number"
                       min={0}
                       value={formData.stock_quantity}
-                      onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) }))}
+                      onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
                       required
                     />
                   </div>
@@ -862,7 +931,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         type="number"
                         min={0}
                         value={formData.price}
-                        onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
+                        onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                         required
                         placeholder="e.g. 19500"
                         className="pl-14 mb-1"
@@ -910,11 +979,13 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                 <div>
                   <Label>Product Images</Label>
                   <p className="text-sm text-gray-600 mb-4">
-                    Upload product images or add image links. Each image can have a description. The first image will be used as the main product image.
+                    Upload product images. The first image will be used as the main product image.
                   </p>
-                  <EnhancedImageUpload
-                    onImagesChange={handleImagesChange}
-                    existingImages={formData.product_images || []}
+                  <ImageUpload
+                    onImageUpload={handleImageUpload}
+                    onImageRemove={handleImageRemove}
+                    existingImages={formData.images || []}
+                    multiple={true}
                     maxImages={5}
                   />
                 </div>
@@ -984,8 +1055,24 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog open={banReasonDialogOpen} onOpenChange={setBanReasonDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ban Reason</DialogTitle>
+            <DialogDescription className="sr-only">
+              View the reason why this product was banned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 text-red-700 whitespace-pre-line">
+            {banReasonText}
+          </div>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setBanReasonDialogOpen(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default VendorProductManagement; 
+export default VendorProductManagement;

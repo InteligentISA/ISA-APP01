@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import AdminDashboard from "./components/AdminDashboard";
+import ProductDetail from "./components/ProductDetail";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 
@@ -30,6 +31,7 @@ const AppContent = () => {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/reset-password" element={<div>Password Reset Page</div>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

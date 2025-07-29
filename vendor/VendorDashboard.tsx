@@ -1,16 +1,15 @@
+
 import { useEffect, useState } from "react";
-import { AlertTriangle, Menu } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
 import VendorSidebar from "./VendorSidebar";
-import VendorHome from "./VendorHome";
+import VendorHome from "./sections/VendorHome";
 import VendorProductManagement from "./VendorProductManagement";
-import VendorOrders from "./VendorOrders";
-import VendorReviews from "./VendorReviews";
-import VendorPayments from "./VendorPayments";
-import VendorWallet from "./VendorWallet";
-import VendorSettings from "./VendorSettings";
-import { Button } from "@/components/ui/button";
+import VendorOrders from "./sections/VendorOrders";
+import VendorReviews from "./sections/VendorReviews";
+import VendorPayments from "./sections/VendorPayments";
+import VendorWallet from "./sections/VendorWallet";
+import VendorSettings from "./sections/VendorSettings";
 
 interface VendorDashboardProps {
   user: any;
@@ -24,8 +23,6 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const [productCount, setProductCount] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeFromBanner, setUpgradeFromBanner] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
   const PLAN_LIMITS: Record<string, number> = {
     free: 5,
@@ -70,7 +67,6 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const handleUpgradeClick = () => {
     setActiveSection('settings');
     setUpgradeFromBanner(true);
-    setSidebarOpen(false); // Close sidebar on mobile
   };
 
   const renderContent = () => {
@@ -80,7 +76,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       case "products":
         return (
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Products</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">My Products</h1>
             <VendorProductManagement user={user} />
           </div>
         );
@@ -89,7 +85,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       case "store":
         return (
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Store</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">My Store</h1>
             <VendorProductManagement user={user} />
           </div>
         );
@@ -112,60 +108,19 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-      
-      {/* Sidebar */}
-      <div className={`fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
-        <VendorSidebar
-          activeSection={activeSection}
-          onSectionChange={(section) => {
-            setActiveSection(section);
-            setSidebarOpen(false); // Close sidebar on mobile when section changes
-          }}
-          onLogout={onLogout}
-          userName={user.name}
-          sidebarOpen={sidebarOpen}
-          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-          isCollapsed={sidebarCollapsed}
-          onCollapsedChange={setSidebarCollapsed}
-        />
-      </div>
-      
-      {/* Main Content */}
-      <main className={cn(
-        "flex-1 overflow-y-auto transition-all duration-300",
-        "lg:ml-0", // No margin on mobile
-        sidebarCollapsed ? "lg:ml-16" : "lg:ml-64" // 64px when collapsed, 256px when expanded
-      )}>
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-gray-900">Vendor Portal</h1>
-            <div className="w-10" /> {/* Spacer for centering */}
-          </div>
-        </div>
-        
-        <div className="p-4 md:p-6 lg:p-8">
+      <VendorSidebar
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        onLogout={onLogout}
+        userName={user.name}
+      />
+      <main className="flex-1 overflow-y-auto">
+        <div className="p-8">
           {showBanner && (
-            <div className="mb-4 md:mb-6 bg-orange-100 border-l-4 border-orange-500 p-3 md:p-4 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 md:gap-3">
-                <AlertTriangle className="text-orange-500 w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-                <span className="font-semibold text-orange-800 text-sm md:text-base">
+            <div className="mb-6 bg-orange-100 border-l-4 border-orange-500 p-4 rounded flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="text-orange-500 w-6 h-6" />
+                <span className="font-semibold text-orange-800">
                   {plan === 'free' && `You are on the Free Plan: `}
                   {plan.startsWith('premium') && `You are on the Premium Plan: `}
                   {productCount}/{productLimit} products uploaded
@@ -175,7 +130,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
                 </span>
               </div>
               <button
-                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 md:py-2 rounded shadow text-sm md:text-base whitespace-nowrap"
+                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded shadow"
                 onClick={handleUpgradeClick}
               >
                 Upgrade
@@ -185,10 +140,10 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
           {renderContent()}
           {/* Upgrade Modal Placeholder */}
           {showUpgrade && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
-              <div className="bg-white rounded-lg shadow-lg p-4 md:p-6 w-full max-w-md">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+              <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
                 <h3 className="text-lg font-bold mb-4">Upgrade Your Plan</h3>
-                <p className="mb-4 text-sm md:text-base">To upload more products and enjoy lower commissions, upgrade your plan in the Settings &gt; Billing section.</p>
+                <p className="mb-4">To upload more products and enjoy lower commissions, upgrade your plan in the Settings &gt; Billing section.</p>
                 <button
                   className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded shadow w-full"
                   onClick={() => setShowUpgrade(false)}

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, ShoppingCart, Heart, Eye, Plus, Minus } from "lucide-react";
+import { Star, ShoppingCart, Heart, Eye, Plus, Minus, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Product, DashboardProduct } from "@/types/product";
 import { OrderService } from "@/services/orderService";
@@ -33,6 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onToggleLike,
   isLiked = false
 }) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
@@ -574,6 +576,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 </span>
               </div>
             )}
+          </Button>
+
+          {/* View Details Button */}
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/product/${product.id}`)}
+            className="w-full"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            View Details
           </Button>
 
           {product.source === 'vendor' && (

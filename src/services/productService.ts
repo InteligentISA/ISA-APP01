@@ -331,4 +331,111 @@ export class ProductService {
       .order('created_at', { ascending: false });
     return { data, error };
   }
+
+  // Get single product by ID
+  static async getProduct(productId: string): Promise<{ data: Product | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          vendor:profiles!products_vendor_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('id', productId)
+        .eq('is_active', true)
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Get product images
+  static async getProductImages(productId: string): Promise<{ data: any[]; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('product_images')
+        .select('*')
+        .eq('product_id', productId)
+        .order('display_order', { ascending: true });
+
+      return { data: data || [], error };
+    } catch (error) {
+      return { data: [], error };
+    }
+  }
+
+  // Get product attributes
+  static async getProductAttributes(productId: string): Promise<{ data: any[]; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('product_attributes')
+        .select('*')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: true });
+
+      return { data: data || [], error };
+    } catch (error) {
+      return { data: [], error };
+    }
+  }
+
+  // Get user review for a product
+  static async getUserReview(productId: string, userId: string): Promise<any> {
+    try {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .select('*')
+        .eq('product_id', productId)
+        .eq('user_id', userId)
+        .single();
+
+      return data;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // Create product review
+  static async createProductReview(review: {
+    product_id: string;
+    user_id: string;
+    rating: number;
+    comment?: string;
+  }): Promise<{ data: any; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .insert([review])
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Update product review
+  static async updateProductReview(reviewId: string, updates: {
+    rating: number;
+    comment?: string;
+  }): Promise<{ data: any; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('product_reviews')
+        .update(updates)
+        .eq('id', reviewId)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
 } 

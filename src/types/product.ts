@@ -24,6 +24,16 @@ export interface Product {
   commission_percentage?: number;
   pickup_location?: string; // Vendor pickup location
   pickup_phone_number?: string; // Vendor phone number for pickup inquiries
+  // Electronics specific fields
+  ram?: string;
+  storage?: string;
+  processor?: string;
+  display_size?: string;
+  // Vendor information
+  vendor?: {
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 export interface ProductCategory {
@@ -45,6 +55,30 @@ export interface ProductReview {
   title?: string;
   comment?: string;
   is_verified_purchase: boolean;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
+
+export interface ProductImage {
+  id: string;
+  product_id: string;
+  image_url: string;
+  image_description?: string;
+  display_order: number;
+  is_main_image: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductAttribute {
+  id: string;
+  product_id: string;
+  attribute_name: string;
+  attribute_value: string;
   created_at: string;
   updated_at: string;
 }
