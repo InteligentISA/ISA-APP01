@@ -177,6 +177,9 @@ export interface UpdateOrderStatusRequest {
 export interface AddToCartRequest {
   product_id: string;
   quantity: number;
+  product_name?: string;
+  product_category?: string;
+  price?: number;
 }
 
 export interface UpdateCartItemRequest {

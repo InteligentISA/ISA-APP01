@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useState, useEffect } from "react";
+import { Button } from "../src/components/ui/button";
+import { Input } from "../src/components/ui/input";
+import { Label } from "../src/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../src/components/ui/card";
+import { Badge } from "../src/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../src/components/ui/select";
 import { Plus, X, Tag } from "lucide-react";
-import { ProductAttribute } from "@/types/product";
+import { ProductAttribute } from "../src/types/product";
 
 interface ProductAttributesProps {
   category: string;
   subcategory?: string;
-  attributes: ProductAttribute[];
+  attributes: Omit<ProductAttribute, 'id' | 'product_id' | 'created_at' | 'updated_at'>[];
   onAttributesChange: (attributes: Omit<ProductAttribute, 'id' | 'product_id' | 'created_at' | 'updated_at'>[]) => void;
 }
 
@@ -161,7 +161,7 @@ const ProductAttributes = ({
                     }
                   }}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={`Select ${field.name}`} />
                   </SelectTrigger>
                   <SelectContent>
@@ -184,6 +184,7 @@ const ProductAttributes = ({
                       }
                     }}
                     placeholder={`Enter ${field.name}`}
+                    className="flex-1"
                   />
                   {existingAttribute && (
                     <Button
@@ -191,6 +192,7 @@ const ProductAttributes = ({
                       variant="outline"
                       size="icon"
                       onClick={() => removeAttribute(field.name)}
+                      className="shrink-0"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -204,7 +206,7 @@ const ProductAttributes = ({
         {/* Custom Attributes */}
         <div className="border-t pt-4">
           <Label className="text-sm font-medium">Add Custom Attribute</Label>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-col sm:flex-row gap-2 mt-2">
             <Input
               value={customAttributeName}
               onChange={(e) => setCustomAttributeName(e.target.value)}
@@ -223,6 +225,7 @@ const ProductAttributes = ({
               size="icon"
               onClick={addCustomAttribute}
               disabled={!customAttributeName.trim() || !customAttributeValue.trim()}
+              className="w-full sm:w-auto shrink-0"
             >
               <Plus className="w-4 h-4" />
             </Button>

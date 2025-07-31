@@ -19,6 +19,14 @@ import {
   ChevronRight
 } from "lucide-react";
 import { Product, ProductAttribute, ProductImage, ProductReview } from "@/types/product";
+
+// Extended interface for reviews with profiles data
+interface ProductReviewWithProfiles extends ProductReview {
+  profiles?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
 import { ProductService } from "@/services/productService";
 import { OrderService } from "@/services/orderService";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +41,7 @@ const ProductDetail = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
-  const [productReviews, setProductReviews] = useState<ProductReview[]>([]);
+  const [productReviews, setProductReviews] = useState<ProductReviewWithProfiles[]>([]);
   const [vendorInfo, setVendorInfo] = useState<{ first_name?: string; last_name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -61,21 +69,21 @@ const ProductDetail = () => {
       if (productResult.error) throw new Error("Product not found");
       setProduct(productResult.data);
 
-      const imagesResult = await ProductService.getProductImages(productId!);
-      setProductImages(imagesResult as unknown as ProductImage[]);
+             const imagesResult = await ProductService.getProductImages(productId!);
+       setProductImages(imagesResult.data as unknown as ProductImage[]);
 
-      const attributesResult = await ProductService.getProductAttributes(productId!);
-      setProductAttributes(attributesResult as unknown as ProductAttribute[]);
+       const attributesResult = await ProductService.getProductAttributes(productId!);
+       setProductAttributes(attributesResult.data as unknown as ProductAttribute[]);
 
-      const reviewsResult = await ProductService.getProductReviews(productId!);
-      setProductReviews(reviewsResult as unknown as ProductReview[]);
+       const reviewsResult = await ProductService.getProductReviews(productId!);
+       setProductReviews(reviewsResult.data as unknown as ProductReview[]);
 
-      // Get vendor information from the product data
-      if (productResult.data.vendor) {
-        setVendorInfo(productResult.data.vendor);
-      }
+       // Get vendor information from the product data
+       if (productResult.data.vendor) {
+         setVendorInfo(productResult.data.vendor);
+       }
 
-      if (imagesResult.length === 0 && productResult.data.main_image) {
+       if (imagesResult.data.length === 0 && productResult.data.main_image) {
         setProductImages([{
           id: 'main',
           product_id: productId!,
@@ -132,14 +140,14 @@ const ProductDetail = () => {
     }
     if (!product) return;
 
-    try {
-      await OrderService.addToCart(user.id, {
-        product_id: product.id,
-        product_name: product.name,
-        product_category: product.category,
-        quantity: 1,
-        price: product.price
-      });
+         try {
+       await OrderService.addToCart(user.id, {
+         product_id: product.id,
+         quantity: 1,
+         product_name: product.name,
+         product_category: product.category,
+         price: product.price
+       });
       setIsInCart(true);
       toast({ title: "Success", description: "Product added to cart" });
     } catch (error) {
@@ -550,17 +558,17 @@ const ProductDetail = () => {
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback>
-                                {review.user?.first_name?.charAt(0) || review.user?.last_name?.charAt(0) || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-sm">
-                                {review.user?.first_name && review.user?.last_name 
-                                  ? `${review.user.first_name} ${review.user.last_name}` 
-                                  : review.user?.first_name || review.user?.last_name || 'Anonymous'}
-                              </p>
+                                                         <Avatar className="w-8 h-8">
+                               <AvatarFallback>
+                                 {review.profiles?.first_name?.charAt(0) || review.profiles?.last_name?.charAt(0) || 'U'}
+                               </AvatarFallback>
+                             </Avatar>
+                             <div>
+                               <p className="font-medium text-sm">
+                                 {review.profiles?.first_name && review.profiles?.last_name 
+                                   ? `${review.profiles.first_name} ${review.profiles.last_name}` 
+                                   : review.profiles?.first_name || review.profiles?.last_name || 'Anonymous'}
+                               </p>
                               <div className="flex items-center gap-1">
                                 {[...Array(5)].map((_, i) => (
                                   <Star

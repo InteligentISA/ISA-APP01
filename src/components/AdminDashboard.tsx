@@ -73,7 +73,7 @@ const AdminDashboard = ({ user: propUser, onLogout: propOnLogout }: AdminDashboa
         userName={user.email?.split('@')[0] || 'Admin'}
       />
       <main className="flex-1 overflow-y-auto">
-        <div className="p-8">
+        <div className="p-4 md:p-6 lg:p-8 pt-16 lg:pt-4">
           {renderContent()}
         </div>
       </main>

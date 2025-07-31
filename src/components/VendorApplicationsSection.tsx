@@ -216,9 +216,9 @@ const VendorApplicationsSection = () => {
                     <TableCell>
                       <div>
                         <div className="font-medium">
-                          {application.profiles?.first_name} {application.profiles?.last_name}
+                          {application.first_name} {application.last_name}
                         </div>
-                        <div className="text-sm text-gray-500">{application.profiles?.email}</div>
+                        <div className="text-sm text-gray-500">{application.email}</div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -263,7 +263,7 @@ const VendorApplicationsSection = () => {
                                 <div>
                                   <label className="text-sm font-medium">Applicant</label>
                                   <p className="text-sm">
-                                    {application.profiles?.first_name} {application.profiles?.last_name}
+                                    {application.first_name} {application.last_name}
                                   </p>
                                 </div>
                                 <div>
@@ -282,16 +282,18 @@ const VendorApplicationsSection = () => {
                                   <label className="text-sm font-medium">Business Description</label>
                                   <p className="text-sm">{application.business_description}</p>
                                 </div>
-                                {(application.profiles?.company_website || application.business_website) && (
+                                {(application.company_website || application.business_website) && (
                                   <div>
-                                    <label className="text-sm font-medium">Website</label>
-                                    <p className="text-sm">{application.profiles?.company_website || application.business_website}</p>
+                                    <label className="text-sm font-medium">Website/Social Media Pages</label>
+                                    <p className="text-sm">
+                                      {application.company_website || application.business_website}
+                                    </p>
                                   </div>
                                 )}
-                                {(application.profiles?.tax_id || application.tax_id) && (
+                                {(application.tax_id) && (
                                   <div>
-                                    <label className="text-sm font-medium">Tax ID</label>
-                                    <p className="text-sm">{application.profiles?.tax_id || application.tax_id}</p>
+                                    <label className="text-sm font-medium">Tax ID/KRA PIN</label>
+                                    <p className="text-sm">{application.tax_id}</p>
                                   </div>
                                 )}
                               </div>

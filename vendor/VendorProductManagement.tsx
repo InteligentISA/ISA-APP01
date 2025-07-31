@@ -1,14 +1,14 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect } from "react";
+import { Button } from "../src/components/ui/button";
+import { Input } from "../src/components/ui/input";
+import { Textarea } from "../src/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "../src/components/ui/card";
+import { Badge } from "../src/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "../src/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../src/components/ui/select";
+import { Switch } from "../src/components/ui/switch";
+import { Label } from "../src/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../src/components/ui/tabs";
 import { 
   Plus, 
   Edit, 
@@ -24,11 +24,11 @@ import {
   TrendingUp,
   AlertCircle
 } from "lucide-react";
-import { Product, ProductAttribute, ProductImage } from "@/types/product";
-import { ProductService } from "@/services/productService";
-import { ImageUploadService } from "@/services/imageUploadService";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { Product, ProductAttribute, ProductImage } from "../src/types/product";
+import { ProductService } from "../src/services/productService";
+import { ImageUploadService } from "../src/services/imageUploadService";
+import { useToast } from "../src/hooks/use-toast";
+import { useAuth } from "../src/hooks/useAuth";
 import ImageUpload from "./ImageUpload";
 import ProductAttributes from "./ProductAttributes";
 
@@ -210,6 +210,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const { user: authUser } = useAuth();
   const [banReasonDialogOpen, setBanReasonDialogOpen] = useState(false);
   const [banReasonText, setBanReasonText] = useState("");
+  const [currentTab, setCurrentTab] = useState("basic");
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: "",
@@ -298,8 +300,25 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     }
   };
 
+  const handleNext = () => {
+    const tabs = ["basic", "pricing", "media", "advanced"];
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex < tabs.length - 1) {
+      setCurrentTab(tabs[currentIndex + 1]);
+    }
+  };
+
+  const handlePrevious = () => {
+    const tabs = ["basic", "pricing", "media", "advanced"];
+    const currentIndex = tabs.indexOf(currentTab);
+    if (currentIndex > 0) {
+      setCurrentTab(tabs[currentIndex - 1]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
     
     if (!formData.name || !formData.price || !mainCategory) {
       toast({
@@ -307,6 +326,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         description: "Please fill in all required fields",
         variant: "destructive"
       });
+      setSubmitting(false);
       return;
     }
 
@@ -367,6 +387,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
 
       setShowAddDialog(false);
       setEditingProduct(null);
+      setCurrentTab("basic");
       resetForm();
       fetchProducts();
     } catch (error) {
@@ -375,11 +396,14 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
         description: error instanceof Error ? error.message : "Failed to save product",
         variant: "destructive"
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
+    setCurrentTab("basic");
     setFormData({
       name: product.name,
       description: product.description || "",
@@ -735,9 +759,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-lg md:text-xl">
               {editingProduct ? "Edit Product" : "Add New Product"}
             </DialogTitle>
             <DialogDescription className="sr-only">
@@ -745,9 +769,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
+            <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+              <TabsList className="hidden">
                 <TabsTrigger value="basic">Basic Info</TabsTrigger>
                 <TabsTrigger value="pricing">Pricing</TabsTrigger>
                 <TabsTrigger value="media">Media</TabsTrigger>
@@ -755,7 +779,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="name">Product Name *</Label>
                     <Input
@@ -764,6 +788,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Enter product name"
                       required
+                      className="w-full"
                     />
                   </div>
                   <div>
@@ -773,6 +798,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       value={formData.brand}
                       onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
                       placeholder="Enter brand name"
+                      className="w-full"
                     />
                   </div>
                 </div>
@@ -784,7 +810,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Enter product description"
-                    rows={4}
+                    rows={3}
+                    className="w-full resize-none"
                   />
                 </div>
 
@@ -796,7 +823,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     setSubSubCategory("");
                     setFormData(prev => ({ ...prev, category: value }));
                   }}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Main Category" />
                     </SelectTrigger>
                     <SelectContent>
@@ -815,7 +842,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       setSubSubCategory("");
                       setFormData(prev => ({ ...prev, subcategory: value }));
                     }}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Subcategory" />
                       </SelectTrigger>
                       <SelectContent>
@@ -833,7 +860,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     <Select value={subSubCategory} onValueChange={(value) => {
                       setSubSubCategory(value);
                     }}>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select Sub-Subcategory" />
                       </SelectTrigger>
                       <SelectContent>
@@ -846,7 +873,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                 )}
 
                 {mainCategory === 'Electronics' && getExtraFields(mainCategory).length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {getExtraFields(mainCategory).map(field => (
                       <div key={field}>
                         <Label>{field}</Label>
@@ -855,6 +882,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                           value={extraFields[field] || ''}
                           onChange={e => setExtraFields(prev => ({ ...prev, [field]: e.target.value }))}
                           placeholder={`Enter ${field}`}
+                          className="w-full"
                         />
                       </div>
                     ))}
@@ -871,7 +899,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                   />
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="sku">SKU</Label>
                     <Input
@@ -879,6 +907,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       value={formData.sku}
                       onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
                       placeholder="Enter SKU Code"
+                      className="w-full"
                     />
                   </div>
                   <div>
@@ -890,11 +919,12 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       value={formData.stock_quantity}
                       onChange={e => setFormData(prev => ({ ...prev, stock_quantity: parseInt(e.target.value) || 0 }))}
                       required
+                      className="w-full"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="pickup_location">Pickup Location *</Label>
                     <Textarea
@@ -902,8 +932,9 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       value={formData.pickup_location}
                       onChange={(e) => setFormData(prev => ({ ...prev, pickup_location: e.target.value }))}
                       placeholder="Enter pickup location details (address, landmarks, etc.)"
-                      rows={3}
+                      rows={2}
                       required
+                      className="w-full resize-none"
                     />
                   </div>
                   <div>
@@ -915,13 +946,14 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                       onChange={(e) => setFormData(prev => ({ ...prev, pickup_phone_number: e.target.value }))}
                       placeholder="e.g. +254700000000"
                       required
+                      className="w-full"
                     />
                   </div>
                 </div>
               </TabsContent>
 
               <TabsContent value="pricing" className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="price">Now (Current Price) *</Label>
                     <div className="relative">
@@ -934,7 +966,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         onChange={e => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
                         required
                         placeholder="e.g. 19500"
-                        className="pl-14 mb-1"
+                        className="pl-14 mb-1 w-full"
                       />
                       {formData.price > 0 && (
                         <div className="text-xs text-gray-600 mt-1">
@@ -954,7 +986,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         value={formData.original_price ?? ''}
                         onChange={e => setFormData(prev => ({ ...prev, original_price: e.target.value ? parseFloat(e.target.value) : undefined }))}
                         placeholder="e.g. 20000"
-                        className="pl-14 mb-4"
+                        className="pl-14 mb-4 w-full"
                       />
                     </div>
                   </div>
@@ -970,7 +1002,7 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     value={formData.commission_percentage ?? ''}
                     onChange={e => setFormData(prev => ({ ...prev, commission_percentage: e.target.value ? parseFloat(e.target.value) : undefined }))}
                     placeholder="e.g. 10 for 10%"
-                    className="mb-4"
+                    className="mb-4 w-full"
                   />
                 </div>
               </TabsContent>
@@ -992,14 +1024,15 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                 
                 <div>
                   <Label>Tags</Label>
-                  <div className="flex gap-2 mb-2">
+                  <div className="flex flex-col sm:flex-row gap-2 mb-2">
                     <Input
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       placeholder="Add a tag"
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      className="flex-1"
                     />
-                    <Button type="button" onClick={addTag} variant="outline">
+                    <Button type="button" onClick={addTag} variant="outline" className="w-full sm:w-auto">
                       Add
                     </Button>
                   </div>
@@ -1014,8 +1047,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
                     <Label htmlFor="featured">Featured Product</Label>
                     <p className="text-sm text-gray-600">Show this product in featured sections</p>
                   </div>
@@ -1026,8 +1059,8 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex-1">
                     <Label htmlFor="active">Active Product</Label>
                     <p className="text-sm text-gray-600">Make this product visible to customers</p>
                   </div>
@@ -1040,17 +1073,45 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
               </TabsContent>
             </Tabs>
 
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => {
                 setShowAddDialog(false);
                 setEditingProduct(null);
+                setCurrentTab("basic");
                 resetForm();
-              }}>
+              }} className="w-full sm:w-auto order-3 sm:order-1">
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingProduct ? "Update Product" : "Create Product"}
-              </Button>
+              
+              {currentTab !== "advanced" ? (
+                <>
+                  {currentTab !== "basic" && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={handlePrevious}
+                      className="w-full sm:w-auto order-2"
+                    >
+                      Previous
+                    </Button>
+                  )}
+                  <Button 
+                    type="button" 
+                    onClick={handleNext}
+                    className="w-full sm:w-auto order-1"
+                  >
+                    Next
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  type="submit" 
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                  disabled={submitting}
+                >
+                  {submitting ? "Saving..." : (editingProduct ? "Update Product" : "Create Product")}
+                </Button>
+              )}
             </div>
           </form>
         </DialogContent>

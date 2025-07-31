@@ -40,17 +40,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const [localIsLiked, setLocalIsLiked] = useState(isLiked);
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showReviewDialog, setShowReviewDialog] = useState(false);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewTitle, setReviewTitle] = useState("");
-  const [reviewComment, setReviewComment] = useState("");
-  const [reviewLoading, setReviewLoading] = useState(false);
+
   const [showReviewsDialog, setShowReviewsDialog] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
 
-  // Track product view when component mounts
+  // Track product view and load reviews when component mounts
   useEffect(() => {
     if (user) {
       if (product.source === 'jumia') {
@@ -75,6 +71,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
         CustomerBehaviorService.trackInteraction(user.id, product.id, 'view');
       }
     }
+    
+    // Load reviews for vendor products
+    if (product.source === 'vendor') {
+      loadReviews();
+    }
   }, [user, product.id, product.source]);
 
   const handleAddToCart = async () => {
@@ -87,7 +88,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return;
     }
 
-    if (product.stock_quantity === 0) {
+    // Only check stock for vendor products (Jumia products don't have stock_quantity)
+    if (product.source === 'vendor' && product.stock_quantity === 0) {
       toast({
         title: "Out of stock",
         description: "This product is currently out of stock.",
@@ -125,10 +127,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       // Add to cart using OrderService (for both vendor and Jumia products)
       await OrderService.addToCart(user.id, {
         product_id: product.id,
-        product_name: product.name,
-        product_category: product.category || 'electronics',
-        quantity: quantity,
-        price: product.price
+        quantity: 1
       });
       
       // Call parent handler if provided
@@ -268,50 +267,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return stars;
   };
 
-  const handleSubmitReview = async () => {
-    if (!user) {
-      toast({
-        title: "Please sign in",
-        description: "You need to be signed in to submit a review.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (reviewRating < 1 || reviewRating > 5) {
-      toast({
-        title: "Invalid rating",
-        description: "Please select a rating between 1 and 5 stars.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setReviewLoading(true);
-    const { error } = await supabase.from('product_reviews').insert({
-      product_id: product.id,
-      user_id: user.id,
-      rating: reviewRating,
-      title: reviewTitle,
-      comment: reviewComment,
-      is_verified_purchase: false
-    });
-    setReviewLoading(false);
-    if (error) {
-      toast({
-        title: "Error submitting review",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Review submitted!",
-        description: "Thank you for your feedback.",
-      });
-      setShowReviewDialog(false);
-      setReviewRating(0);
-      setReviewTitle("");
-      setReviewComment("");
-    }
-  };
+
 
   const handleOpenReviews = async () => {
     setShowReviewsDialog(true);
@@ -321,11 +277,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
     setReviewsLoading(false);
   };
 
-  // Helper to get all images for carousel
-  const productImages = [
+  const loadReviews = async () => {
+    setReviewsLoading(true);
+    const { data, error } = await ProductService.getProductReviews(product.id);
+    setReviews(data || []);
+    setReviewsLoading(false);
+  };
+
+  // Helper to get all images for carousel (only for vendor products)
+  const productImages = product.source === 'vendor' ? [
     product.main_image,
     ...(product.images || []).filter(img => img !== product.main_image)
-  ].filter(Boolean);
+  ].filter(Boolean) : [product.image].filter(Boolean);
 
   // Render for Jumia products
   if (product.source === 'jumia') {
@@ -420,27 +383,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
         >
           <Eye className="w-5 h-5" />
         </button>
-        {/* Badges, stock, etc. remain as before */}
-        <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {product.is_featured && (
-            <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
-              Featured
-            </Badge>
-          )}
-          {product.stock_quantity === 0 && (
-            <Badge variant="destructive" className="text-xs">
-              Out of Stock
-            </Badge>
-          )}
-          {product.original_price && product.original_price > product.price && (
-            <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">
-              {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
-            </Badge>
-          )}
-        </div>
+        {/* Badges - Only for vendor products */}
+        {product.source === 'vendor' && (
+          <div className="absolute top-2 left-2 flex flex-col gap-1">
+            {product.is_featured && (
+              <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs">
+                Featured
+              </Badge>
+            )}
+            {product.stock_quantity === 0 && (
+              <Badge variant="destructive" className="text-xs">
+                Out of Stock
+              </Badge>
+            )}
+            {product.original_price && product.original_price > product.price && (
+              <Badge className="bg-red-500 hover:bg-red-600 text-white text-xs">
+                {Math.round(((product.original_price - product.price) / product.original_price) * 100)}% OFF
+              </Badge>
+            )}
+          </div>
+        )}
 
-        {/* Stock indicator */}
-        {product.stock_quantity > 0 && product.stock_quantity <= 5 && (
+        {/* Stock indicator - Only for vendor products */}
+        {product.source === 'vendor' && product.stock_quantity > 0 && product.stock_quantity <= 5 && (
           <div className="absolute top-2 right-2">
             <Badge className="bg-orange-500 hover:bg-orange-600 text-white text-xs">
               Only {product.stock_quantity} left
@@ -452,17 +417,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Product Info */}
       <CardContent className="p-4">
         <div className="space-y-2">
-          {/* Category */}
-          <div className="flex items-center justify-between">
-            <Badge variant="outline" className="text-xs">
-              {product.category}
-            </Badge>
-            {product.brand && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {product.brand}
-              </span>
-            )}
-          </div>
+          {/* Category - Only for vendor products */}
+          {product.source === 'vendor' && (
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-xs">
+                {product.category}
+              </Badge>
+              {product.brand && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {product.brand}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Product Name */}
           <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 min-h-[2.5rem]">
@@ -472,10 +439,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {/* Rating */}
           <div className="flex items-center space-x-1">
             <div className="flex cursor-pointer" onClick={() => setShowViewModal(true)} title="View all reviews">
-              {renderStars(product.rating)}
+              {renderStars(reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : product.rating)}
             </div>
             <span className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer" onClick={() => setShowViewModal(true)}>
-              ({product.review_count})
+              ({reviews.length > 0 ? reviews.length : product.review_count || 0})
             </span>
           </div>
 
@@ -484,83 +451,39 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <span className="text-lg font-bold text-gray-900 dark:text-white">
               {formatPrice(product.price)}
             </span>
-            {product.original_price && product.original_price > product.price && (
+            {product.source === 'vendor' && product.original_price && product.original_price > product.price && (
               <span className="text-sm text-gray-500 line-through">
                 {formatPrice(product.original_price)}
               </span>
             )}
           </div>
 
-          {/* Stock Status */}
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {product.stock_quantity > 0 ? (
-              <span className="text-green-600 dark:text-green-400">
-                In Stock ({product.stock_quantity} available)
-              </span>
-            ) : (
-              <span className="text-red-600 dark:text-red-400">
-                Out of Stock
-              </span>
-            )}
-          </div>
-
-          {/* Vendor Information for vendor products */}
+          {/* Stock Status - Only for vendor products */}
           {product.source === 'vendor' && (
-            <div className="space-y-1">
-              <div className="flex items-center space-x-1">
-                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                  Local Vendor
-                </Badge>
-              </div>
-              {product.pickup_location && (
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Pickup:</span> {product.pickup_location}
-                </div>
-              )}
-              {product.pickup_phone_number && (
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Contact:</span> {product.pickup_phone_number}
-                </div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {product.stock_quantity > 0 ? (
+                <span className="text-green-600 dark:text-green-400">
+                  In Stock ({product.stock_quantity} available)
+                </span>
+              ) : (
+                <span className="text-red-600 dark:text-red-400">
+                  Out of Stock
+                </span>
               )}
             </div>
           )}
+
+
         </div>
       </CardContent>
 
       {/* Actions */}
       <CardFooter className="p-4 pt-0">
         <div className="w-full space-y-3">
-          {/* Quantity Selector */}
-          {product.stock_quantity > 0 && (
-            <div className="flex items-center justify-center space-x-2">
-              <Button
-                size="icon"
-                variant="outline"
-                className="w-8 h-8"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                disabled={quantity <= 1}
-              >
-                <Minus className="w-3 h-3" />
-              </Button>
-              <span className="w-8 text-center text-sm font-medium">
-                {quantity}
-              </span>
-              <Button
-                size="icon"
-                variant="outline"
-                className="w-8 h-8"
-                onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
-                disabled={quantity >= product.stock_quantity}
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
-          )}
-
           {/* Add to Cart Button */}
           <Button
             onClick={handleAddToCart}
-            disabled={product.stock_quantity === 0 || isLoading}
+            disabled={(product.source === 'vendor' && product.stock_quantity === 0) || isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
           >
             {isLoading ? (
@@ -572,80 +495,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
               <div className="flex items-center space-x-2">
                 <ShoppingCart className="w-4 h-4" />
                 <span>
-                  {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
+                  {(product.source === 'vendor' && product.stock_quantity === 0) ? 'Out of Stock' : 'Add to Cart'}
                 </span>
               </div>
             )}
           </Button>
 
-          {/* View Details Button */}
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/product/${product.id}`)}
-            className="w-full"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            View Details
-          </Button>
-
+          {/* View Details Button - Only for vendor products */}
           {product.source === 'vendor' && (
-            <>
-              <Button
-                variant="outline"
-                className="w-full mt-2"
-                onClick={() => setShowReviewDialog(true)}
-              >
-                Rate this product
-              </Button>
-              <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Rate {product.name}</DialogTitle>
-                  </DialogHeader>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-1">
-                      {[1,2,3,4,5].map(star => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewRating(star)}
-                          className={star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'}
-                          aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
-                        >
-                          <Star className="w-6 h-6" />
-                        </button>
-                      ))}
-                    </div>
-                    <Input
-                      placeholder="Title (optional)"
-                      value={reviewTitle}
-                      onChange={e => setReviewTitle(e.target.value)}
-                      maxLength={100}
-                    />
-                    <Textarea
-                      placeholder="Write your review (optional)"
-                      value={reviewComment}
-                      onChange={e => setReviewComment(e.target.value)}
-                      maxLength={500}
-                      rows={3}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      onClick={handleSubmitReview}
-                      disabled={reviewLoading || reviewRating < 1 || reviewRating > 5}
-                      className="w-full"
-                    >
-                      {reviewLoading ? 'Submitting...' : 'Submit Review'}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/product/${product.id}`)}
+              className="w-full"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              View Details
+            </Button>
           )}
+
+
         </div>
       </CardFooter>
 
+      {/* Reviews Dialog - Only for vendor products */}
       {product.source === 'vendor' && (
         <Dialog open={showReviewsDialog} onOpenChange={setShowReviewsDialog}>
           <DialogContent className="max-w-lg">
@@ -687,7 +559,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
       )}
 
       {/* View Modal: Carousel + Reviews */}
-      <Dialog open={showViewModal} onOpenChange={setShowViewModal}>
+      <Dialog open={showViewModal} onOpenChange={(open) => {
+        setShowViewModal(open);
+        if (open) {
+          loadReviews();
+        }
+      }}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-gradient-to-r from-yellow-100 to-pink-100 dark:from-yellow-900/20 dark:to-pink-900/20 p-4">
             <DialogTitle className="text-xl font-bold text-gray-900 dark:text-white">{product.name}</DialogTitle>
@@ -702,11 +579,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex-1 min-w-[200px]">
               <div className="mb-4">
                 <div className="flex items-center space-x-2 mb-2">
-                  {renderStars(product.rating)}
-                  <span className="text-sm text-gray-600">({product.review_count} reviews)</span>
+                  {renderStars(reviews.length > 0 ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : product.rating)}
+                  <span className="text-sm text-gray-600">({reviews.length} reviews)</span>
                 </div>
                 <div className="text-lg font-bold text-gray-900 mb-2">{formatPrice(product.price)}</div>
-                <div className="text-sm text-gray-700 mb-2">{product.description}</div>
+                {product.source === 'vendor' && product.description && (
+                  <div className="text-sm text-gray-700 mb-2">{product.description}</div>
+                )}
               </div>
               <div className="max-h-48 overflow-y-auto rounded bg-gray-50 p-2">
                 {reviewsLoading ? (

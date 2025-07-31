@@ -1,11 +1,11 @@
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import React, { useState, useRef } from "react";
+import { Button } from "../src/components/ui/button";
+import { Input } from "../src/components/ui/input";
+import { Textarea } from "../src/components/ui/textarea";
+import { Label } from "../src/components/ui/label";
+import { Card, CardContent } from "../src/components/ui/card";
+import { Badge } from "../src/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../src/components/ui/dialog";
 import { 
   Upload, 
   Image as ImageIcon, 
@@ -15,8 +15,8 @@ import {
   Edit,
   Trash2
 } from "lucide-react";
-import { ImageUploadService } from "@/services/imageUploadService";
-import { useToast } from "@/hooks/use-toast";
+import { ImageUploadService } from "../src/services/imageUploadService";
+import { useToast } from "../src/hooks/use-toast";
 
 interface ImageUploadProps {
   onImageUpload: (result: any) => void;
@@ -185,33 +185,34 @@ const ImageUpload = ({
     <div className="space-y-4">
       {/* Upload Area */}
       <div
-        className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${
+        className={`border-2 border-dashed border-gray-300 rounded-lg p-4 md:p-6 text-center hover:border-gray-400 transition-colors ${
           uploading ? 'opacity-50 pointer-events-none' : ''
         }`}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <div className="flex justify-center">
-            <Camera className="w-12 h-12 text-gray-400" />
+            <Camera className="w-8 h-8 md:w-12 md:h-12 text-gray-400" />
           </div>
           <div>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-base md:text-lg font-medium text-gray-900">
               Upload Product Images
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs md:text-sm text-gray-600">
               Drag and drop images here, or click to browse
             </p>
             <p className="text-xs text-gray-500 mt-1">
               {images.length}/{maxImages} images uploaded
             </p>
           </div>
-          <div className="flex justify-center gap-2">
+          <div className="flex flex-col sm:flex-row justify-center gap-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               disabled={images.length >= maxImages || uploading}
+              className="w-full sm:w-auto"
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload Image
@@ -221,6 +222,7 @@ const ImageUpload = ({
               variant="outline"
               onClick={() => setShowLinkDialog(true)}
               disabled={images.length >= maxImages}
+              className="w-full sm:w-auto"
             >
               <LinkIcon className="w-4 h-4 mr-2" />
               Add Image Link
@@ -240,7 +242,7 @@ const ImageUpload = ({
       {images.length > 0 && (
         <div className="space-y-4">
           <Label>Product Images ({images.length}/{maxImages})</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {images.map((image, index) => (
               <Card key={image.url} className="relative group">
                 <CardContent className="p-0">
@@ -248,7 +250,7 @@ const ImageUpload = ({
                     <img
                       src={image.url}
                       alt={image.description}
-                      className="w-full h-48 object-cover rounded-t-lg"
+                      className="w-full h-32 sm:h-40 md:h-48 object-cover rounded-t-lg"
                       onError={(e) => {
                         e.currentTarget.src = '/placeholder.svg';
                       }}
@@ -259,19 +261,19 @@ const ImageUpload = ({
                       <Button
                         size="icon"
                         variant="secondary"
-                        className="w-8 h-8 bg-white/90 hover:bg-white"
+                        className="w-6 h-6 md:w-8 md:h-8 bg-white/90 hover:bg-white"
                         onClick={() => handleSetMainImage(image.url)}
                         disabled={image.isMain}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                       <Button
                         size="icon"
                         variant="destructive"
-                        className="w-8 h-8 bg-red-500/90 hover:bg-red-500"
+                        className="w-6 h-6 md:w-8 md:h-8 bg-red-500/90 hover:bg-red-500"
                         onClick={() => handleImageRemove(image.url)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     </div>
 
@@ -286,7 +288,7 @@ const ImageUpload = ({
                     </div>
                   </div>
                   
-                  <div className="p-3">
+                  <div className="p-2 md:p-3">
                     <div className="space-y-2">
                       <div>
                         <Label className="text-xs text-gray-600">Description</Label>
@@ -294,7 +296,7 @@ const ImageUpload = ({
                           value={image.description}
                           onChange={(e) => handleDescriptionChange(image.url, e.target.value)}
                           placeholder="e.g., Front view, Side view, Detail shot..."
-                          className="text-sm h-16 resize-none"
+                          className="text-sm h-12 md:h-16 resize-none"
                         />
                       </div>
                       <div className="flex items-center justify-between text-xs text-gray-500">
@@ -314,7 +316,7 @@ const ImageUpload = ({
 
       {/* Add Image Link Dialog */}
       <Dialog open={showLinkDialog} onOpenChange={setShowLinkDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] md:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Image Link</DialogTitle>
             <DialogDescription>
@@ -343,11 +345,11 @@ const ImageUpload = ({
               />
             </div>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowLinkDialog(false)}>
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => setShowLinkDialog(false)} className="w-full sm:w-auto order-2 sm:order-1">
               Cancel
             </Button>
-            <Button onClick={handleLinkAdd}>
+            <Button onClick={handleLinkAdd} className="w-full sm:w-auto order-1 sm:order-2">
               Add Image
             </Button>
           </div>

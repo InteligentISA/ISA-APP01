@@ -17,6 +17,8 @@ export interface Product {
   review_count: number;
   is_featured: boolean;
   is_active: boolean;
+  banned?: boolean;
+  banned_reason?: string;
   vendor_id?: string;
   created_at: string;
   updated_at: string;
@@ -61,6 +63,10 @@ export interface ProductReview {
     first_name?: string;
     last_name?: string;
   };
+  profiles?: {
+    first_name?: string;
+    last_name?: string;
+  };
 }
 
 export interface ProductImage {
@@ -96,7 +102,7 @@ export interface ProductFilters {
 }
 
 export interface ProductSortOption {
-  field: 'name' | 'price' | 'rating' | 'created_at' | 'review_count';
+  field: 'name' | 'price' | 'rating' | 'created_at' | 'review_count' | 'random';
   direction: 'asc' | 'desc';
 }
 

@@ -13,6 +13,8 @@ export interface UserProfile {
   user_type: 'customer' | 'vendor';
   company?: string;
   business_type?: string;
+  status?: string;
+  rejection_reason?: string;
   created_at: string;
   updated_at: string;
 }
@@ -31,6 +33,7 @@ export interface UpdateProfileData {
   user_type?: string;
   status?: string;
   admin_notes?: string;
+  rejection_reason?: string;
 }
 
 export class UserProfileService {

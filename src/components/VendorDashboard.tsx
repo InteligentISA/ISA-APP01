@@ -10,7 +10,6 @@ import VendorReviews from "./VendorReviews";
 import VendorPayments from "./VendorPayments";
 import VendorWallet from "./VendorWallet";
 import VendorSettings from "./VendorSettings";
-import { Button } from "@/components/ui/button";
 
 interface VendorDashboardProps {
   user: any;
@@ -34,6 +33,18 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
     premium_yearly: 20,
     pro: Infinity
   };
+
+  // Prevent background scrolling when sidebar is open
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
 
   useEffect(() => {
     fetchPlanAndProducts();
@@ -121,9 +132,13 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       )}
       
       {/* Sidebar */}
-      <div className={`fixed lg:relative z-50 lg:z-auto transition-transform duration-300 ease-in-out ${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-      }`}>
+      <div className={cn(
+        "fixed top-0 left-0 h-full bg-white z-50 shadow-lg transform transition-transform duration-300",
+        sidebarOpen ? "translate-x-0" : "-translate-x-full",
+        "lg:translate-x-0 lg:static lg:shadow-none",
+        sidebarCollapsed ? "lg:w-16" : "lg:w-64",
+        "w-64" // Fixed width for mobile sidebar
+      )}>
         <VendorSidebar
           activeSection={activeSection}
           onSectionChange={(section) => {
@@ -145,20 +160,24 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         "lg:ml-0", // No margin on mobile
         sidebarCollapsed ? "lg:ml-16" : "lg:ml-64" // 64px when collapsed, 256px when expanded
       )}>
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b border-gray-200 p-4">
-          <div className="flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
+        {/* Mobile Topbar */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 p-3 shadow-sm flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
               onClick={() => setSidebarOpen(true)}
+              className="h-10 w-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
             >
               <Menu className="h-5 w-5" />
-            </Button>
-            <h1 className="text-lg font-semibold text-gray-900">Vendor Portal</h1>
-            <div className="w-10" /> {/* Spacer for centering */}
+            </button>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Vendor Portal</h2>
+              <p className="text-sm text-gray-600">{user.name}</p>
+            </div>
           </div>
         </div>
+        
+        {/* Mobile top padding to account for fixed header */}
+        <div className="lg:hidden h-16" />
         
         <div className="p-4 md:p-6 lg:p-8">
           {showBanner && (

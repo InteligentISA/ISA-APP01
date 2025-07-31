@@ -532,11 +532,11 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="vendor-tax-id" className="mb-1 block">Tax ID</Label>
+                    <Label htmlFor="vendor-tax-id" className="mb-1 block">Tax ID/KRA PIN</Label>
                     <Input
                       id="vendor-tax-id"
                       type="text"
-                      placeholder="Tax Identification Number"
+                      placeholder="Enter your Tax ID or KRA PIN number"
                       className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       value={vendorData.taxId}
                       onChange={e => handleVendorInputChange('taxId', e.target.value)}
@@ -544,11 +544,11 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="vendor-company-website" className="mb-1 block">Company Website</Label>
+                    <Label htmlFor="vendor-company-website" className="mb-1 block">Website/Social Media Pages</Label>
                     <Input
                       id="vendor-company-website"
                       type="url"
-                      placeholder="https://yourcompany.com"
+                      placeholder="https://yourcompany.com or social media links"
                       className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       value={vendorData.companyWebsite}
                       onChange={e => handleVendorInputChange('companyWebsite', e.target.value)}

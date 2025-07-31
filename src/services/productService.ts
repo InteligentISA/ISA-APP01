@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Product, ProductFilters, ProductSortOption, ProductSearchParams } from '@/types/product';
+import { Product, ProductFilters, ProductSortOption, ProductSearchParams, ProductAttribute, ProductImage } from '@/types/product';
 import { ImageUploadService } from './imageUploadService';
 import { scrapeJumiaProducts } from './jumiaScraperService';
 import { DashboardProduct, DashboardVendorProduct, DashboardJumiaProduct } from '@/types/product';
@@ -30,14 +30,20 @@ export class ProductService {
 
       // Apply search query
       if (params.query) {
-        query = query.or(`name.ilike.%${params.query}%,description.ilike.%${params.query}%`);
+        query = query.or(`name.ilike.%${params.query}%,description.ilike.%${params.query}%,brand.ilike.%${params.query}%`);
       }
 
       // Apply sorting
       if (params.sort) {
-        query = query.order(params.sort.field, { ascending: params.sort.direction === 'asc' });
+        if (params.sort.field === 'random') {
+          // For random ordering, we'll sort in JavaScript after fetching
+          query = query.order('id', { ascending: true }); // Use consistent ordering for pagination
+        } else {
+          query = query.order(params.sort.field, { ascending: params.sort.direction === 'asc' });
+        }
       } else {
-        query = query.order('created_at', { ascending: false });
+        // Default to random ordering - we'll shuffle in JavaScript
+        query = query.order('id', { ascending: true }); // Use consistent ordering for pagination
       }
 
       // Apply pagination
@@ -51,7 +57,22 @@ export class ProductService {
 
       const { data, count, error } = await query;
 
-      return { data: data || [], count: count || 0, error };
+      if (error) {
+        return { data: [], count: 0, error };
+      }
+
+      let resultData = data || [];
+      
+      // Apply random shuffling if random ordering is requested or default
+      if (!params.sort || params.sort.field === 'random') {
+        // Fisher-Yates shuffle algorithm
+        for (let i = resultData.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [resultData[i], resultData[j]] = [resultData[j], resultData[i]];
+        }
+      }
+
+      return { data: resultData, count: count || 0, error: null };
     } catch (error) {
       return { data: [], count: 0, error };
     }
@@ -65,10 +86,23 @@ export class ProductService {
         .select('*')
         .eq('is_featured', true)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('id', { ascending: true })
+        .limit(limit * 2); // Fetch more to ensure we have enough after shuffling
 
-      return { data: data || [], error };
+      if (error) {
+        return { data: [], error };
+      }
+
+      let resultData = data || [];
+      
+      // Shuffle the results
+      for (let i = resultData.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [resultData[i], resultData[j]] = [resultData[j], resultData[i]];
+      }
+
+      // Return only the requested limit
+      return { data: resultData.slice(0, limit), error: null };
     } catch (error) {
       return { data: [], error };
     }
@@ -82,10 +116,23 @@ export class ProductService {
         .select('*')
         .eq('category', category)
         .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+        .order('id', { ascending: true })
+        .limit(limit * 2); // Fetch more to ensure we have enough after shuffling
 
-      return { data: data || [], error };
+      if (error) {
+        return { data: [], error };
+      }
+
+      let resultData = data || [];
+      
+      // Shuffle the results
+      for (let i = resultData.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [resultData[i], resultData[j]] = [resultData[j], resultData[i]];
+      }
+
+      // Return only the requested limit
+      return { data: resultData.slice(0, limit), error: null };
     } catch (error) {
       return { data: [], error };
     }
@@ -264,33 +311,62 @@ export class ProductService {
         .from('products')
         .select('*')
         .eq('vendor_id', vendorId)
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: true });
 
-      return { data: data || [], error };
+      if (error) {
+        return { data: [], error };
+      }
+
+      let resultData = data || [];
+      
+      // Shuffle the results
+      for (let i = resultData.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [resultData[i], resultData[j]] = [resultData[j], resultData[i]];
+      }
+
+      return { data: resultData, error: null };
     } catch (error) {
       return { data: [], error };
     }
   }
 
   // Get dashboard products: vendor + Jumia fallback
-  static async getDashboardProducts(page: number = 1, limit: number = 20): Promise<{ data: DashboardProduct[]; error: any; totalVendorCount: number }> {
+  static async getDashboardProducts(page: number = 1, limit: number = 20, searchQuery?: string, category?: string): Promise<{ data: DashboardProduct[]; error: any; totalVendorCount: number }> {
     try {
-      // Get total vendor product count (without pagination)
-      const { count: totalVendorCount, error: countError } = await supabase
+      // Build query for vendor products with filters
+      let query = supabase
         .from('products')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact' })
         .eq('is_active', true);
+
+      // Apply category filter
+      if (category && category !== 'All') {
+        query = query.eq('category', category);
+      }
+
+      // Apply search filter
+      if (searchQuery && searchQuery.trim()) {
+        query = query.or(`name.ilike.%${searchQuery.trim()}%,description.ilike.%${searchQuery.trim()}%,brand.ilike.%${searchQuery.trim()}%`);
+      }
+
+      // Get total count with filters
+      const { count: totalVendorCount, error: countError } = await query;
       
       if (countError) return { data: [], error: countError, totalVendorCount: 0 };
       
       const vendorPages = Math.ceil((totalVendorCount || 0) / limit);
 
       if (page <= vendorPages) {
-        // Vendor products page
+        // Vendor products page with filters
         const { data: vendorProducts, error } = await ProductService.getProducts({ 
           limit, 
           page,
-          filters: { inStock: true } // Only show active products
+          query: searchQuery,
+          filters: {
+            ...(category && category !== 'All' ? { category } : {}),
+            inStock: true
+          }
         });
         
         if (error) return { data: [], error, totalVendorCount: totalVendorCount || 0 };
@@ -434,6 +510,66 @@ export class ProductService {
         .single();
 
       return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Update product attributes
+  static async updateProductAttributes(productId: string, attributes: Omit<ProductAttribute, 'id' | 'product_id' | 'created_at' | 'updated_at'>[]): Promise<{ data: any; error: any }> {
+    try {
+      // First, delete existing attributes
+      await supabase
+        .from('product_attributes')
+        .delete()
+        .eq('product_id', productId);
+
+      // Then insert new attributes
+      if (attributes.length > 0) {
+        const attributesWithProductId = attributes.map(attr => ({
+          ...attr,
+          product_id: productId
+        }));
+
+        const { data, error } = await supabase
+          .from('product_attributes')
+          .insert(attributesWithProductId)
+          .select();
+
+        return { data, error };
+      }
+
+      return { data: [], error: null };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Update product images
+  static async updateProductImages(productId: string, images: Omit<ProductImage, 'id' | 'product_id' | 'created_at' | 'updated_at'>[]): Promise<{ data: any; error: any }> {
+    try {
+      // First, delete existing images
+      await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', productId);
+
+      // Then insert new images
+      if (images.length > 0) {
+        const imagesWithProductId = images.map(img => ({
+          ...img,
+          product_id: productId
+        }));
+
+        const { data, error } = await supabase
+          .from('product_images')
+          .insert(imagesWithProductId)
+          .select();
+
+        return { data, error };
+      }
+
+      return { data: [], error: null };
     } catch (error) {
       return { data: null, error };
     }

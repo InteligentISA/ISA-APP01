@@ -7,6 +7,7 @@ import AuthSignIn from "@/components/AuthSignIn";
 import Dashboard from "@/components/Dashboard";
 import VendorDashboard from "@/components/VendorDashboard";
 import PendingApproval from "@/components/PendingApproval";
+import RejectedApplication from "@/components/RejectedApplication";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
@@ -22,7 +23,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'askisa' | 'gifts' | 'forgot-password'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -34,6 +35,7 @@ const Index = () => {
   const [showTierModal, setShowTierModal] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<"weekly" | "monthly" | "annual" | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState<string>('');
 
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
@@ -77,13 +79,9 @@ const Index = () => {
               setCurrentView('vendor-dashboard');
               return;
             } else if (profile.status === 'rejected' || profile.user_type === 'vendor_rejected') {
-              // Vendor rejected, show regular dashboard
-              setCurrentView('dashboard');
-              toast({
-                title: 'Your application was rejected.',
-                description: 'Please contact support for more information.',
-                variant: 'destructive',
-              });
+              // Vendor rejected, show rejection page
+              setRejectionReason(profile.rejection_reason || '');
+              setCurrentView('rejected-application');
               return;
             } else {
               // Vendor not approved, show pending approval page
@@ -149,13 +147,9 @@ const Index = () => {
       if (formattedUser.status === 'approved' || formattedUser.userType === 'vendor_approved') {
         setCurrentView('vendor-dashboard');
       } else if (formattedUser.status === 'rejected' || formattedUser.userType === 'vendor_rejected') {
-        // Vendor rejected, show regular dashboard
-        setCurrentView('dashboard');
-        toast({
-          title: 'Your application was rejected.',
-          description: 'Please contact support for more information.',
-          variant: 'destructive',
-        });
+        // Vendor rejected, show rejection page
+        setRejectionReason(formattedUser.rejection_reason || '');
+        setCurrentView('rejected-application');
       } else {
         // Vendor is pending approval, show pending approval page
         setCurrentView('pending-approval');
@@ -248,12 +242,8 @@ const Index = () => {
                 description: 'Welcome to the vendor dashboard!',
               });
             } else if (formattedUser.status === 'rejected') {
-              setCurrentView('dashboard');
-              toast({
-                title: 'Application Rejected',
-                description: 'Please contact support for more information.',
-                variant: 'destructive',
-              });
+              setRejectionReason(profile.rejection_reason || '');
+              setCurrentView('rejected-application');
             } else {
               // Still pending
               toast({
@@ -440,6 +430,13 @@ const Index = () => {
           user={user} 
           onLogout={handleLogout}
           onRefresh={handleRefreshApprovalStatus}
+        />
+      )}
+      {currentView === 'rejected-application' && (
+        <RejectedApplication 
+          user={user} 
+          onLogout={handleLogout}
+          rejectionReason={rejectionReason}
         />
       )}
       {currentView === 'askisa' && (

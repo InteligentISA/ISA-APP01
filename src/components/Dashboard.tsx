@@ -30,6 +30,7 @@ interface DashboardProps {
 const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [likedItems, setLikedItems] = useState<any[]>([]);
   const [showProfile, setShowProfile] = useState(false);
@@ -50,7 +51,8 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   const [likedJumiaItems, setLikedJumiaItems] = useState<string[]>([]);
   const [jumiaInteractionsLoading, setJumiaInteractionsLoading] = useState(false);
 
-  const categories = ["All", "Electronics", "Fashion", "Home", "Beauty", "Sports", "Books"];
+  // Get the most common 6 categories from VendorProductManagement
+  const categories = ["All", "Electronics", "Fashion", "Home & Living", "Health & Beauty", "Books & Stationery", "Baby Products"];
 
   // Load user's liked Jumia products from backend
   const loadLikedJumiaProducts = async () => {
@@ -82,10 +84,24 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     }).catch(() => setLoading(false));
   }, [user]);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Reset to page 1 when search or category changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchQuery, selectedCategory]);
+
   useEffect(() => {
     setProductLoading(true);
     setProductError(null);
-    ProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE)
+    ProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE, debouncedSearchQuery, selectedCategory)
       .then(({ data, error, totalVendorCount }) => {
         if (error) {
           setProductError('Failed to load products');
@@ -99,7 +115,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
       })
       .catch(() => setProductError('Failed to load products'))
       .finally(() => setProductLoading(false));
-  }, [currentPage]);
+  }, [currentPage, debouncedSearchQuery, selectedCategory]);
 
   const handleAddToCart = async (product) => {
     if (!user?.id) return;

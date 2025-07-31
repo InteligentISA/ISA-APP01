@@ -12,7 +12,9 @@ import {
   Receipt,
   ChevronRight,
   LogOut,
-  X
+  X,
+  Menu,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,7 @@ const VendorSidebar = ({
   onCollapsedChange
 }: VendorSidebarProps) => {
   const [internalIsCollapsed, setInternalIsCollapsed] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Use external state if provided, otherwise use internal state
   const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed;
@@ -65,95 +68,209 @@ const VendorSidebar = ({
     setIsCollapsed(!isCollapsed);
   };
 
+  const handleMobileMenuToggle = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
+  const handleSectionChange = (section: string) => {
+    onSectionChange(section);
+    setMobileMenuOpen(false); // Close mobile menu when section changes
+  };
+
   return (
-    <div className={cn(
-      "h-screen bg-white border-r border-gray-200 flex flex-col transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64",
-      "lg:relative fixed top-0 left-0 z-50"
-    )}>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold text-gray-900 truncate">Vendor Portal</h2>
-              <p className="text-sm text-gray-600 truncate">{userName}</p>
+    <>
+      {/* Desktop Sidebar */}
+      <div className={cn(
+        "hidden lg:flex h-full bg-white flex-col transition-all duration-300",
+        isCollapsed ? "w-16" : "w-64"
+      )}>
+        {/* Desktop Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-semibold text-gray-900 truncate">Vendor Portal</h2>
+                <p className="text-sm text-gray-600 truncate">{userName}</p>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDesktopToggle}
+                className="h-10 w-10 hover:bg-gray-100"
+              >
+                <ChevronRight className={cn(
+                  "h-4 w-4 transition-transform duration-200",
+                  isCollapsed ? "rotate-0" : "rotate-180"
+                )} />
+              </Button>
             </div>
-          )}
-          <div className="flex items-center gap-2">
-            {/* Mobile close button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleMobileClose}
-              className="lg:hidden h-12 w-12"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-            {/* Desktop collapse button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDesktopToggle}
-              className="hidden lg:flex h-10 w-10"
-            >
-              <ChevronRight className={cn(
-                "h-4 w-4 transition-transform",
-                isCollapsed ? "rotate-0" : "rotate-180"
-              )} />
-            </Button>
           </div>
+        </div>
+
+        {/* Desktop Navigation */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <Button
+                key={item.id}
+                variant={isActive ? "default" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-12 px-3 text-base rounded-lg transition-all duration-200",
+                  isActive && "bg-blue-600 text-white hover:bg-blue-700 shadow-md",
+                  !isActive && "text-gray-700 hover:bg-gray-100",
+                  isCollapsed && "px-2 justify-center h-12 w-12 mx-auto",
+                  "lg:h-10 lg:text-sm"
+                )}
+                onClick={() => onSectionChange(item.id)}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <Icon className={cn(
+                  "h-5 w-5 lg:h-4 lg:w-4 transition-all duration-200", 
+                  !isCollapsed && "mr-3"
+                )} />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </Button>
+            );
+          })}
+        </nav>
+
+        {/* Desktop Logout */}
+        <div className="p-4 border-t border-gray-200">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start h-12 px-3 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200",
+              isCollapsed && "px-2 justify-center h-12 w-12 mx-auto",
+              "lg:h-10 lg:text-sm"
+            )}
+            onClick={onLogout}
+            title={isCollapsed ? "Logout" : undefined}
+          >
+            <LogOut className={cn(
+              "h-5 w-5 lg:h-4 lg:w-4 transition-all duration-200", 
+              !isCollapsed && "mr-3"
+            )} />
+            {!isCollapsed && <span className="truncate">Logout</span>}
+          </Button>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeSection === item.id;
-          
-          return (
-            <Button
-              key={item.id}
-              variant={isActive ? "default" : "ghost"}
-              className={cn(
-                "w-full justify-start h-12 px-3 text-base",
-                isActive && "bg-blue-600 text-white hover:bg-blue-700",
-                !isActive && "text-gray-700 hover:bg-gray-100",
-                isCollapsed && "px-2 justify-center h-12",
-                "lg:h-10 lg:text-sm" // Smaller on desktop
-              )}
-              onClick={() => onSectionChange(item.id)}
-            >
-              <Icon className={cn(
-                "h-5 w-5 lg:h-4 lg:w-4", 
-                !isCollapsed && "mr-3"
-              )} />
-              {!isCollapsed && <span className="truncate">{item.label}</span>}
-            </Button>
-          );
-        })}
-      </nav>
+      {/* Mobile Sidebar Content */}
+      <div className={cn(
+        "lg:hidden flex flex-col h-full bg-white",
+        sidebarOpen ? "block" : "hidden"
+      )}>
+        {/* Mobile Header - Only show when sidebar is open */}
+        {sidebarOpen && (
+          <div className="bg-white border-b border-gray-200 p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleMobileClose}
+                  className="h-10 w-10"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Vendor Portal</h2>
+                  <p className="text-sm text-gray-600">{userName}</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleMobileMenuToggle}
+                className="h-10 w-10 ml-auto"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        )}
 
-      {/* Logout */}
-      <div className="p-4 border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start h-12 px-3 text-base text-red-600 hover:bg-red-50 hover:text-red-700",
-            isCollapsed && "px-2 justify-center h-12",
-            "lg:h-10 lg:text-sm" // Smaller on desktop
-          )}
-          onClick={onLogout}
-        >
-          <LogOut className={cn(
-            "h-5 w-5 lg:h-4 lg:w-4", 
-            !isCollapsed && "mr-3"
-          )} />
-          {!isCollapsed && <span className="truncate">Logout</span>}
-        </Button>
+        {/* Mobile Dropdown Menu */}
+        <div className={cn(
+          "bg-orange-50 border-b border-orange-200 shadow-lg transition-all duration-300",
+          mobileMenuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0 overflow-hidden"
+        )}>
+          <div className="p-4 space-y-2 bg-orange-50">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              
+              return (
+                <Button
+                  key={item.id}
+                  variant={isActive ? "default" : "ghost"}
+                  className={cn(
+                    "w-full justify-start h-12 px-4 text-base rounded-lg transition-all duration-200",
+                    isActive && "bg-orange-500 text-white hover:bg-orange-600 shadow-md",
+                    !isActive && "text-gray-700 hover:bg-orange-100 border border-orange-200"
+                  )}
+                  onClick={() => handleSectionChange(item.id)}
+                >
+                  <Icon className="h-5 w-5 mr-3" />
+                  <span>{item.label}</span>
+                </Button>
+              );
+            })}
+            
+            {/* Mobile Logout */}
+            <Button
+              variant="ghost"
+              className="w-full justify-start h-12 px-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg border border-red-200 transition-all duration-200"
+              onClick={onLogout}
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              <span>Logout</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation (when dropdown is closed) */}
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
+            
+            return (
+              <Button
+                key={item.id}
+                variant={isActive ? "default" : "ghost"}
+                className={cn(
+                  "w-full justify-start h-12 px-4 text-base rounded-lg transition-all duration-200",
+                  isActive && "bg-blue-600 text-white hover:bg-blue-700 shadow-md",
+                  !isActive && "text-gray-700 hover:bg-gray-100"
+                )}
+                onClick={() => handleSectionChange(item.id)}
+              >
+                <Icon className="h-5 w-5 mr-3" />
+                <span>{item.label}</span>
+              </Button>
+            );
+          })}
+        </nav>
+
+        {/* Mobile Logout */}
+        <div className="p-4 border-t border-gray-200">
+          <Button
+            variant="ghost"
+            className="w-full justify-start h-12 px-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200"
+            onClick={onLogout}
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            <span>Logout</span>
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -153,20 +153,20 @@ const AdminHome = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Overview</h1>
+      <div>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Admin Overview</h1>
         <p className="text-gray-600 mt-2">Platform statistics and insights</p>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overview.totalUsers.toLocaleString()}</div>
+            <div className="text-xl md:text-2xl font-bold">{overview.totalUsers.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -176,7 +176,7 @@ const AdminHome = () => {
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overview.totalVendors.toLocaleString()}</div>
+            <div className="text-xl md:text-2xl font-bold">{overview.totalVendors.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -186,7 +186,7 @@ const AdminHome = () => {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overview.totalOrders.toLocaleString()}</div>
+            <div className="text-xl md:text-2xl font-bold">{overview.totalOrders.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -196,7 +196,7 @@ const AdminHome = () => {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overview.totalProducts.toLocaleString()}</div>
+            <div className="text-xl md:text-2xl font-bold">{overview.totalProducts.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -206,7 +206,7 @@ const AdminHome = () => {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">KSH {overview.totalRevenue.toLocaleString()}</div>
+            <div className="text-xl md:text-2xl font-bold">KSH {overview.totalRevenue.toLocaleString()}</div>
           </CardContent>
         </Card>
 
@@ -216,7 +216,7 @@ const AdminHome = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overview.pendingPayments}</div>
+            <div className="text-xl md:text-2xl font-bold">{overview.pendingPayments}</div>
           </CardContent>
         </Card>
       </div>
@@ -232,8 +232,8 @@ const AdminHome = () => {
             <div className="space-y-3">
               {vendorsByPlan.map((item) => (
                 <div key={item.plan} className="flex justify-between items-center">
-                  <span className="font-medium">{item.plan}</span>
-                  <span className="text-2xl font-bold">{item.count}</span>
+                  <span className="font-medium text-sm md:text-base">{item.plan}</span>
+                  <span className="text-xl md:text-2xl font-bold">{item.count}</span>
                 </div>
               ))}
             </div>
@@ -249,10 +249,10 @@ const AdminHome = () => {
             <div className="space-y-3">
               {usersByCounty.map((item, index) => (
                 <div key={item.county} className="flex justify-between items-center">
-                  <span className="font-medium">
+                  <span className="font-medium text-sm md:text-base">
                     {index + 1}. {item.county}
                   </span>
-                  <span className="text-2xl font-bold">{item.count}</span>
+                  <span className="text-xl md:text-2xl font-bold">{item.count}</span>
                 </div>
               ))}
             </div>

@@ -151,9 +151,9 @@ const AdminVendors = () => {
 
   const VendorDetailsModal = () => (
     <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-lg md:text-xl">
             <Eye className="h-5 w-5" />
             Vendor Application Details
           </DialogTitle>
@@ -164,7 +164,7 @@ const AdminVendors = () => {
             {/* Personal Information */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Personal Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Full Name</Label>
                   <p className="text-sm">
@@ -207,7 +207,7 @@ const AdminVendors = () => {
             {/* Business Information */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Business Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Business Name</Label>
                   <p className="text-sm">{selectedVendor.business_name || 'Not provided'}</p>
@@ -221,11 +221,11 @@ const AdminVendors = () => {
                   <p className="text-sm">{selectedVendor.business_type || 'Not provided'}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-600">Tax ID</Label>
+                  <Label className="text-sm font-medium text-gray-600">Tax ID/KRA PIN</Label>
                   <p className="text-sm">{selectedVendor.tax_id || 'Not provided'}</p>
                 </div>
                 <div className="col-span-2">
-                  <Label className="text-sm font-medium text-gray-600">Company Website</Label>
+                  <Label className="text-sm font-medium text-gray-600">Website/Social Media Pages</Label>
                   <p className="text-sm">
                     {selectedVendor.company_website ? (
                       <a 
@@ -249,7 +249,7 @@ const AdminVendors = () => {
             {/* Application Information */}
             <div>
               <h3 className="text-lg font-semibold mb-3">Application Information</h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-600">Application Date</Label>
                   <p className="text-sm">
@@ -284,7 +284,7 @@ const AdminVendors = () => {
 
             {/* Action Buttons */}
             {selectedVendor.status === 'pending' && (
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button
                   onClick={() => handleStatusUpdate(selectedVendor.id, 'approved')}
                   className="bg-green-600 hover:bg-green-700 flex-1"
@@ -315,7 +315,7 @@ const AdminVendors = () => {
 
   const RejectModal = () => (
     <Dialog open={showRejectModal} onOpenChange={setShowRejectModal}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-[95vw] md:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <AlertCircle className="h-5 w-5" />
@@ -338,7 +338,7 @@ const AdminVendors = () => {
             />
           </div>
           
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
             <Button
               onClick={handleRejectWithReason}
               variant="destructive"
@@ -375,8 +375,8 @@ const AdminVendors = () => {
 
   return (
     <div className="space-y-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Vendor Management</h1>
+      <div className="mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Vendor Management</h1>
         <p className="text-gray-600 mt-2">Manage vendor applications and vendor data</p>
       </div>
 
@@ -390,85 +390,98 @@ const AdminVendors = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Business</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Applied Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendingVendors.map((vendor) => (
-                  <TableRow key={vendor.id}>
-                    <TableCell className="font-medium">
-                      {vendor.first_name && vendor.last_name 
-                        ? `${vendor.first_name} ${vendor.last_name}`
-                        : vendor.email?.split('@')[0] || 'N/A'
-                      }
-                    </TableCell>
-                    <TableCell>{vendor.email || 'N/A'}</TableCell>
-                    <TableCell>{vendor.business_name || vendor.company || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {vendor.location || 'Unknown'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {vendor.created_at 
-                        ? new Date(vendor.created_at).toLocaleDateString() 
-                        : 'N/A'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleViewDetails(vendor)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleStatusUpdate(vendor.id, 'approved')}
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={processingAction}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleReject(vendor)}
-                          className="text-red-600 border-red-600 hover:bg-red-50"
-                          disabled={processingAction}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[120px]">Name</TableHead>
+                    <TableHead className="min-w-[150px]">Email</TableHead>
+                    <TableHead className="min-w-[120px]">Business</TableHead>
+                    <TableHead className="min-w-[100px]">Location</TableHead>
+                    <TableHead className="min-w-[100px]">Applied Date</TableHead>
+                    <TableHead className="min-w-[200px]">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {pendingVendors.map((vendor) => (
+                    <TableRow key={vendor.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex flex-col">
+                          <span className="font-medium">
+                            {vendor.first_name && vendor.last_name 
+                              ? `${vendor.first_name} ${vendor.last_name}`
+                              : vendor.email?.split('@')[0] || 'N/A'
+                            }
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{vendor.email || 'N/A'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{vendor.business_name || vendor.company || 'N/A'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {vendor.location || 'Unknown'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {vendor.created_at 
+                            ? new Date(vendor.created_at).toLocaleDateString() 
+                            : 'N/A'
+                          }
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleViewDetails(vendor)}
+                            className="text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusUpdate(vendor.id, 'approved')}
+                            className="bg-green-600 hover:bg-green-700 text-xs"
+                            disabled={processingAction}
+                          >
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReject(vendor)}
+                            className="text-red-600 border-red-600 hover:bg-red-50 text-xs"
+                            disabled={processingAction}
+                          >
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* All Vendors */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
           <CardTitle>All Vendors</CardTitle>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full sm:w-auto">
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -482,101 +495,115 @@ const AdminVendors = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Business</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Joined Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredVendors.map((vendor) => (
-                <TableRow key={vendor.id}>
-                  <TableCell className="font-medium">
-                    {vendor.first_name && vendor.last_name 
-                      ? `${vendor.first_name} ${vendor.last_name}`
-                      : vendor.email?.split('@')[0] || 'N/A'
-                    }
-                  </TableCell>
-                  <TableCell>{vendor.email || 'N/A'}</TableCell>
-                  <TableCell>{vendor.business_name || vendor.company || 'N/A'}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {vendor.location || 'Unknown'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        vendor.status === 'approved' ? 'default' : 
-                        vendor.status === 'pending' ? 'secondary' : 
-                        vendor.status === 'rejected' ? 'destructive' : 'outline'
-                      }
-                    >
-                      {vendor.status || 'pending'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      let preferences = vendor.preferences;
-                      if (typeof preferences === 'string') {
-                        try { preferences = JSON.parse(preferences); } catch { preferences = {}; }
-                      }
-                      const plan = (preferences && typeof preferences === 'object' && 'plan' in preferences && typeof preferences.plan === 'string') 
-                        ? preferences.plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                        : 'Free';
-                      return <Badge variant="outline">{plan}</Badge>;
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    {vendor.created_at 
-                      ? new Date(vendor.created_at).toLocaleDateString() 
-                      : 'N/A'
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewDetails(vendor)}
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]">Name</TableHead>
+                  <TableHead className="min-w-[150px]">Email</TableHead>
+                  <TableHead className="min-w-[120px]">Business</TableHead>
+                  <TableHead className="min-w-[100px]">Location</TableHead>
+                  <TableHead className="min-w-[80px]">Status</TableHead>
+                  <TableHead className="min-w-[80px]">Plan</TableHead>
+                  <TableHead className="min-w-[100px]">Joined Date</TableHead>
+                  <TableHead className="min-w-[150px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredVendors.map((vendor) => (
+                  <TableRow key={vendor.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {vendor.first_name && vendor.last_name 
+                            ? `${vendor.first_name} ${vendor.last_name}`
+                            : vendor.email?.split('@')[0] || 'N/A'
+                          }
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{vendor.email || 'N/A'}</div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">{vendor.business_name || vendor.company || 'N/A'}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {vendor.location || 'Unknown'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={
+                          vendor.status === 'approved' ? 'default' : 
+                          vendor.status === 'pending' ? 'secondary' : 
+                          vendor.status === 'rejected' ? 'destructive' : 'outline'
+                        }
+                        className="text-xs"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      {vendor.status === 'approved' && (
+                        {vendor.status || 'pending'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        let preferences = vendor.preferences;
+                        if (typeof preferences === 'string') {
+                          try { preferences = JSON.parse(preferences); } catch { preferences = {}; }
+                        }
+                        const plan = (preferences && typeof preferences === 'object' && 'plan' in preferences && typeof preferences.plan === 'string') 
+                          ? preferences.plan.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                          : 'Free';
+                        return <Badge variant="outline" className="text-xs">{plan}</Badge>;
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {vendor.created_at 
+                          ? new Date(vendor.created_at).toLocaleDateString() 
+                          : 'N/A'
+                        }
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col sm:flex-row gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleStatusUpdate(vendor.id, 'suspended')}
-                          className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                          disabled={processingAction}
+                          onClick={() => handleViewDetails(vendor)}
+                          className="text-xs"
                         >
-                          Suspend
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
                         </Button>
-                      )}
-                      {vendor.status === 'suspended' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleStatusUpdate(vendor.id, 'approved')}
-                          className="bg-green-600 hover:bg-green-700"
-                          disabled={processingAction}
-                        >
-                          Reactivate
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                        {vendor.status === 'approved' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleStatusUpdate(vendor.id, 'suspended')}
+                            className="text-orange-600 border-orange-600 hover:bg-orange-50 text-xs"
+                            disabled={processingAction}
+                          >
+                            Suspend
+                          </Button>
+                        )}
+                        {vendor.status === 'suspended' && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStatusUpdate(vendor.id, 'approved')}
+                            className="bg-green-600 hover:bg-green-700 text-xs"
+                            disabled={processingAction}
+                          >
+                            Reactivate
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
           
           {filteredVendors.length === 0 && (
             <div className="text-center py-8 text-gray-500">
