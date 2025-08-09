@@ -4,20 +4,29 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles } from "lucide-react";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles, Crown, Palette, Truck, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import ProductGrid from "@/components/ProductGrid";
 import ProfileModal from "@/components/ProfileModal";
+import ProfileDropdown from "@/components/ProfileDropdown";
+import SubscriptionManager from "@/components/SubscriptionManager";
+import StyleQuizModal from "@/components/StyleQuizModal";
 import CartModal from "@/components/CartModal";
 import LikedItemsModal from "@/components/LikedItemsModal";
 import WelcomeChatbot from "@/components/WelcomeChatbot";
+import UserWalletModal from "@/components/UserWalletModal";
+import MyShippingModal from "@/components/MyShippingModal";
+import SettingsModal from "@/components/SettingsModal";
+import CurrencySelector from "@/components/CurrencySelector";
 import { Product } from "@/types/product";
 import { OrderService } from "@/services/orderService";
 import { ProductService } from '@/services/productService';
 import { DashboardProduct } from '@/types/product';
 import { CustomerBehaviorService } from '@/services/customerBehaviorService';
 import { JumiaInteractionService } from '@/services/jumiaInteractionService';
+import { LoyaltyService } from '@/services/loyaltyService';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface DashboardProps {
   user: any;
@@ -28,6 +37,7 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
+  const { currency, formatPrice } = useCurrency();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -38,6 +48,11 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   const [showLikedItems, setShowLikedItems] = useState(false);
   const [showWelcomeChatbot, setShowWelcomeChatbot] = useState(true);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSubscriptions, setShowSubscriptions] = useState(false);
+  const [showStyleQuiz, setShowStyleQuiz] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showWallet, setShowWallet] = useState(false);
+  const [showShipping, setShowShipping] = useState(false);
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [loading, setLoading] = useState(true);
@@ -76,7 +91,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     Promise.all([
       OrderService.getCartItems(user.id),
       OrderService.getWishlistItems(user.id),
-      loadLikedJumiaProducts()
+      loadLikedJumiaProducts(),
+      // Award daily login bonus
+      LoyaltyService.awardDailyLoginPoints(user.id).catch(() => {}) // Silent fail for daily bonus
     ]).then(([cart, wishlist]) => {
       setCartItems(cart);
       setLikedItems(wishlist);
@@ -129,7 +146,11 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
       });
       const updatedCart = await OrderService.getCartItems(user.id);
       setCartItems(updatedCart);
-      toast({ title: "Added to cart!", description: "Item has been added to your shopping cart." });
+      
+      // Award points for adding to cart (5 points)
+      await LoyaltyService.awardCartPoints(user.id).catch(() => {}); // Silent fail
+      
+      toast({ title: "Added to cart!", description: "Item has been added to your shopping cart. +5 points earned!" });
     } catch (e) {
       toast({ title: "Failed to add to cart", description: e.message || "Please try again." });
     }
@@ -327,28 +348,16 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 )}
               </Button>
               
-              <Button 
-                variant="ghost" 
-                className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                onClick={() => setShowProfile(true)}
-              >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback className="bg-gray-200 dark:bg-slate-600 text-gray-800 dark:text-gray-200">
-                    {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium hidden lg:inline">{user?.name || user?.email || 'User'}</span>
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={onLogout}
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
+              <ProfileDropdown
+                user={user}
+                onShowProfile={() => setShowProfile(true)}
+                onShowSettings={() => setShowSettings(true)}
+                onShowStyleQuiz={() => setShowStyleQuiz(true)}
+                onShowSubscriptions={() => setShowSubscriptions(true)}
+                onShowShipping={() => setShowShipping(true)}
+                onShowWallet={() => setShowWallet(true)}
+                onLogout={onLogout}
+              />
             </div>
 
             {/* Mobile Menu Button */}
@@ -435,21 +444,84 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 </Button>
               </div>
               
-              <div className="flex items-center justify-between">
+              <div className="space-y-2">
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => setShowProfile(true)}
-                  className="text-gray-700 dark:text-gray-200"
+                  onClick={() => {
+                    setShowProfile(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-gray-700 dark:text-gray-200"
                 >
                   <User className="w-4 h-4 mr-2" />
-                  Profile
+                  My Profile
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowSubscriptions(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-blue-600"
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Subscriptions
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowStyleQuiz(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-purple-600"
+                >
+                  <Palette className="w-4 h-4 mr-2" />
+                  Style Quiz
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowWallet(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-orange-600"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Points Wallet
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowShipping(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-green-600"
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  My Shipping
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setShowSettings(true);
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-gray-600"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={onLogout}
-                  className="text-gray-600 dark:text-gray-300"
+                  className="w-full justify-start text-red-600"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -499,6 +571,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
               <Gift className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Gifts
             </Button>
+            
+            {/* Currency Selector */}
+            <CurrencySelector />
           </div>
         </div>
 
@@ -568,6 +643,40 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         user={user}
         onNavigateToGifts={handleNavigateToGiftsFromChatbot}
         onNavigateToAskISA={handleNavigateToAskISAWithQuery}
+      />
+
+      <SubscriptionManager
+        userId={user?.id}
+        isOpen={showSubscriptions}
+        onClose={() => setShowSubscriptions(false)}
+      />
+
+      <StyleQuizModal
+        isOpen={showStyleQuiz}
+        onClose={() => setShowStyleQuiz(false)}
+        user={user}
+      />
+
+      <UserWalletModal
+        isOpen={showWallet}
+        onClose={() => setShowWallet(false)}
+        user={user}
+      />
+
+      <MyShippingModal
+        isOpen={showShipping}
+        onClose={() => setShowShipping(false)}
+        user={user}
+      />
+
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={user}
+        onProfileUpdate={() => {
+          // Refresh user profile data if needed
+          if (onUserUpdate) onUserUpdate(user);
+        }}
       />
     </div>
   );

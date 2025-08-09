@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { CurrencyService } from './currencyService';
 import {
   Order,
   OrderItem,
@@ -26,6 +27,11 @@ import { Product } from '@/types/product';
 import { ProductService } from '@/services/productService';
 
 export class OrderService {
+  // Get checkout total with currency conversion
+  static getCheckoutTotal(cartItems: any[], currencyCode?: string) {
+    const totalKES = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    return CurrencyService.getCheckoutAmount(totalKES, currencyCode);
+  }
   // Cart Management
   static async getCartItems(userId: string): Promise<CartItemWithProduct[]> {
     const { data, error } = await supabase
@@ -270,6 +276,15 @@ export class OrderService {
 
     // Clear cart
     await this.clearCart(userId);
+
+    // Award purchase points for order completion
+    try {
+      const { LoyaltyService } = await import('./loyaltyService');
+      await LoyaltyService.awardSpendingPoints(userId, totalAmount);
+    } catch (error) {
+      console.error('Error awarding purchase points:', error);
+      // Don't fail the order if points awarding fails
+    }
 
     // Return complete order with details
     return {

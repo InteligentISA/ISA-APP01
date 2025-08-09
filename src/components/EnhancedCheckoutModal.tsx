@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderService } from '@/services/orderService';
 import { DeliveryFeeService, DeliveryLocation } from '@/services/deliveryFeeService';
 import { MpesaService } from '@/services/mpesaService';
+import { useCurrency } from '@/hooks/useCurrency';
 import { CartItemWithProduct, Address, PaymentMethod, DeliveryMethod, DeliveryDetails } from '@/types/order';
 import { Product } from '@/types/product';
 
@@ -30,6 +31,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   cartItems,
   onOrderComplete
 }) => {
+  const { formatPrice } = useCurrency();
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
@@ -67,13 +69,8 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const deliveryFee = deliveryMethod === 'delivery' ? calculatedDeliveryFee : 0;
   const totalAmount = subtotal + deliveryFee;
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+  const formatCheckoutPrice = (price: number) => {
+    return formatPrice(price);
   };
 
   const calculateDeliveryFeeForAddress = async () => {
@@ -310,11 +307,11 @@ Customer: ${contactInfo.email}
 Phone: ${contactInfo.phone}
 
 Items:
-${cartItems.map(item => `${item.product.name} x${item.quantity} - ${formatPrice(item.product.price * item.quantity)}`).join('\n')}
+${cartItems.map(item => `${item.product.name} x${item.quantity} - ${formatCheckoutPrice(item.product.price * item.quantity)}`).join('\n')}
 
-Subtotal: ${formatPrice(subtotal)}
-Delivery Fee: ${formatPrice(deliveryFee)}
-Total: ${formatPrice(totalAmount)}
+Subtotal: ${formatCheckoutPrice(subtotal)}
+Delivery Fee: ${formatCheckoutPrice(deliveryFee)}
+Total: ${formatCheckoutPrice(totalAmount)}
 
 Delivery Method: ${deliveryMethod === 'pickup' ? 'Pickup from Vendor' : 'ISA Delivery'}
 Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
@@ -482,7 +479,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-300">Base Fee:</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.baseFee)}</span>
+                          <span className="text-gray-900 dark:text-white">{formatCheckoutPrice(deliveryFeeDetails.baseFee)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600 dark:text-gray-300">Distance Fee ({deliveryFeeDetails.distance}km):</span>
@@ -580,25 +577,25 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                         {item.product.name} x {item.quantity}
                       </span>
                       <span className="font-semibold text-gray-900 dark:text-white">
-                        {formatPrice(item.product.price * item.quantity)}
+                        {formatCheckoutPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
                   ))}
                   <Separator />
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Subtotal:</span>
-                    <span className="text-gray-900 dark:text-white">{formatPrice(subtotal)}</span>
+                    <span className="text-gray-900 dark:text-white">{formatCheckoutPrice(subtotal)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-300">Delivery Fee:</span>
                     <span className="text-gray-900 dark:text-white">
-                      {deliveryFee === 0 ? 'Free' : formatPrice(deliveryFee)}
+                      {deliveryFee === 0 ? 'Free' : formatCheckoutPrice(deliveryFee)}
                     </span>
                   </div>
                   <Separator />
                   <div className="flex justify-between text-lg font-bold">
                     <span className="text-gray-900 dark:text-white">Total:</span>
-                    <span className="text-gray-900 dark:text-white">{formatPrice(totalAmount)}</span>
+                    <span className="text-gray-900 dark:text-white">{formatCheckoutPrice(totalAmount)}</span>
                   </div>
                 </div>
               </div>
@@ -630,7 +627,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                 </h3>
                 <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mb-4">
                   <p className="text-sm text-green-800 dark:text-green-200">
-                    You will receive an M-Pesa prompt on your phone to complete the payment of {formatPrice(totalAmount)}.
+                    You will receive an M-Pesa prompt on your phone to complete the payment of {formatCheckoutPrice(totalAmount)}.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -662,7 +659,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                 </h3>
                 <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-4">
                   <p className="text-sm text-red-800 dark:text-red-200">
-                    You will receive an Airtel Money prompt on your phone to complete the payment of {formatPrice(totalAmount)}.
+                    You will receive an Airtel Money prompt on your phone to complete the payment of {formatCheckoutPrice(totalAmount)}.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -712,7 +709,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                   disabled={isProcessing}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {isProcessing ? 'Processing...' : `Pay ${formatPrice(totalAmount)}`}
+                  {isProcessing ? 'Processing...' : `Pay ${formatCheckoutPrice(totalAmount)}`}
                 </Button>
               )}
             </div>

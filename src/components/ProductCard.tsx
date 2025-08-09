@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import Carousel from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface ProductCardProps {
   product: DashboardProduct;
@@ -34,6 +35,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onToggleLike,
   isLiked = false
 }) => {
+  const { formatPrice: formatCurrencyPrice } = useCurrency();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -232,12 +234,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
+    return formatCurrencyPrice(price);
   };
 
   const renderStars = (rating: number) => {
@@ -316,7 +313,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
         <CardContent className="p-4">
           <div className="font-semibold text-gray-900 dark:text-white truncate mb-1">{product.name}</div>
-          <div className="text-lg font-bold text-purple-600 mb-1">KES {product.price.toLocaleString()}</div>
+          <div className="text-lg font-bold text-purple-600 mb-1">{formatPrice(product.price)}</div>
           <div className="flex items-center mb-2">
             <span className="flex items-center mr-2">
               {Array.from({ length: 5 }).map((_, i) => (
