@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Mail, Lock, User, Chrome, MapPin, Calendar, Phone, ArrowLeft } from "lucide-react";
+import { X, Mail, Lock, User, Chrome, MapPin, Calendar, Phone, ArrowLeft, Building, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import VendorApplicationForm from "./VendorApplicationForm";
+import VendorTraining from "./VendorTraining";
 
 interface AuthenticationModalProps {
   isOpen: boolean;
@@ -14,9 +16,12 @@ interface AuthenticationModalProps {
 }
 
 const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
-  const [activeTab, setActiveTab] = useState<'signin' | 'signup' | 'reset'>('signin');
+  const [activeTab, setActiveTab] = useState<'signin' | 'signup' | 'reset' | 'vendor-signup'>('signin');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle, resetPassword } = useAuth();
+  const [showVendorApplication, setShowVendorApplication] = useState(false);
+  const [showVendorTraining, setShowVendorTraining] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const { signIn, signUp, signInWithGoogle, resetPassword, user } = useAuth();
   const { toast } = useToast();
 
   // Sign in form state
@@ -35,11 +40,26 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
     dateOfBirth: "",
     gender: "",
     location: "",
-    phoneNumber: ""
+    phoneNumber: "",
+    agreeToTerms: false
   });
 
   // Reset password form state
   const [resetEmail, setResetEmail] = useState("");
+  const [pendingVendorSignup, setPendingVendorSignup] = useState(false);
+
+  // Handle vendor signup flow when user becomes available
+  useEffect(() => {
+    if (pendingVendorSignup && user?.id) {
+      setCurrentUserId(user.id);
+      setShowVendorApplication(true);
+      setPendingVendorSignup(false);
+      toast({
+        title: "Account Created!",
+        description: "Now let's complete your vendor application."
+      });
+    }
+  }, [user, pendingVendorSignup, toast]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +113,15 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
       return;
     }
 
+    if (!signUpData.agreeToTerms) {
+      toast({
+        title: "Terms Agreement Required",
+        description: "Please agree to the terms and conditions to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -119,6 +148,84 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
           description: "Please check your email to verify your account."
         });
         onClose();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVendorSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (signUpData.password !== signUpData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (signUpData.password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!signUpData.agreeToTerms) {
+      toast({
+        title: "Terms Agreement Required",
+        description: "Please agree to the terms and conditions to continue.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const userData = {
+        first_name: signUpData.firstName,
+        last_name: signUpData.lastName,
+        date_of_birth: signUpData.dateOfBirth,
+        gender: signUpData.gender,
+        location: signUpData.location,
+        phone_number: signUpData.phoneNumber,
+        user_type: 'vendor',
+        status: 'pending'
+      };
+
+      const { error } = await signUp(signUpData.email, signUpData.password, userData);
+
+      if (error) {
+        toast({
+          title: "Vendor Sign Up Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        // Try to sign in the user immediately after signup
+        const signInResult = await signIn(signUpData.email, signUpData.password);
+        
+        if (signInResult.error) {
+          toast({
+            title: "Account Created!",
+            description: "Please check your email to verify your account, then sign in to complete your vendor application."
+          });
+          onClose();
+        } else {
+          // Set pending vendor signup flag - the useEffect will handle the flow
+          setPendingVendorSignup(true);
+        }
       }
     } catch (error) {
       toast({
@@ -221,9 +328,10 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
           <CardContent className="px-8 pb-8">
             {activeTab !== 'reset' && (
               <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+                <TabsList className="grid w-full grid-cols-3 bg-gray-100">
                   <TabsTrigger value="signin" className="text-gray-900">Sign In</TabsTrigger>
                   <TabsTrigger value="signup" className="text-gray-900">Sign Up</TabsTrigger>
+                  <TabsTrigger value="vendor-signup" className="text-gray-900">Vendor</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="signin" className="space-y-4">
@@ -379,8 +487,133 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
                       />
                     </div>
                     
+                    <div className="flex items-start space-x-2 p-3 bg-gray-50 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="agreeToTermsSignup"
+                        checked={signUpData.agreeToTerms}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, agreeToTerms: e.target.checked }))}
+                        className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="agreeToTermsSignup" className="text-sm text-gray-700">
+                        I agree to the <span className="text-blue-600 font-medium">Terms of Service</span> and <span className="text-blue-600 font-medium">Privacy Policy</span>
+                      </label>
+                    </div>
+                    
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="vendor-signup" className="space-y-4">
+                  <div className="text-center mb-4">
+                    <Building className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                    <h3 className="text-lg font-semibold text-gray-900">Become a Vendor</h3>
+                    <p className="text-sm text-gray-600">Join our platform and start selling your products</p>
+                  </div>
+                  
+                  <form onSubmit={handleVendorSignUp} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder="First Name"
+                          className="pl-10"
+                          value={signUpData.firstName}
+                          onChange={(e) => setSignUpData(prev => ({ ...prev, firstName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="text"
+                          placeholder="Last Name"
+                          className="pl-10"
+                          value={signUpData.lastName}
+                          onChange={(e) => setSignUpData(prev => ({ ...prev, lastName: e.target.value }))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="email"
+                        placeholder="Email"
+                        className="pl-10"
+                        value={signUpData.email}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="password"
+                          placeholder="Password"
+                          className="pl-10"
+                          value={signUpData.password}
+                          onChange={(e) => setSignUpData(prev => ({ ...prev, password: e.target.value }))}
+                          required
+                        />
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                        <Input
+                          type="password"
+                          placeholder="Confirm Password"
+                          className="pl-10"
+                          value={signUpData.confirmPassword}
+                          onChange={(e) => setSignUpData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="tel"
+                        placeholder="Phone Number"
+                        className="pl-10"
+                        value={signUpData.phoneNumber}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    
+                    <div className="flex items-start space-x-2 p-3 bg-gray-50 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="agreeToTerms"
+                        checked={signUpData.agreeToTerms}
+                        onChange={(e) => setSignUpData(prev => ({ ...prev, agreeToTerms: e.target.checked }))}
+                        className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <label htmlFor="agreeToTerms" className="text-sm text-gray-700">
+                        I agree to the <span className="text-green-600 font-medium">Terms of Service</span> and <span className="text-green-600 font-medium">Privacy Policy</span>
+                      </label>
+                    </div>
+                    
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium text-green-900 mb-2">What happens next?</h4>
+                      <ul className="text-sm text-green-800 space-y-1">
+                        <li>• Create your account with basic information</li>
+                        <li>• Complete vendor application form</li>
+                        <li>• Go through vendor training</li>
+                        <li>• Wait for admin approval (1-2 business days)</li>
+                        <li>• Start selling your products!</li>
+                      </ul>
+                    </div>
+                    
+                    <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isLoading}>
+                      {isLoading ? "Creating vendor account..." : "Create Vendor Account"}
                     </Button>
                   </form>
                 </TabsContent>
@@ -434,6 +667,74 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Vendor Application Form */}
+      {showVendorApplication && currentUserId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <Card className="bg-white">
+              <CardHeader className="text-center relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowVendorApplication(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <CardTitle className="text-xl font-bold text-gray-900">
+                  Vendor Application
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <VendorApplicationForm
+                  userId={currentUserId}
+                  onComplete={() => {
+                    setShowVendorApplication(false);
+                    setShowVendorTraining(true);
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Vendor Training */}
+      {showVendorTraining && currentUserId && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <Card className="bg-white">
+              <CardHeader className="text-center relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowVendorTraining(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <CardTitle className="text-xl font-bold text-gray-900">
+                  Vendor Training
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <VendorTraining
+                  userId={currentUserId}
+                  onComplete={() => {
+                    setShowVendorTraining(false);
+                    onClose();
+                    toast({
+                      title: "Application Complete!",
+                      description: "Your vendor application has been submitted. We'll review it and get back to you soon."
+                    });
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,6 +6,8 @@ import AuthSignUp from "@/components/AuthSignUp";
 import AuthSignIn from "@/components/AuthSignIn";
 import Dashboard from "@/components/Dashboard";
 import VendorDashboard from "@/components/VendorDashboard";
+import VendorApplicationForm from "@/components/VendorApplicationForm";
+import VendorTraining from "@/components/VendorTraining";
 import PendingApproval from "@/components/PendingApproval";
 import RejectedApplication from "@/components/RejectedApplication";
 import AskISA from "@/components/AskISA";
@@ -23,7 +25,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -36,6 +38,45 @@ const Index = () => {
   const [pendingPlan, setPendingPlan] = useState<"weekly" | "monthly" | "annual" | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string>('');
+
+  const checkVendorApplicationProgress = async (userId: string) => {
+    try {
+      // Check if vendor has completed application form
+      const { data: applicationStep } = await supabase
+        .from('vendor_application_steps')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('step_name', 'application_form')
+        .single();
+
+      // Check if vendor has completed training
+      const { data: trainingStep } = await supabase
+        .from('vendor_application_steps')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('step_name', 'training_completed')
+        .single();
+
+      if (!applicationStep?.is_completed) {
+        // Show vendor application form
+        setCurrentView('vendor-application');
+        return;
+      }
+
+      if (!trainingStep?.is_completed) {
+        // Show vendor training
+        setCurrentView('vendor-training');
+        return;
+      }
+
+      // Both application and training completed, show pending approval
+      setCurrentView('pending-approval');
+    } catch (error) {
+      console.error('Error checking vendor application progress:', error);
+      // If there's an error, default to pending approval
+      setCurrentView('pending-approval');
+    }
+  };
 
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
@@ -84,8 +125,8 @@ const Index = () => {
               setCurrentView('rejected-application');
               return;
             } else {
-              // Vendor not approved, show pending approval page
-              setCurrentView('pending-approval');
+              // Vendor not approved, check if they've completed application and training
+              checkVendorApplicationProgress(authUser.id);
               return;
             }
           }
@@ -151,8 +192,8 @@ const Index = () => {
         setRejectionReason(formattedUser.rejection_reason || '');
         setCurrentView('rejected-application');
       } else {
-        // Vendor is pending approval, show pending approval page
-        setCurrentView('pending-approval');
+        // Vendor is pending approval, check application progress
+        checkVendorApplicationProgress(formattedUser.id || authUser?.id);
       }
     } else {
       setCurrentView('dashboard');
@@ -424,6 +465,22 @@ const Index = () => {
           user={user} 
           onLogout={handleLogout}
         />
+      )}
+      {currentView === 'vendor-application' && (
+        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+          <VendorApplicationForm
+            userId={user?.id || authUser?.id}
+            onComplete={() => setCurrentView('vendor-training')}
+          />
+        </div>
+      )}
+      {currentView === 'vendor-training' && (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+          <VendorTraining
+            userId={user?.id || authUser?.id}
+            onComplete={() => setCurrentView('pending-approval')}
+          />
+        </div>
       )}
       {currentView === 'pending-approval' && (
         <PendingApproval 

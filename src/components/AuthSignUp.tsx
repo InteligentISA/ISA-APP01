@@ -82,16 +82,11 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
     confirmPassword: ""
   });
   const [vendorData, setVendorData] = useState({
-    company: "",
-    businessType: "",
     firstName: "",
     lastName: "",
-    phoneNumber: "",
     email: "",
     password: "",
-    confirmPassword: "",
-    taxId: "",
-    companyWebsite: ""
+    confirmPassword: ""
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -155,15 +150,10 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
       } : {
         first_name: vendorData.firstName,
         last_name: vendorData.lastName,
-        company: vendorData.company,
-        business_type: vendorData.businessType,
-        phone_number: vendorData.phoneNumber,
         email: vendorData.email,
         user_type: userType,
         status: 'pending',
-        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`,
-        tax_id: vendorData.taxId,
-        company_website: vendorData.companyWebsite
+        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
       };
       const { error } = await signUp(currentData.email, currentData.password, userData);
       if (error) {
@@ -181,12 +171,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
             .from('profiles')
             .update({
               user_type: 'vendor',
-              status: 'pending',
-              company: vendorData.company,
-              business_type: vendorData.businessType,
-              phone_number: vendorData.phoneNumber,
-              tax_id: vendorData.taxId,
-              company_website: vendorData.companyWebsite
+              status: 'pending'
             })
             .eq('email', vendorData.email);
           if (updateError) {
@@ -215,14 +200,9 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
         } : {
           name: `${vendorData.firstName} ${vendorData.lastName}`,
           email: vendorData.email,
-          company: vendorData.company,
-          businessType: vendorData.businessType,
-          phoneNumber: vendorData.phoneNumber,
           userType: userType,
           status: 'pending',
-          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`,
-          taxId: vendorData.taxId,
-          companyWebsite: vendorData.companyWebsite
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${vendorData.firstName}`
         };
         onAuthSuccess(appUser);
       }
@@ -454,45 +434,15 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
               )}
               {userType === 'vendor' && (
                 <>
-                  <div>
-                    <Label htmlFor="vendor-company" className="mb-1 block">Company Name</Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="vendor-company"
-                        type="text"
-                        placeholder="Company Name"
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        value={vendorData.company}
-                        onChange={e => handleVendorInputChange('company', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="vendor-business-type" className="mb-1 block">Type of Business/Products</Label>
-                    <div className="relative">
-                      <Store className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="vendor-business-type"
-                        type="text"
-                        placeholder="Type of Business/Products"
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        value={vendorData.businessType}
-                        onChange={e => handleVendorInputChange('businessType', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="vendor-first-name" className="mb-1 block">Rep First Name</Label>
+                      <Label htmlFor="vendor-first-name" className="mb-1 block">First Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
                           id="vendor-first-name"
                           type="text"
-                          placeholder="Rep First Name"
+                          placeholder="First Name"
                           className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={vendorData.firstName}
                           onChange={e => handleVendorInputChange('firstName', e.target.value)}
@@ -501,13 +451,13 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="vendor-last-name" className="mb-1 block">Rep Last Name</Label>
+                      <Label htmlFor="vendor-last-name" className="mb-1 block">Last Name</Label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
                           id="vendor-last-name"
                           type="text"
-                          placeholder="Rep Last Name"
+                          placeholder="Last Name"
                           className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           value={vendorData.lastName}
                           onChange={e => handleVendorInputChange('lastName', e.target.value)}
@@ -516,43 +466,15 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <Label htmlFor="vendor-phone" className="mb-1 block">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input
-                        id="vendor-phone"
-                        type="tel"
-                        placeholder="Phone Number"
-                        className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        value={vendorData.phoneNumber}
-                        onChange={e => handleVendorInputChange('phoneNumber', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="vendor-tax-id" className="mb-1 block">Tax ID/KRA PIN</Label>
-                    <Input
-                      id="vendor-tax-id"
-                      type="text"
-                      placeholder="Enter your Tax ID or KRA PIN number"
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      value={vendorData.taxId}
-                      onChange={e => handleVendorInputChange('taxId', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="vendor-company-website" className="mb-1 block">Website/Social Media Pages</Label>
-                    <Input
-                      id="vendor-company-website"
-                      type="url"
-                      placeholder="https://yourcompany.com or social media links"
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      value={vendorData.companyWebsite}
-                      onChange={e => handleVendorInputChange('companyWebsite', e.target.value)}
-                    />
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 className="font-medium text-green-900 mb-2">What happens next?</h4>
+                    <ul className="text-sm text-green-800 space-y-1">
+                      <li>• Create your account with basic information</li>
+                      <li>• Complete vendor application form</li>
+                      <li>• Go through vendor training</li>
+                      <li>• Wait for admin approval (1-2 business days)</li>
+                      <li>• Start selling your products!</li>
+                    </ul>
                   </div>
                 </>
               )}
