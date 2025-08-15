@@ -19,7 +19,7 @@ import {
   ShoppingCart
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { LoyaltyService } from "@/services/loyaltyService";
 
 interface UserWalletProps {
   user: any;
@@ -43,59 +43,15 @@ const UserWallet = ({ user }: UserWalletProps) => {
 
   const loadUserData = async () => {
     try {
-      // Load user points
-      const { data: pointsData, error: pointsError } = await supabase
-        .from('user_points')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
+      // Use LoyaltyService instead of direct Supabase calls
+      const points = await LoyaltyService.getUserPoints(user.id);
+      setUserPoints(points);
 
-      if (pointsError && pointsError.code !== 'PGRST116') {
-        console.error('Error loading points:', pointsError);
-      } else if (pointsData) {
-        setUserPoints(pointsData);
-      } else {
-        // Initialize user points if not exists
-        const { data: newPoints } = await supabase
-          .from('user_points')
-          .insert({
-            user_id: user.id,
-            total_points: 0,
-            available_points: 0,
-            lifetime_earned: 0,
-            lifetime_redeemed: 0
-          })
-          .select()
-          .single();
-        
-        if (newPoints) {
-          setUserPoints(newPoints);
-        }
-      }
+      const transactions = await LoyaltyService.getPointsTransactions(user.id, 10);
+      setTransactions(transactions);
 
-      // Load transactions
-      const { data: transactionsData, error: transactionsError } = await supabase
-        .from('points_transactions')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      if (!transactionsError && transactionsData) {
-        setTransactions(transactionsData);
-      }
-
-      // Load points configuration
-      const { data: configData, error: configError } = await supabase
-        .from('points_config')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!configError && configData) {
-        setPointsConfig(configData);
-      }
+      const config = await LoyaltyService.getPointsConfig();
+      setPointsConfig(config);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -124,14 +80,12 @@ const UserWallet = ({ user }: UserWalletProps) => {
     }
 
     try {
-      const { data, error } = await supabase.rpc('redeem_points', {
-        user_id_param: user.id,
-        points_to_redeem: points
-      });
+      // Redeem points using LoyaltyService
+      const data = await LoyaltyService.redeemPoints(user.id, points);
 
-      if (error) throw error;
+      const success = data;
 
-      if (data) {
+      if (success) {
         toast({
           title: "Points redeemed successfully!",
           description: `${points} points have been redeemed. Value: KES ${(points * (pointsConfig?.point_value_kes || 0.1)).toFixed(2)}`

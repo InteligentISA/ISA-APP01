@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { LoyaltyService } from "@/services/loyaltyService";
 
 interface StyleQuizProps {
   user: any;
@@ -58,21 +59,8 @@ const StyleQuiz = ({ user, onComplete }: StyleQuizProps) => {
       const gender = profile?.gender || 'male'; // Default to male if not set
 
       // Load questions for the user's gender
-      const { data: questionsData, error } = await supabase
-        .from('style_quiz_questions')
-        .select('*')
-        .eq('gender', gender)
-        .eq('is_active', true)
-        .order('question_order', { ascending: true });
-
-      if (error) {
-        console.error('Error loading quiz questions:', error);
-        return;
-      }
-
-      if (questionsData) {
-        setQuestions(questionsData);
-      }
+      const questionsData = await LoyaltyService.getQuizQuestions(gender);
+      setQuestions(questionsData as unknown as QuizQuestion[]);
     } catch (error) {
       console.error('Error loading quiz:', error);
     } finally {
@@ -111,6 +99,19 @@ const StyleQuiz = ({ user, onComplete }: StyleQuizProps) => {
 
     setSubmitting(true);
     try {
+      // Check if user has already completed the quiz
+      const hasCompleted = await LoyaltyService.hasCompletedQuiz(user.id);
+      
+      if (hasCompleted) {
+        toast({
+          title: "Quiz Already Completed",
+          description: "You have already completed the style quiz and earned your points.",
+          variant: "destructive"
+        });
+        setSubmitting(false);
+        return;
+      }
+
       // Save quiz responses
       const responses = Object.entries(answers).map(([questionId, option]) => ({
         user_id: user.id,
@@ -118,44 +119,10 @@ const StyleQuiz = ({ user, onComplete }: StyleQuizProps) => {
         selected_option: option
       }));
 
-      const { error: responsesError } = await supabase
-        .from('user_quiz_responses')
-        .upsert(responses, { onConflict: 'user_id,question_id' });
-
-      if (responsesError) throw responsesError;
+      await LoyaltyService.saveQuizResponses(user.id, responses);
 
       // Award points for quiz completion
-      const { data: configData } = await supabase
-        .from('points_config')
-        .select('quiz_completion_points')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      const pointsToAward = configData?.quiz_completion_points || 20;
-
-      // Award points using the existing function
-      const { error: pointsError } = await supabase.rpc('award_spending_points', {
-        user_id_param: user.id,
-        amount_spent: 0 // This will be overridden by the quiz completion logic
-      });
-
-      if (pointsError) {
-        console.error('Error awarding points:', pointsError);
-        // Fallback: manually insert points transaction
-        const { error: manualPointsError } = await supabase
-          .from('points_transactions')
-          .insert({
-            user_id: user.id,
-            transaction_type: 'earned',
-            points: pointsToAward,
-            reason: 'Style quiz completion'
-          });
-
-        if (manualPointsError) {
-          console.error('Error with manual points insertion:', manualPointsError);
-        }
-      }
+      const pointsToAward = await LoyaltyService.awardQuizPoints(user.id);
 
       setPointsAwarded(pointsToAward);
       setShowCompletionDialog(true);

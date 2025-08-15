@@ -402,7 +402,15 @@ export class ProductService {
   static async getProductReviews(productId: string) {
     const { data, error } = await supabase
       .from('product_reviews')
-      .select(`id, rating, title, comment, created_at, user_id, profiles:profiles!product_reviews_user_id_fkey(id, first_name, last_name)`)
+      .select(`
+        id, 
+        rating, 
+        title, 
+        comment, 
+        created_at, 
+        user_id,
+        profiles!user_id(first_name, last_name)
+      `)
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
     return { data, error };

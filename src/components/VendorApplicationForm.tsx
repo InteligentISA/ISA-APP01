@@ -197,23 +197,30 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
         documentUrls.pinCert = await uploadDocument(formData.documents.pinCert, 'pin-cert');
       }
 
-      // Insert vendor application (main onboarding record)
+      // Insert vendor application step record - using type assertion for Supabase types
       const { error: appError } = await supabase
-        .from('vendor_applications')
+        .from('vendor_application_steps' as any)
         .insert([
           {
             user_id: userId,
-            business_name: formData.businessName,
-            business_description: formData.description,
-            business_address: `${formData.location.county}, ${formData.location.constituency}`,
-            business_phone: formData.phone,
-            business_email: formData.email,
-            tax_id: formData.documents.pinCert ? 'provided' : null, // or add a field for tax id if available
-            bank_account_info: { bankDetails: formData.documents.bankDetails },
-            documents: documentUrls,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            step_name: 'application_form',
+            step_data: {
+              accountType: formData.accountType,
+              businessName: formData.businessName,
+              contactPerson: formData.contactPerson,
+              email: formData.email,
+              phone: formData.phone,
+              businessType: formData.businessType,
+              otherBusinessType: formData.otherBusinessType,
+              description: formData.description,
+              location: formData.location,
+              documents: {
+                bankDetails: formData.documents.bankDetails,
+                ...documentUrls
+              }
+            },
+            is_completed: true,
+            completed_at: new Date().toISOString()
           },
         ]);
       if (appError) throw appError;
