@@ -934,6 +934,81 @@ export type Database = {
           },
         ]
       }
+      vendor_applications: {
+        Row: {
+          id: string;
+          user_id: string;
+          business_name: string;
+          business_description: string | null;
+          business_address: string | null;
+          business_phone: string | null;
+          business_email: string | null;
+          business_website: string | null;
+          tax_id: string | null;
+          bank_account_info: Json | null;
+          documents: Json | null;
+          status: string;
+          admin_notes: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          business_name: string;
+          business_description?: string | null;
+          business_address?: string | null;
+          business_phone?: string | null;
+          business_email?: string | null;
+          business_website?: string | null;
+          tax_id?: string | null;
+          bank_account_info?: Json | null;
+          documents?: Json | null;
+          status: string;
+          admin_notes?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          business_name?: string;
+          business_description?: string | null;
+          business_address?: string | null;
+          business_phone?: string | null;
+          business_email?: string | null;
+          business_website?: string | null;
+          tax_id?: string | null;
+          bank_account_info?: Json | null;
+          documents?: Json | null;
+          status?: string;
+          admin_notes?: string | null;
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "vendor_applications_user_id_fkey",
+            columns: ["user_id"],
+            isOneToOne: false,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_applications_reviewed_by_fkey",
+            columns: ["reviewed_by"],
+            isOneToOne: false,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"]
+          }
+        ];
+      },
     }
     Views: {
       product_popularity: {

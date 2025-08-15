@@ -187,20 +187,38 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
     try {
       // Upload documents
       const documentUrls: Record<string, string> = {};
-      
       if (formData.documents.idCard) {
         documentUrls.idCard = await uploadDocument(formData.documents.idCard, 'id-card');
       }
-      
       if (formData.documents.businessCert) {
         documentUrls.businessCert = await uploadDocument(formData.documents.businessCert, 'business-cert');
       }
-      
       if (formData.documents.pinCert) {
         documentUrls.pinCert = await uploadDocument(formData.documents.pinCert, 'pin-cert');
       }
 
-      // Update profile with vendor application data
+      // Insert vendor application (main onboarding record)
+      const { error: appError } = await supabase
+        .from('vendor_applications')
+        .insert([
+          {
+            user_id: userId,
+            business_name: formData.businessName,
+            business_description: formData.description,
+            business_address: `${formData.location.county}, ${formData.location.constituency}`,
+            business_phone: formData.phone,
+            business_email: formData.email,
+            tax_id: formData.documents.pinCert ? 'provided' : null, // or add a field for tax id if available
+            bank_account_info: { bankDetails: formData.documents.bankDetails },
+            documents: documentUrls,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ]);
+      if (appError) throw appError;
+
+      // Update profile with vendor status
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -214,32 +232,12 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
           location: `${formData.location.county}, ${formData.location.constituency}`
         })
         .eq('id', userId);
-
       if (profileError) throw profileError;
-
-      // Save application step data to profiles table instead
-      const { error: stepError } = await supabase
-        .from('profiles')
-        .update({
-          vendor_application_completed: true,
-          vendor_application_data: {
-            ...formData,
-            documents: {
-              ...documentUrls,
-              bankDetails: formData.documents.bankDetails
-            }
-          },
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (stepError) throw stepError;
 
       toast({
         title: "Application Submitted",
         description: "Your vendor application has been submitted successfully!"
       });
-
       onComplete();
     } catch (error) {
       console.error('Error submitting application:', error);
