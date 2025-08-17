@@ -10,12 +10,102 @@ import { Switch } from "@/components/ui/switch";
 import { User, CreditCard, Settings as SettingsIcon, Phone, CreditCard as CreditCardIcon, Trash2, Edit2, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useState as useLocalState } from "react";
 
 interface VendorSettingsProps {
   vendorId: string;
   defaultTab?: string;
   showUpgradeModal?: boolean;
   onCloseUpgradeModal?: () => void;
+}
+
+function ChangePasswordForm({ email }: { email: string }) {
+  const { signIn } = useAuth();
+  const [currentPassword, setCurrentPassword] = useLocalState("");
+  const [newPassword, setNewPassword] = useLocalState("");
+  const [confirmPassword, setConfirmPassword] = useLocalState("");
+  const [loading, setLoading] = useLocalState(false);
+  const [error, setError] = useLocalState<string | null>(null);
+  const [success, setSuccess] = useLocalState<string | null>(null);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("All fields are required.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New password and confirmation do not match.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    setLoading(true);
+    // Re-authenticate user
+    const { error: signInError } = await signIn(email, currentPassword);
+    if (signInError) {
+      setError("Current password is incorrect.");
+      setLoading(false);
+      return;
+    }
+    // Update password
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+    if (updateError) {
+      setError(updateError.message || "Failed to update password.");
+      setLoading(false);
+      return;
+    }
+    setSuccess("Password updated successfully.");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setLoading(false);
+  };
+
+  return (
+    <form onSubmit={handleChangePassword} className="space-y-3 max-w-md">
+      <div>
+        <Label htmlFor="current_password">Current Password</Label>
+        <Input
+          id="current_password"
+          type="password"
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={e => setCurrentPassword(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="new_password">New Password</Label>
+        <Input
+          id="new_password"
+          type="password"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={e => setNewPassword(e.target.value)}
+        />
+      </div>
+      <div>
+        <Label htmlFor="confirm_password">Confirm New Password</Label>
+        <Input
+          id="confirm_password"
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+        />
+      </div>
+      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {success && <div className="text-green-600 text-sm">{success}</div>}
+      <Button type="submit" disabled={loading}>
+        {loading ? "Updating..." : "Change Password"}
+      </Button>
+    </form>
+  );
 }
 
 const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = false, onCloseUpgradeModal }: VendorSettingsProps) => {
@@ -476,6 +566,12 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
               <Button onClick={updateProfile} disabled={loading}>
                 {loading ? "Updating..." : "Update Profile"}
               </Button>
+
+              {/* Change Password Section */}
+              <div className="mt-8 border-t pt-6">
+                <h2 className="text-base md:text-lg font-semibold mb-2">Change Password</h2>
+                <ChangePasswordForm email={profile.email} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

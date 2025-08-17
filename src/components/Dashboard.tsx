@@ -134,6 +134,11 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
       .finally(() => setProductLoading(false));
   }, [currentPage, debouncedSearchQuery, selectedCategory]);
 
+  // After fetching products, filter to only show approved products for local (vendor) products, but always show Jumia products
+  useEffect(() => {
+    setProducts((products || []).filter(p => (p.source === 'jumia') || (p.status === 'approved')));
+  }, [products]);
+
   const handleAddToCart = async (product) => {
     if (!user?.id) return;
     try {

@@ -36,6 +36,9 @@ export interface Product {
     first_name?: string;
     last_name?: string;
   };
+  // Approval workflow fields
+  status?: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
 }
 
 export interface ProductCategory {

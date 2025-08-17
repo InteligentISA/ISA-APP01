@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Menu } from "lucide-react";
+import { AlertTriangle, Menu, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import VendorSidebar from "./VendorSidebar";
@@ -25,6 +25,9 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const [upgradeFromBanner, setUpgradeFromBanner] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const PLAN_LIMITS: Record<string, number> = {
     free: 5,
@@ -84,6 +87,37 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
     setSidebarOpen(false); // Close sidebar on mobile
   };
 
+  // Fetch notifications for this vendor
+  const fetchNotifications = async () => {
+    setNotificationsLoading(true);
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('vendor_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (!error) setNotifications(data || []);
+    setNotificationsLoading(false);
+  };
+
+  // Mark all as read
+  const markAllNotificationsRead = async () => {
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('vendor_id', user.id)
+      .eq('read', false);
+    fetchNotifications();
+  };
+
+  const handleShowNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      fetchNotifications();
+      markAllNotificationsRead();
+    }
+  };
+
   const renderContent = () => {
     switch (activeSection) {
       case "home":
@@ -91,8 +125,8 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       case "products":
         return (
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Products</h1>
-            <VendorProductManagement user={user} />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">All Approved Products</h1>
+            <VendorProductManagement user={user} showAllApprovedProducts />
           </div>
         );
       case "orders":
@@ -173,6 +207,41 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
               <h2 className="text-lg font-semibold text-gray-900">Vendor Portal</h2>
               <p className="text-sm text-gray-600">{user.name}</p>
             </div>
+          </div>
+          <div className="relative">
+            <button onClick={handleShowNotifications} className="h-10 w-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors relative">
+              <Bell className="h-5 w-5" />
+              {notifications.some(n => !n.read) && (
+                <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500"></span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 z-50 w-80 bg-white border rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-gray-900">Notifications</span>
+                  <button className="text-xs text-gray-500 hover:text-gray-900" onClick={() => setShowNotifications(false)}>Close</button>
+                </div>
+                {notificationsLoading ? (
+                  <div className="text-center text-gray-500 py-8">Loading...</div>
+                ) : notifications.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">No notifications</div>
+                ) : (
+                  <ul className="divide-y divide-gray-200">
+                    {notifications.map((n) => (
+                      <li key={n.id} className={`py-2 px-1 ${!n.read ? 'bg-orange-50' : ''}`}>
+                        <div className="flex items-center gap-2">
+                          {n.type === 'product_approved' && <span className="bg-green-500 text-white rounded px-2 text-xs">Approved</span>}
+                          {n.type === 'product_rejected' && <span className="bg-red-500 text-white rounded px-2 text-xs">Rejected</span>}
+                          <span className="font-medium text-gray-900">{n.product_name || ''}</span>
+                        </div>
+                        <div className="text-xs text-gray-700 mt-1">{n.message}</div>
+                        <div className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         </div>
         

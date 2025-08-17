@@ -508,15 +508,13 @@ const Index = () => {
         />
       )}
       {currentView === 'gifts' && (
-        isPremiumUser(user) ? (
-          <GiftsSection
-            user={user}
-            onBack={handleBackToDashboard}
-            onAddToCart={handleAddToCart}
-            onToggleLike={handleToggleLike}
-            likedItems={likedItems}
-          />
-        ) : null // Modal is shown instead
+        <GiftsSection
+          user={user}
+          onBack={handleBackToDashboard}
+          onAddToCart={handleAddToCart}
+          onToggleLike={handleToggleLike}
+          likedItems={likedItems}
+        />
       )}
       {currentView === 'my-shipping' && (
         <MyShipping />

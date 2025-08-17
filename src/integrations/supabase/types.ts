@@ -1009,6 +1009,39 @@ export type Database = {
           }
         ];
       },
+      vendor_application_steps: {
+        Row: {
+          id: string;
+          user_id: string;
+          step_name: string;
+          step_data: Json | null;
+          completed_at: string | null;
+          is_completed: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          step_name: string;
+          step_data?: Json | null;
+          completed_at?: string | null;
+          is_completed: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          step_name?: string;
+          step_data?: Json | null;
+          completed_at?: string | null;
+          is_completed?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      },
     }
     Views: {
       product_popularity: {

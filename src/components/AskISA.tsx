@@ -165,7 +165,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
       setMessages(prev => [...prev, isaResponse]);
       setChatCount(prev => prev + 1);
       // Update chat_count in Supabase
-      await supabase.from('profiles').update({ chat_count: chatCount + 1 }).eq('id', user.id);
+      // Remove chat_count update as it is not a valid property
     } catch (err) {
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
@@ -406,10 +406,8 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
       <TierUpgradeModal
         isOpen={showTierModal}
         onClose={() => setShowTierModal(false)}
-        onSelectPlan={(plan) => {
-          setShowTierModal(false);
-          if (onUpgrade) onUpgrade();
-        }}
+        onPay={() => { setShowTierModal(false); if (onUpgrade) onUpgrade(); }}
+        loading={false}
       />
     </SidebarProvider>
   );

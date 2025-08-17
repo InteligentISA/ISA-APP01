@@ -22,7 +22,8 @@ import {
   DollarSign,
   Star,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from "lucide-react";
 import { Product } from "@/types/product";
 import { ProductService } from "@/services/productService";
@@ -30,9 +31,11 @@ import { ImageUploadService } from "@/services/imageUploadService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import EnhancedImageUpload, { ProductImageData } from "./EnhancedImageUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VendorProductManagementProps {
   user: any;
+  showAllApprovedProducts?: boolean;
 }
 
 interface ProductFormData {
@@ -198,7 +201,7 @@ export const CATEGORY_TREE: CategoryNode[] = [
   ] }
 ];
 
-const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
+const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -241,6 +244,14 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   const [subSubCategory, setSubSubCategory] = useState<string>("");
   const [extraFields, setExtraFields] = useState<{ [key: string]: string }>({});
 
+  // Add state for product status tab
+  const [statusTab, setStatusTab] = useState<'approved' | 'pending' | 'rejected'>('approved');
+
+  // Add state for notifications
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+
   // 3. Helper to get subcategories for a given main category
   const getSubcategories = (main: string) => {
     const node = CATEGORY_TREE.find(cat => cat.name === main);
@@ -259,28 +270,37 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchNotifications(); // Fetch notifications on mount
   }, []);
 
+  // Update fetchProducts to support showAllApprovedProducts
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      // For now, we'll fetch all products. In a real app, you'd filter by vendor_id
-      const result = await ProductService.getProducts();
-      if (result.error) {
-        toast({
-          title: "Error",
-          description: "Failed to load products",
-          variant: "destructive"
-        });
+      if (showAllApprovedProducts) {
+        // Show all approved products in the database
+        const result = await ProductService.getProducts({ filters: { }, sort: { field: 'created_at', direction: 'desc' } });
+        if (result.error) {
+          toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
+        } else {
+          setProducts((result.data || []).filter(p => p.status === 'approved'));
+        }
       } else {
-        setProducts(result.data);
+        // Only show this vendor's products
+        if (!authUser?.id) {
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
+        const result = await ProductService.getProductsByVendor(authUser.id);
+        if (result.error) {
+          toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
+        } else {
+          setProducts(result.data);
+        }
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load products",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to load products", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -294,6 +314,38 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  // Fetch notifications for this vendor
+  const fetchNotifications = async () => {
+    setNotificationsLoading(true);
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('vendor_id', authUser?.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (!error) setNotifications(data || []);
+    setNotificationsLoading(false);
+  };
+
+  // Mark all as read
+  const markAllNotificationsRead = async () => {
+    await supabase
+      .from('notifications')
+      .update({ read: true })
+      .eq('vendor_id', authUser?.id)
+      .eq('read', false);
+    fetchNotifications();
+  };
+
+  // Show notifications when bell is clicked
+  const handleShowNotifications = () => {
+    setShowNotifications(!showNotifications);
+    if (!showNotifications) {
+      fetchNotifications();
+      markAllNotificationsRead();
     }
   };
 
@@ -510,13 +562,23 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
     }));
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Filter products for display
+  const filteredProducts = showAllApprovedProducts
+    ? products.filter(product => {
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+    : products.filter(product => {
+        const matchesStatus = product.status === statusTab;
+        const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.brand?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+        return matchesStatus && matchesSearch && matchesCategory;
+      });
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -538,10 +600,45 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Product Management</h1>
               <p className="text-gray-600 text-sm md:text-base">Manage your product catalog</p>
             </div>
-            <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => setShowAddDialog(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
+              <Button variant="ghost" size="icon" onClick={handleShowNotifications} className="relative">
+                <Bell className="w-5 h-5" />
+                {notifications.some(n => !n.read) && (
+                  <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
+                )}
+              </Button>
+              {showNotifications && (
+                <div className="absolute right-0 mt-12 z-50 w-80 bg-white border rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-900">Notifications</span>
+                    <Button variant="ghost" size="sm" onClick={() => setShowNotifications(false)}>Close</Button>
+                  </div>
+                  {notificationsLoading ? (
+                    <div className="text-center text-gray-500 py-8">Loading...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="text-center text-gray-500 py-8">No notifications</div>
+                  ) : (
+                    <ul className="divide-y divide-gray-200">
+                      {notifications.map((n) => (
+                        <li key={n.id} className={`py-2 px-1 ${!n.read ? 'bg-orange-50' : ''}`}>
+                          <div className="flex items-center gap-2">
+                            {n.type === 'product_approved' && <Badge className="bg-green-500 text-white">Approved</Badge>}
+                            {n.type === 'product_rejected' && <Badge className="bg-red-500 text-white">Rejected</Badge>}
+                            <span className="font-medium text-gray-900">{n.product_name || ''}</span>
+                          </div>
+                          <div className="text-xs text-gray-700 mt-1">{n.message}</div>
+                          <div className="text-xs text-gray-400 mt-1">{new Date(n.created_at).toLocaleString()}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Stats */}
@@ -619,6 +716,33 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
           </div>
         </div>
 
+        {/* Status Tabs */}
+        {!showAllApprovedProducts && (
+          <div className="mb-4 flex gap-2">
+            <Button
+              variant={statusTab === 'approved' ? 'default' : 'outline'}
+              onClick={() => setStatusTab('approved')}
+              className="text-xs md:text-sm"
+            >
+              Approved
+            </Button>
+            <Button
+              variant={statusTab === 'pending' ? 'default' : 'outline'}
+              onClick={() => setStatusTab('pending')}
+              className="text-xs md:text-sm"
+            >
+              Pending
+            </Button>
+            <Button
+              variant={statusTab === 'rejected' ? 'default' : 'outline'}
+              onClick={() => setStatusTab('rejected')}
+              className="text-xs md:text-sm"
+            >
+              Rejected
+            </Button>
+          </div>
+        )}
+
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {filteredProducts.map((product) => (
@@ -631,13 +755,14 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     className="w-full h-40 md:h-48 object-cover rounded-t-lg"
                   />
                   {/* Only show edit/delete if vendor owns the product */}
-                  {product.vendor_id === authUser?.id && (
+                  {(!showAllApprovedProducts && product.vendor_id === authUser?.id) || (showAllApprovedProducts && product.vendor_id === authUser?.id) ? (
                     <div className="absolute top-2 right-2 flex gap-1">
                       <Button
                         size="icon"
                         variant="secondary"
                         className="w-7 h-7 md:w-8 md:h-8 bg-white/90 hover:bg-white"
                         onClick={() => handleEdit(product)}
+                        disabled={product.status === 'pending'}
                       >
                         <Edit className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
@@ -646,11 +771,12 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                         variant="destructive"
                         className="w-7 h-7 md:w-8 md:h-8 bg-red-500/90 hover:bg-red-500"
                         onClick={() => handleDelete(product.id)}
+                        disabled={product.status === 'pending'}
                       >
                         <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                   <div className="absolute top-2 left-2 flex gap-1">
                     {product.is_featured && (
                       <Badge className="bg-yellow-500 text-white text-xs">Featured</Badge>
@@ -658,18 +784,24 @@ const VendorProductManagement = ({ user }: VendorProductManagementProps) => {
                     {!product.is_active && (
                       <Badge variant="destructive" className="text-xs">Inactive</Badge>
                     )}
+                    {product.status === 'pending' && (
+                      <Badge className="bg-gray-400 text-white text-xs">Pending</Badge>
+                    )}
+                    {product.status === 'rejected' && (
+                      <Badge className="bg-red-600 text-white text-xs">Rejected</Badge>
+                    )}
                   </div>
                 </div>
-                
                 <div className="p-3 md:p-4">
                   <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 text-sm md:text-base">{product.name}</h3>
                   <p className="text-xs md:text-sm text-gray-600 mb-2 line-clamp-2">{product.description}</p>
-                  
+                  {product.status === 'rejected' && product.rejection_reason && (
+                    <div className="text-xs text-red-600 mb-2">Reason: {product.rejection_reason}</div>
+                  )}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-base md:text-lg font-bold text-gray-900">{formatPrice(product.price)}</span>
                     <Badge variant="secondary" className="text-xs">{product.category}</Badge>
                   </div>
-                  
                   <div className="flex items-center justify-between text-xs md:text-sm text-gray-600">
                     <span>Stock: {product.stock_quantity}</span>
                     <div className="flex items-center">

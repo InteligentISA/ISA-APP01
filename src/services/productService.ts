@@ -176,10 +176,10 @@ export class ProductService {
   static async createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<{ data: Product | null; error: any }> {
     try {
       console.log('Creating product with data:', product);
-      
+      // Always set status to 'pending' on creation
       const { data, error } = await supabase
         .from('products')
-        .insert([product])
+        .insert([{ ...product, status: 'pending', rejection_reason: null }])
         .select('*')
         .single();
 
