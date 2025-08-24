@@ -33,6 +33,7 @@ const UserWallet = ({ user }: UserWalletProps) => {
   const [redeemAmount, setRedeemAmount] = useState("");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [redemptionEnabled, setRedemptionEnabled] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -52,6 +53,9 @@ const UserWallet = ({ user }: UserWalletProps) => {
 
       const config = await LoyaltyService.getPointsConfig();
       setPointsConfig(config);
+
+      const enabled = await LoyaltyService.isRedemptionEnabled();
+      setRedemptionEnabled(enabled);
     } catch (error) {
       console.error('Error loading user data:', error);
     } finally {
@@ -201,14 +205,24 @@ const UserWallet = ({ user }: UserWalletProps) => {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button 
-              onClick={() => setShowRedeemDialog(true)}
-              disabled={!userPoints?.available_points || userPoints.available_points <= 0}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <Gift className="w-4 h-4 mr-2" />
-              Redeem Points
-            </Button>
+            {redemptionEnabled ? (
+              <Button 
+                onClick={() => setShowRedeemDialog(true)}
+                disabled={!userPoints?.available_points || userPoints.available_points <= 0}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                <Gift className="w-4 h-4 mr-2" />
+                Redeem Points
+              </Button>
+            ) : (
+              <Button 
+                disabled
+                className="bg-gray-400 text-white cursor-not-allowed"
+              >
+                <Gift className="w-4 h-4 mr-2" />
+                Coming Soon!
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={copyReferralLink}

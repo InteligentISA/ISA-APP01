@@ -75,6 +75,39 @@ export class LoyaltyService {
     }
   }
 
+  // Check if redemption is enabled
+  static async isRedemptionEnabled() {
+    try {
+      const config = await this.getPointsConfig();
+      return config?.redemption_enabled || false;
+    } catch (error) {
+      console.error('Error checking redemption status:', error);
+      return false;
+    }
+  }
+
+  // Check if vendor subscriptions are enabled
+  static async isVendorSubscriptionEnabled() {
+    try {
+      const config = await this.getPointsConfig();
+      return config?.vendor_subscription_enabled || false;
+    } catch (error) {
+      console.error('Error checking vendor subscription status:', error);
+      return false;
+    }
+  }
+
+  // Check if customer premium is enabled
+  static async isCustomerPremiumEnabled() {
+    try {
+      const config = await this.getPointsConfig();
+      return config?.customer_premium_enabled || false;
+    } catch (error) {
+      console.error('Error checking customer premium status:', error);
+      return false;
+    }
+  }
+
   // Award points for spending
   static async awardSpendingPoints(userId: string, amountSpent: number) {
     try {

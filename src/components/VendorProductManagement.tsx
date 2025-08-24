@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { 
   Plus, 
   Edit, 
@@ -23,11 +24,13 @@ import {
   Star,
   TrendingUp,
   AlertCircle,
-  Bell
+  Bell,
+  Crown
 } from "lucide-react";
 import { Product } from "@/types/product";
 import { ProductService } from "@/services/productService";
 import { ImageUploadService } from "@/services/imageUploadService";
+import { CommissionService } from "@/services/commissionService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import EnhancedImageUpload, { ProductImageData } from "./EnhancedImageUpload";
@@ -36,6 +39,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface VendorProductManagementProps {
   user: any;
   showAllApprovedProducts?: boolean;
+  onNavigateToSubscription?: () => void;
 }
 
 interface ProductFormData {
@@ -201,7 +205,7 @@ export const CATEGORY_TREE: CategoryNode[] = [
   ] }
 ];
 
-const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProductManagementProps) => {
+const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSubscription }: VendorProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -252,6 +256,10 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
 
+  // Add state for commission calculation
+  const [commissionInfo, setCommissionInfo] = useState<any>(null);
+  const [showCommissionBreakdown, setShowCommissionBreakdown] = useState(false);
+
   // 3. Helper to get subcategories for a given main category
   const getSubcategories = (main: string) => {
     const node = CATEGORY_TREE.find(cat => cat.name === main);
@@ -266,12 +274,38 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
     return node?.extraFields || [];
   };
 
+  // Calculate commission when price or category changes
+  const calculateCommission = async () => {
+    if (!authUser?.id || !formData.price || !mainCategory || !subCategory || !subSubCategory) {
+      setCommissionInfo(null);
+      return;
+    }
+
+    try {
+      const categoryPath = `${mainCategory}/${subCategory}/${subSubCategory}`;
+      const commissionData = await CommissionService.getCommissionInfo(
+        authUser.id,
+        categoryPath,
+        formData.price
+      );
+      setCommissionInfo(commissionData);
+    } catch (error) {
+      console.error('Error calculating commission:', error);
+      setCommissionInfo(null);
+    }
+  };
+
   // Fetch vendor's products
   useEffect(() => {
     fetchProducts();
     fetchCategories();
     fetchNotifications(); // Fetch notifications on mount
   }, []);
+
+  // Calculate commission when price or category changes
+  useEffect(() => {
+    calculateCommission();
+  }, [formData.price, mainCategory, subCategory, subSubCategory]);
 
   // Update fetchProducts to support showAllApprovedProducts
   const fetchProducts = async () => {
@@ -320,23 +354,25 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
   // Fetch notifications for this vendor
   const fetchNotifications = async () => {
     setNotificationsLoading(true);
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('vendor_id', authUser?.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (!error) setNotifications(data || []);
+    // TODO: Uncomment when notifications table is available in types
+    // const { data, error } = await supabase
+    //   .from('notifications')
+    //   .select('*')
+    //   .eq('vendor_id', authUser?.id)
+    //   .order('created_at', { ascending: false })
+    //   .limit(20);
+    // if (!error) setNotifications(data || []);
     setNotificationsLoading(false);
   };
 
   // Mark all as read
   const markAllNotificationsRead = async () => {
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('vendor_id', authUser?.id)
-      .eq('read', false);
+    // TODO: Uncomment when notifications table is available in types
+    // await supabase
+    //   .from('notifications')
+    //   .update({ read: true })
+    //   .eq('vendor_id', authUser?.id)
+    //   .eq('read', false);
     fetchNotifications();
   };
 
@@ -837,12 +873,15 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
 
       {/* Add/Edit Product Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-6">
+        <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] md:max-h-[90vh] overflow-y-auto p-4 md:p-6" aria-describedby="product-form-description">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-lg md:text-xl">
               {editingProduct ? "Edit Product" : "Add New Product"}
             </DialogTitle>
           </DialogHeader>
+          <div id="product-form-description" className="sr-only">
+            Form to {editingProduct ? "edit" : "add"} product details including name, description, price, category, and images.
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
@@ -1031,11 +1070,6 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
                         placeholder="e.g. 19500"
                         className="pl-14 mb-1 w-full"
                       />
-                      {formData.price > 0 && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          You will receive <span className="font-semibold">{Math.floor(formData.price * 0.9)}</span>Ksh, <span className="font-semibold">{Math.ceil(formData.price * 0.1)}</span>Ksh goes to ISA maintenance
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div>
@@ -1054,6 +1088,75 @@ const VendorProductManagement = ({ user, showAllApprovedProducts }: VendorProduc
                     </div>
                   </div>
                 </div>
+
+                {/* Commission Breakdown */}
+                {commissionInfo && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center space-x-2">
+                        <DollarSign className="w-5 h-5 text-blue-600" />
+                        <span>Earnings Breakdown</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-1 gap-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Product Price:</span>
+                          <span className="font-semibold">Ksh {formData.price.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">ISA Commission ({commissionInfo.commission_rate}%):</span>
+                          <span className="font-semibold text-red-600">-Ksh {commissionInfo.isa_commission.toLocaleString()}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700">Your Earnings:</span>
+                          <span className="font-bold text-green-600 text-lg">Ksh {commissionInfo.vendor_earnings.toLocaleString()}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Upgrade CTA for freemium vendors */}
+                      {commissionInfo.commission_rate > 8 && (
+                        <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-start space-x-2">
+                            <Crown className="w-5 h-5 text-orange-600 mt-0.5" />
+                            <div className="flex-1">
+                              <h4 className="font-medium text-orange-800">Upgrade to Premium</h4>
+                              <p className="text-sm text-orange-700 mt-1">
+                                Upgrade to a premium plan to enjoy lower commission rates and earn more from your sales!
+                              </p>
+                              <div className="mt-2 text-xs text-orange-600">
+                                <p>Current rate: {commissionInfo.commission_rate}%</p>
+                                <p>Premium rate: Up to 5% lower</p>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                className="mt-2 bg-orange-600 hover:bg-orange-700 text-white"
+                                onClick={() => {
+                                  // Close the product dialog
+                                  setShowAddDialog(false);
+                                  // Navigate to subscription section
+                                  if (onNavigateToSubscription) {
+                                    onNavigateToSubscription();
+                                  } else {
+                                    toast({
+                                      title: "Upgrade Feature Coming Soon",
+                                      description: "Subscription upgrades will be available soon. Stay tuned!",
+                                      variant: "default"
+                                    });
+                                  }
+                                }}
+                              >
+                                Upgrade Now
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div>
                   <Label htmlFor="commission_percentage">Commission Percentage (%)</Label>
                   <Input

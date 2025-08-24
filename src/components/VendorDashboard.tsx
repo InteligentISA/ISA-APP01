@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Menu, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import VendorSidebar from "./VendorSidebar";
 import VendorHome from "./VendorHome";
 import VendorProductManagement from "./VendorProductManagement";
@@ -10,6 +11,9 @@ import VendorReviews from "./VendorReviews";
 import VendorPayments from "./VendorPayments";
 import VendorWallet from "./VendorWallet";
 import VendorSettings from "./VendorSettings";
+import VendorSubscription from "./VendorSubscription";
+import { CommissionService } from "@/services/commissionService";
+import { LoyaltyService } from "@/services/loyaltyService";
 
 interface VendorDashboardProps {
   user: any;
@@ -17,8 +21,9 @@ interface VendorDashboardProps {
 }
 
 const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
+  const { toast } = useToast();
   const [activeSection, setActiveSection] = useState("home");
-  const [plan, setPlan] = useState('free');
+  const [plan, setPlan] = useState('freemium');
   const [planExpiry, setPlanExpiry] = useState<string | null>(null);
   const [productCount, setProductCount] = useState(0);
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -28,9 +33,11 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [subscriptionBenefits, setSubscriptionBenefits] = useState<any>(null);
+  const [vendorSubscriptionEnabled, setVendorSubscriptionEnabled] = useState(false);
 
   const PLAN_LIMITS: Record<string, number> = {
-    free: 5,
+    freemium: 5,
     premium_weekly: 20,
     premium_monthly: 20,
     premium_yearly: 20,
@@ -51,62 +58,119 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
 
   useEffect(() => {
     fetchPlanAndProducts();
+    checkVendorSubscriptionStatus();
   }, [user.id]);
 
   const fetchPlanAndProducts = async () => {
-    // Fetch plan from profiles.preferences
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('preferences')
-      .eq('id', user.id)
-      .single();
-    let preferences = profile?.preferences;
-    if (typeof preferences === 'string') {
-      try { preferences = JSON.parse(preferences); } catch { preferences = {}; }
+    try {
+      // Fetch subscription from vendor_subscriptions table
+      const subscription = await CommissionService.getVendorSubscription(user.id);
+      
+      if (subscription) {
+        setPlan((subscription as any).plan_type);
+        setPlanExpiry((subscription as any).expires_at);
+      } else {
+        // Fallback to profiles.preferences if no subscription found
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('preferences')
+          .eq('id', user.id)
+          .single();
+        
+        let preferences = profile?.preferences;
+        if (typeof preferences === 'string') {
+          try { preferences = JSON.parse(preferences); } catch { preferences = {}; }
+        }
+        
+        const planValue = (preferences && typeof preferences === 'object' && 'plan' in preferences && typeof preferences.plan === 'string')
+          ? preferences.plan
+          : 'freemium';
+        const planExpiryValue = (preferences && typeof preferences === 'object' && 'plan_expiry' in preferences && typeof preferences.plan_expiry === 'string')
+          ? preferences.plan_expiry
+          : null;
+        
+        setPlan(planValue);
+        setPlanExpiry(planExpiryValue);
+      }
+
+      // Fetch product count
+      const { data: products } = await supabase
+        .from('products')
+        .select('id')
+        .eq('vendor_id', user.id);
+      setProductCount(products?.length || 0);
+
+      // Fetch subscription benefits
+      const benefits = await CommissionService.getSubscriptionBenefits(user.id);
+      setSubscriptionBenefits(benefits);
+    } catch (error) {
+      console.error('Error fetching plan and products:', error);
     }
-    // Safely extract plan and plan_expiry from preferences if it's an object
-    const planValue = (preferences && typeof preferences === 'object' && 'plan' in preferences && typeof preferences.plan === 'string')
-      ? preferences.plan
-      : 'free';
-    const planExpiryValue = (preferences && typeof preferences === 'object' && 'plan_expiry' in preferences && typeof preferences.plan_expiry === 'string')
-      ? preferences.plan_expiry
-      : null;
-    setPlan(planValue);
-    setPlanExpiry(planExpiryValue);
-    // Fetch product count
-    const { data: products } = await supabase
-      .from('products')
-      .select('id')
-      .eq('vendor_id', user.id);
-    setProductCount(products?.length || 0);
   };
 
-  const handleUpgradeClick = () => {
-    setActiveSection('settings');
-    setUpgradeFromBanner(true);
+  const checkVendorSubscriptionStatus = async () => {
+    try {
+      const enabled = await LoyaltyService.isVendorSubscriptionEnabled();
+      setVendorSubscriptionEnabled(enabled);
+    } catch (error) {
+      console.error('Error checking vendor subscription status:', error);
+      setVendorSubscriptionEnabled(false);
+    }
+  };
+
+  const handleUpgradeClick = async () => {
+    try {
+      // Check if vendor subscriptions are enabled
+      const enabled = await LoyaltyService.isVendorSubscriptionEnabled();
+      
+      if (enabled) {
+        setActiveSection('subscription');
+        setUpgradeFromBanner(true);
+        setSidebarOpen(false); // Close sidebar on mobile
+      } else {
+        toast({
+          title: "Upgrade Feature Coming Soon",
+          description: "Subscription upgrades will be available soon. Stay tuned!",
+          variant: "default"
+        });
+      }
+    } catch (error) {
+      console.error('Error checking subscription status:', error);
+      toast({
+        title: "Upgrade Feature Coming Soon",
+        description: "Subscription upgrades will be available soon. Stay tuned!",
+        variant: "default"
+      });
+    }
+  };
+
+  const handleNavigateToSubscription = () => {
+    setActiveSection('subscription');
     setSidebarOpen(false); // Close sidebar on mobile
   };
 
   // Fetch notifications for this vendor
   const fetchNotifications = async () => {
     setNotificationsLoading(true);
-    const { data, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('vendor_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (!error) setNotifications(data || []);
+    // TODO: Uncomment when notifications table is available in types
+    // const { data, error } = await supabase
+    //   .from('notifications')
+    //   .select('*')
+    //   .eq('vendor_id', user.id)
+    //   .order('created_at', { ascending: false })
+    //   .limit(20);
+    // if (!error) setNotifications(data || []);
     setNotificationsLoading(false);
   };
 
   // Mark all as read
   const markAllNotificationsRead = async () => {
-    await supabase
-      .from('notifications')
-      .update({ read: true })
-      .eq('vendor_id', user.id)
-      .eq('read', false);
+    // TODO: Uncomment when notifications table is available in types
+    // await supabase
+    //   .from('notifications')
+    //   .update({ read: true })
+    //   .eq('vendor_id', user.id)
+    //   .eq('read', false);
     fetchNotifications();
   };
 
@@ -126,7 +190,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         return (
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">All Approved Products</h1>
-            <VendorProductManagement user={user} showAllApprovedProducts />
+            <VendorProductManagement user={user} showAllApprovedProducts onNavigateToSubscription={handleNavigateToSubscription} />
           </div>
         );
       case "orders":
@@ -135,7 +199,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         return (
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 md:mb-6">My Store</h1>
-            <VendorProductManagement user={user} />
+            <VendorProductManagement user={user} onNavigateToSubscription={handleNavigateToSubscription} />
           </div>
         );
       case "payments":
@@ -144,6 +208,8 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         return <VendorReviews vendorId={user.id} />;
       case "wallet":
         return <VendorWallet vendorId={user.id} />;
+      case "subscription":
+        return <VendorSubscription />;
       case "settings":
         return <VendorSettings vendorId={user.id} defaultTab="billing" showUpgradeModal={upgradeFromBanner} onCloseUpgradeModal={() => setUpgradeFromBanner(false)} />;
       default:
@@ -153,7 +219,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
 
   // Orange banner
   const productLimit = PLAN_LIMITS[plan] === Infinity ? 'Unlimited' : PLAN_LIMITS[plan];
-  const showBanner = plan === 'free' || plan === 'premium_weekly' || plan === 'premium_monthly' || plan === 'premium_yearly';
+  const showBanner = plan === 'freemium' || (productCount >= (productLimit as number) && productLimit !== Infinity);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -249,27 +315,39 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         <div className="lg:hidden h-16" />
         
         <div className="p-4 md:p-6 lg:p-8">
-          {showBanner && (
-            <div className="mb-4 md:mb-6 bg-orange-100 border-l-4 border-orange-500 p-3 md:p-4 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 md:gap-3">
-                <AlertTriangle className="text-orange-500 w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
-                <span className="font-semibold text-orange-800 text-sm md:text-base">
-                  {plan === 'free' && `You are on the Free Plan: `}
-                  {plan.startsWith('premium') && `You are on the Premium Plan: `}
-                  {productCount}/{productLimit} products uploaded
-                  {planExpiry && plan !== 'free' && (
-                    <span className="ml-2 text-xs text-orange-700">(Expires: {new Date(planExpiry).toLocaleDateString()})</span>
-                  )}
-                </span>
-              </div>
-              <button
-                className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 md:py-2 rounded shadow text-sm md:text-base whitespace-nowrap"
-                onClick={handleUpgradeClick}
-              >
-                Upgrade
-              </button>
-            </div>
-          )}
+                     {showBanner && (
+             <div className="mb-4 md:mb-6 bg-orange-100 border-l-4 border-orange-500 p-3 md:p-4 rounded flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+               <div className="flex items-center gap-2 md:gap-3">
+                 <AlertTriangle className="text-orange-500 w-5 h-5 md:w-6 md:h-6 flex-shrink-0" />
+                 {vendorSubscriptionEnabled ? (
+                   <span className="font-semibold text-orange-800 text-sm md:text-base">
+                     {plan === 'freemium' && `You are on the Freemium Plan: `}
+                     {plan.startsWith('premium') && `You are on the Premium Plan: `}
+                     {plan === 'pro' && `You are on the Pro Plan: `}
+                     {productCount}/{productLimit} products uploaded
+                     {subscriptionBenefits && (
+                       <span className="ml-2 text-xs text-orange-700">
+                         (Commission: {subscriptionBenefits.commission_rate})
+                       </span>
+                     )}
+                     {planExpiry && plan !== 'freemium' && (
+                       <span className="ml-2 text-xs text-orange-700">(Expires: {new Date(planExpiry).toLocaleDateString()})</span>
+                     )}
+                   </span>
+                 ) : (
+                   <span className="font-semibold text-orange-800 text-sm md:text-base">
+                     Stay tuned, premium plans coming soon with more exciting new features!
+                   </span>
+                 )}
+               </div>
+               <button
+                 className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 md:py-2 rounded shadow text-sm md:text-base whitespace-nowrap"
+                 onClick={handleUpgradeClick}
+               >
+                 {vendorSubscriptionEnabled ? 'Upgrade Now' : 'Upgrade Feature Coming Soon'}
+               </button>
+             </div>
+           )}
           {renderContent()}
           {/* Upgrade Modal Placeholder */}
           {showUpgrade && (

@@ -3,6 +3,7 @@ import { Product, ProductFilters, ProductSortOption, ProductSearchParams, Produc
 import { ImageUploadService } from './imageUploadService';
 import { scrapeJumiaProducts } from './jumiaScraperService';
 import { DashboardProduct, DashboardVendorProduct, DashboardJumiaProduct } from '@/types/product';
+import { CommissionService } from './commissionService';
 
 export class ProductService {
   // Get all products with optional filters
@@ -101,7 +102,6 @@ export class ProductService {
         [resultData[i], resultData[j]] = [resultData[j], resultData[i]];
       }
 
-      // Return only the requested limit
       return { data: resultData.slice(0, limit), error: null };
     } catch (error) {
       return { data: [], error };
@@ -176,10 +176,35 @@ export class ProductService {
   static async createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<{ data: Product | null; error: any }> {
     try {
       console.log('Creating product with data:', product);
+      
+      // Calculate commission rate based on vendor's subscription and product category
+      let commissionRate = 10.0; // Default commission rate
+      if (product.vendor_id && product.category) {
+        try {
+          // Build category path for commission lookup
+          const categoryPath = product.sub_subcategory 
+            ? `${product.category}/${product.subcategory}/${product.sub_subcategory}`
+            : product.subcategory 
+            ? `${product.category}/${product.subcategory}`
+            : product.category;
+          
+          commissionRate = await CommissionService.getCommissionRate(product.vendor_id, categoryPath);
+          console.log(`Commission rate calculated: ${commissionRate}% for category: ${categoryPath}`);
+        } catch (error) {
+          console.error('Error calculating commission rate:', error);
+          // Use default rate if calculation fails
+        }
+      }
+
       // Always set status to 'pending' on creation
       const { data, error } = await supabase
         .from('products')
-        .insert([{ ...product, status: 'pending', rejection_reason: null }])
+        .insert([{ 
+          ...product, 
+          status: 'pending', 
+          rejection_reason: null,
+          commission_percentage: commissionRate // Store the calculated commission rate
+        }])
         .select('*')
         .single();
 
@@ -199,6 +224,25 @@ export class ProductService {
   // Update a product (for vendors)
   static async updateProduct(id: string, updates: Partial<Product>, userId: string): Promise<{ data: Product | null; error: any }> {
     try {
+      // If price or category is being updated, recalculate commission
+      if ((updates.price || updates.category || updates.subcategory || updates.sub_subcategory) && userId) {
+        try {
+          const categoryPath = updates.sub_subcategory 
+            ? `${updates.category}/${updates.subcategory}/${updates.sub_subcategory}`
+            : updates.subcategory 
+            ? `${updates.category}/${updates.subcategory}`
+            : updates.category;
+          
+          if (categoryPath && updates.price) {
+            const commissionRate = await CommissionService.getCommissionRate(userId, categoryPath);
+            updates.commission_percentage = commissionRate;
+            console.log(`Updated commission rate: ${commissionRate}% for category: ${categoryPath}`);
+          }
+        } catch (error) {
+          console.error('Error updating commission rate:', error);
+        }
+      }
+
       const { data, error } = await supabase
         .from('products')
         .update(updates)
@@ -274,13 +318,10 @@ export class ProductService {
         .map(result => result.error);
 
       if (errors.length > 0) {
-        return { 
-          data: successfulUploads, 
-          error: `Some uploads failed: ${errors.join(', ')}` 
-        };
+        console.error('Some image uploads failed:', errors);
       }
 
-      return { data: successfulUploads, error: null };
+      return { data: successfulUploads, error: errors.length > 0 ? errors : null };
     } catch (error) {
       return { data: [], error };
     }

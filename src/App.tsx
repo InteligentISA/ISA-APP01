@@ -10,6 +10,8 @@ import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import AdminDashboard from "./components/AdminDashboard";
 import ProductDetail from "./components/ProductDetail";
+import CustomerPremium from "./components/CustomerPremium";
+import VendorSubscription from "./components/VendorSubscription";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 
@@ -32,6 +34,8 @@ const AppContent = () => {
         <Route path="/" element={<Index />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
+        <Route path="/premium" element={<CustomerPremium />} />
+        <Route path="/vendor-subscription" element={<VendorSubscription />} />
         <Route path="/reset-password" element={<div>Password Reset Page</div>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

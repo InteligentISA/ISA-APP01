@@ -478,6 +478,18 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   variant="ghost" 
                   size="sm"
                   onClick={() => {
+                    window.location.href = '/premium';
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-purple-600"
+                >
+                  <Star className="w-4 h-4 mr-2" />
+                  Premium Plans
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
                     setShowStyleQuiz(true);
                     setShowMobileMenu(false);
                   }}
