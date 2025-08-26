@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/services/orderService";
 import { CartItemWithProduct } from "@/types/order";
 import EnhancedCheckoutModal from "./EnhancedCheckoutModal";
+import ProductImage from "@/components/ProductImage";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -148,8 +149,9 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-3 sm:p-4 border border-gray-200 dark:border-slate-600 rounded-lg bg-gray-50 dark:bg-slate-700">
                       <div className="flex items-center space-x-3 sm:space-x-4">
-                        <img
-                          src={item?.product?.main_image || '/placeholder.svg'}
+                        <ProductImage
+                          mainImage={item?.product?.main_image}
+                          fallbackImages={item?.product?.images || []}
                           alt={item?.product?.name || 'Product'}
                           className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded"
                         />

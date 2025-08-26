@@ -7,6 +7,7 @@ import { ArrowLeft, Gift, Heart, ShoppingCart, Star, Sparkles } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { AIService } from "@/services/aiService";
 import { ProductService } from "@/services/productService";
+import ProductImage from "@/components/ProductImage";
 
 interface GiftsSectionProps {
   user: any;
@@ -282,8 +283,9 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: G
               {suggestedProducts.map(product => (
                 <Card key={product.id} className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
                   <CardContent className="p-0">
-                    <img
-                      src={product.main_image || (product.images && product.images[0]) || '/placeholder.svg'}
+                    <ProductImage
+                      mainImage={product.main_image}
+                      fallbackImages={product.images || []}
                       alt={product.name}
                       className="w-full h-40 object-cover rounded-t"
                     />

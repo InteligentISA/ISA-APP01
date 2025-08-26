@@ -11,7 +11,9 @@ export class ProductService {
     try {
       let query = supabase
         .from('products')
-        .select('*', { count: 'exact' });
+        .select('*', { count: 'exact' })
+        .eq('is_active', true)
+        .eq('status', 'approved');
 
       // Apply filters
       if (params.filters) {
@@ -379,7 +381,8 @@ export class ProductService {
       let query = supabase
         .from('products')
         .select('*', { count: 'exact' })
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('status', 'approved');
 
       // Apply category filter
       if (category && category !== 'All') {

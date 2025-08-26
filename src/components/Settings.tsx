@@ -16,12 +16,14 @@ import {
   Shield,
   Moon,
   Sun,
-  Monitor
+  Monitor,
+  HardDrive
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfileService } from "@/services/userProfileService";
+import { CacheManagement } from "./CacheManagement";
 
 interface SettingsProps {
   user: any;
@@ -208,6 +210,10 @@ const Settings = ({ user, onProfileUpdate }: SettingsProps) => {
           <TabsTrigger value="preferences" className="flex items-center space-x-2">
             <SettingsIcon className="w-4 h-4" />
             <span className="hidden sm:inline">Preferences</span>
+          </TabsTrigger>
+          <TabsTrigger value="cache" className="flex items-center space-x-2">
+            <HardDrive className="w-4 h-4" />
+            <span className="hidden sm:inline">Cache</span>
           </TabsTrigger>
         </TabsList>
 
@@ -477,6 +483,11 @@ const Settings = ({ user, onProfileUpdate }: SettingsProps) => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Cache Management Tab */}
+        <TabsContent value="cache">
+          <CacheManagement />
         </TabsContent>
       </Tabs>
     </div>

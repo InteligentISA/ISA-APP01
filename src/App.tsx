@@ -14,11 +14,23 @@ import CustomerPremium from "./components/CustomerPremium";
 import VendorSubscription from "./components/VendorSubscription";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
+import { pushNotificationService } from "./services/pushNotificationService";
+import { mobileCacheService } from "./services/mobileCacheService";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (user?.id) {
+      // Initialize push notifications when user is authenticated
+      pushNotificationService.initialize(user.id);
+    } else {
+      // Remove token when user logs out
+      pushNotificationService.removeToken();
+    }
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -46,6 +58,21 @@ const AppContent = () => {
 function App() {
   useEffect(() => {
     initMixpanel();
+    
+    // Initialize mobile cache service
+    const initializeCache = async () => {
+      try {
+        await mobileCacheService.initialize({
+          maxAge: 24 * 60 * 60 * 1000, // 24 hours
+          maxSize: 50 * 1024 * 1024 // 50MB
+        });
+        console.log('Mobile cache service initialized');
+      } catch (error) {
+        console.error('Failed to initialize mobile cache:', error);
+      }
+    };
+    
+    initializeCache();
   }, []);
   return (
     <QueryClientProvider client={queryClient}>

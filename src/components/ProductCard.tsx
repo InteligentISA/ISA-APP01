@@ -17,6 +17,7 @@ import Carousel from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
 import { useCurrency } from "@/hooks/useCurrency";
+import ProductImage from "@/components/ProductImage";
 
 interface ProductCardProps {
   product: DashboardProduct;
@@ -359,8 +360,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
-        <img
-          src={product.main_image || '/placeholder.svg'}
+        <ProductImage
+          mainImage={product.main_image}
+          fallbackImages={product.images || []}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />

@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CurrencyService } from './currencyService';
+import { NotificationService } from './notificationService';
 import {
   Order,
   OrderItem,
@@ -284,6 +285,23 @@ export class OrderService {
     } catch (error) {
       console.error('Error awarding purchase points:', error);
       // Don't fail the order if points awarding fails
+    }
+
+    // Send push notifications
+    try {
+      // Notify customer about order creation
+      await NotificationService.notifyOrderUpdate(userId, orderNumber, 'created');
+      
+      // Notify vendors about new orders
+      const vendorIds = [...new Set(cartItems.map(item => item.product.vendor_id))];
+      for (const vendorId of vendorIds) {
+        const vendorOrderItems = cartItems.filter(item => item.product.vendor_id === vendorId);
+        const vendorTotal = vendorOrderItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+        await NotificationService.notifyVendorNewOrder(vendorId, orderNumber, vendorTotal);
+      }
+    } catch (error) {
+      console.error('Error sending push notifications:', error);
+      // Don't fail the order if notifications fail
     }
 
     // Return complete order with details

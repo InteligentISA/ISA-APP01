@@ -21,7 +21,7 @@ import SettingsModal from "@/components/SettingsModal";
 import CurrencySelector from "@/components/CurrencySelector";
 import { Product } from "@/types/product";
 import { OrderService } from "@/services/orderService";
-import { ProductService } from '@/services/productService';
+import { CachedProductService } from '@/services/cachedProductService';
 import { DashboardProduct } from '@/types/product';
 import { CustomerBehaviorService } from '@/services/customerBehaviorService';
 import { JumiaInteractionService } from '@/services/jumiaInteractionService';
@@ -91,7 +91,6 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
     Promise.all([
       OrderService.getCartItems(user.id),
       OrderService.getWishlistItems(user.id),
-      loadLikedJumiaProducts(),
       // Award daily login bonus
       LoyaltyService.awardDailyLoginPoints(user.id).catch(() => {}) // Silent fail for daily bonus
     ]).then(([cart, wishlist]) => {
@@ -118,14 +117,14 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
   useEffect(() => {
     setProductLoading(true);
     setProductError(null);
-    ProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE, debouncedSearchQuery, selectedCategory)
+    CachedProductService.getDashboardProducts(currentPage, PRODUCTS_PER_PAGE, debouncedSearchQuery, selectedCategory)
       .then(({ data, error, totalVendorCount }) => {
         if (error) {
           setProductError('Failed to load products');
         } else {
           setProducts(data);
           setTotalVendorCount(totalVendorCount);
-          // Calculate total pages: vendor pages + unlimited Jumia pages
+          // Calculate total pages
           const vendorPages = Math.ceil((totalVendorCount || 0) / PRODUCTS_PER_PAGE);
           setVendorPages(vendorPages);
         }
@@ -134,10 +133,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
       .finally(() => setProductLoading(false));
   }, [currentPage, debouncedSearchQuery, selectedCategory]);
 
-  // After fetching products, filter to only show approved products for local (vendor) products, but always show Jumia products
-  useEffect(() => {
-    setProducts((products || []).filter(p => (p.source === 'jumia') || (p.status === 'approved')));
-  }, [products]);
+
 
   const handleAddToCart = async (product) => {
     if (!user?.id) return;
@@ -332,9 +328,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 onClick={() => setShowLikedItems(true)}
               >
                 <Heart className="w-5 h-5" />
-                {(likedItems.length + likedJumiaItems.length) > 0 && (
+                {likedItems.length > 0 && (
                   <Badge className="absolute -top-2 -right-2 w-5 h-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500 text-white">
-                    {likedItems.length + likedJumiaItems.length}
+                    {likedItems.length}
                   </Badge>
                 )}
               </Button>
@@ -436,7 +432,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   className="text-red-500"
                 >
                   <Heart className="w-4 h-4 mr-2" />
-                  Favorites ({likedItems.length + likedJumiaItems.length})
+                  Favorites ({likedItems.length})
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -609,9 +605,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             onAddToCart={handleAddToCart}
             onToggleLike={handleToggleLike}
             likedItems={
-              products.length > 0 && products[0].source === 'jumia'
-                ? likedJumiaItems
-                : likedItems.map(item => item.product_id)
+                              likedItems.map(item => item.product_id)
             }
             currentPage={currentPage}
             vendorPages={vendorPages}
@@ -646,7 +640,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         isOpen={showLikedItems}
         onClose={() => setShowLikedItems(false)}
         likedItems={likedItems}
-        likedJumiaItems={likedJumiaItems}
+        
         onAddToCart={handleAddToCart}
         onRemoveFromLiked={async (productId) => {
           await handleToggleLike({ id: productId });

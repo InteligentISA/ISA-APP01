@@ -11,7 +11,8 @@ import {
   ChevronRight,
   LogOut,
   Menu,
-  X
+  X,
+  Bell
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const AdminSidebar = ({ activeSection, onSectionChange, onLogout, userName }: Ad
     { id: 'products', label: 'Products', icon: Package },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'wallet', label: 'Wallet', icon: Wallet },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
   const handleSectionChange = (section: string) => {

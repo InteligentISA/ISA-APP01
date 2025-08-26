@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { pushNotificationService, PushNotificationData } from "./pushNotificationService";
 
 export interface Notification {
   id: string;
@@ -216,6 +217,372 @@ export class NotificationService {
       });
     } catch (error) {
       console.error('Error notifying subscription benefits:', error);
+    }
+  }
+
+  // Send push notification to user
+  static async sendPushNotification(userId: string, notification: PushNotificationData) {
+    try {
+      // Create in-app notification
+      await this.createNotification({
+        user_id: userId,
+        title: notification.title,
+        message: notification.body,
+        type: 'info',
+        is_read: false,
+        action_url: notification.click_action
+      });
+
+      // Send push notification
+      await pushNotificationService.sendToUser(userId, notification);
+    } catch (error) {
+      console.error('Error sending push notification:', error);
+    }
+  }
+
+  // Send order update notification
+  static async notifyOrderUpdate(userId: string, orderNumber: string, status: string) {
+    const notification: PushNotificationData = {
+      title: 'Order Update 📦',
+      body: `Your order #${orderNumber} has been ${status.toLowerCase()}`,
+      data: {
+        action_type: 'order_update',
+        order_number: orderNumber,
+        status: status
+      },
+      click_action: '/orders'
+    };
+
+    await this.sendPushNotification(userId, notification);
+  }
+
+  // Send payment success notification
+  static async notifyPaymentSuccess(userId: string, amount: number, method: string) {
+    const notification: PushNotificationData = {
+      title: 'Payment Successful! 💰',
+      body: `Your ${method} payment of ${amount} KES was successful`,
+      data: {
+        action_type: 'payment_success',
+        amount: amount,
+        method: method
+      },
+      click_action: '/wallet'
+    };
+
+    await this.sendPushNotification(userId, notification);
+  }
+
+  // Send new message notification
+  static async notifyNewMessage(userId: string, senderName: string) {
+    const notification: PushNotificationData = {
+      title: 'New Message 💬',
+      body: `${senderName} sent you a message`,
+      data: {
+        action_type: 'new_message',
+        sender_name: senderName
+      },
+      click_action: '/chat'
+    };
+
+    await this.sendPushNotification(userId, notification);
+  }
+
+  // Send points earned notification
+  static async notifyPointsEarnedPush(userId: string, points: number, reason: string) {
+    const notification: PushNotificationData = {
+      title: 'Points Earned! 🎉',
+      body: `You earned ${points} points for ${reason}. Keep earning to unlock rewards!`,
+      data: {
+        action_type: 'points_earned',
+        points: points,
+        reason: reason
+      },
+      click_action: '/wallet'
+    };
+
+    await this.sendPushNotification(userId, notification);
+  }
+
+  // Send vendor order notification
+  static async notifyVendorNewOrder(vendorId: string, orderNumber: string, total: number) {
+    const notification: PushNotificationData = {
+      title: 'New Order! 🛍️',
+      body: `You received a new order #${orderNumber} worth ${total} KES`,
+      data: {
+        action_type: 'vendor_order',
+        order_number: orderNumber,
+        total: total
+      },
+      click_action: '/vendor-dashboard?section=orders'
+    };
+
+    await this.sendPushNotification(vendorId, notification);
+  }
+
+  // Send promotional notification
+  static async sendPromotionalNotification(userIds: string[], title: string, message: string, actionUrl?: string) {
+    const notification: PushNotificationData = {
+      title,
+      body: message,
+      data: {
+        action_type: 'promotional',
+        action_url: actionUrl
+      },
+      click_action: actionUrl || '/'
+    };
+
+    // Use the new sendToUsers method for better performance
+    await pushNotificationService.sendToUsers(userIds, notification);
+  }
+
+  // ===== NEW FLEXIBLE NOTIFICATION METHODS =====
+
+  // Send custom notification with full control
+  static async sendCustomNotification(
+    userId: string, 
+    notification: {
+      title: string;
+      body: string;
+      icon?: string;
+      badge?: string;
+      image?: string;
+      tag?: string;
+      requireInteraction?: boolean;
+      silent?: boolean;
+      data?: Record<string, any>;
+      click_action?: string;
+    }
+  ) {
+    const pushNotification: PushNotificationData = {
+      title: notification.title,
+      body: notification.body,
+      icon: notification.icon,
+      badge: notification.badge,
+      image: notification.image,
+      tag: notification.tag,
+      requireInteraction: notification.requireInteraction,
+      silent: notification.silent,
+      data: notification.data,
+      click_action: notification.click_action
+    };
+
+    await this.sendPushNotification(userId, pushNotification);
+  }
+
+  // Send notification to multiple users with filtering
+  static async sendBulkNotification(
+    userIds: string[],
+    notification: PushNotificationData,
+    options?: {
+      excludeInactiveUsers?: boolean;
+      excludeUnsubscribedUsers?: boolean;
+      userFilter?: (userId: string) => Promise<boolean>;
+    }
+  ) {
+    let filteredUserIds = userIds;
+
+    // Apply filters if provided
+    if (options?.excludeInactiveUsers) {
+      // You can implement logic to filter out inactive users
+      // filteredUserIds = await this.filterActiveUsers(userIds);
+    }
+
+    if (options?.userFilter) {
+      const validUsers = [];
+      for (const userId of filteredUserIds) {
+        if (await options.userFilter(userId)) {
+          validUsers.push(userId);
+        }
+      }
+      filteredUserIds = validUsers;
+    }
+
+    await pushNotificationService.sendToUsers(filteredUserIds, notification);
+  }
+
+  // Send scheduled notification (basic implementation)
+  static async scheduleNotification(
+    userId: string,
+    notification: PushNotificationData,
+    scheduledTime: Date
+  ) {
+    // Store in database for later processing
+    await this.createNotification({
+      user_id: userId,
+      title: `Scheduled: ${notification.title}`,
+      message: notification.body,
+      type: 'info',
+      is_read: false,
+      action_url: notification.click_action
+    });
+
+    // You can implement a cron job or scheduled function to process these
+    console.log(`Notification scheduled for ${scheduledTime} to user ${userId}`);
+  }
+
+  // Send notification based on user preferences
+  static async sendPreferenceBasedNotification(
+    userId: string,
+    notification: PushNotificationData,
+    category: 'marketing' | 'order' | 'payment' | 'chat' | 'system'
+  ) {
+    // Check user preferences (you'll need to implement this)
+    const userPrefs = await this.getUserNotificationPreferences(userId);
+    
+    if (userPrefs[category]) {
+      await this.sendPushNotification(userId, notification);
+    } else {
+      // Only send in-app notification if push is disabled
+      await this.createNotification({
+        user_id: userId,
+        title: notification.title,
+        message: notification.body,
+        type: 'info',
+        is_read: false,
+        action_url: notification.click_action
+      });
+    }
+  }
+
+  // Get user notification preferences (placeholder)
+  static async getUserNotificationPreferences(userId: string) {
+    // This should query your user preferences table
+    // For now, return default preferences
+    return {
+      marketing: true,
+      order: true,
+      payment: true,
+      chat: true,
+      system: true
+    };
+  }
+
+  // Send notification with rich content
+  static async sendRichNotification(
+    userId: string,
+    notification: {
+      title: string;
+      body: string;
+      image?: string;
+      actions?: Array<{
+        action: string;
+        title: string;
+        icon?: string;
+      }>;
+      data?: Record<string, any>;
+    }
+  ) {
+    const pushNotification: PushNotificationData = {
+      title: notification.title,
+      body: notification.body,
+      image: notification.image,
+      data: {
+        ...notification.data,
+        actions: notification.actions
+      }
+    };
+
+    await this.sendPushNotification(userId, pushNotification);
+  }
+
+  // Send notification with different priorities
+  static async sendPriorityNotification(
+    userId: string,
+    notification: PushNotificationData,
+    priority: 'low' | 'normal' | 'high' | 'urgent'
+  ) {
+    const priorityNotification: PushNotificationData = {
+      ...notification,
+      data: {
+        ...notification.data,
+        priority: priority
+      },
+      requireInteraction: priority === 'urgent',
+      silent: priority === 'low'
+    };
+
+    await this.sendPushNotification(userId, priorityNotification);
+  }
+
+  // Send notification to users based on criteria
+  static async sendTargetedNotification(
+    criteria: {
+      userType?: 'customer' | 'vendor' | 'admin';
+      location?: string;
+      lastActive?: Date;
+      subscriptionType?: string;
+      customFilter?: (userId: string) => Promise<boolean>;
+    },
+    notification: PushNotificationData
+  ) {
+    // Get users based on criteria
+    let userIds = await this.getUsersByCriteria(criteria);
+    
+    if (criteria.customFilter) {
+      const filteredUsers = [];
+      for (const userId of userIds) {
+        if (await criteria.customFilter(userId)) {
+          filteredUsers.push(userId);
+        }
+      }
+      userIds = filteredUsers;
+    }
+
+    await pushNotificationService.sendToUsers(userIds, notification);
+  }
+
+  // Get users by criteria (placeholder)
+  static async getUsersByCriteria(criteria: any): Promise<string[]> {
+    // This should query your users table based on criteria
+    // For now, return empty array
+    return [];
+  }
+
+  // Send notification with A/B testing
+  static async sendABTestNotification(
+    userIds: string[],
+    variantA: PushNotificationData,
+    variantB: PushNotificationData,
+    splitRatio: number = 0.5
+  ) {
+    const groupA = userIds.slice(0, Math.floor(userIds.length * splitRatio));
+    const groupB = userIds.slice(Math.floor(userIds.length * splitRatio));
+
+    // Send variant A to group A
+    if (groupA.length > 0) {
+      await pushNotificationService.sendToUsers(groupA, variantA);
+    }
+
+    // Send variant B to group B
+    if (groupB.length > 0) {
+      await pushNotificationService.sendToUsers(groupB, variantB);
+    }
+  }
+
+  // Send notification with retry logic
+  static async sendNotificationWithRetry(
+    userId: string,
+    notification: PushNotificationData,
+    maxRetries: number = 3
+  ) {
+    let retries = 0;
+    
+    while (retries < maxRetries) {
+      try {
+        await this.sendPushNotification(userId, notification);
+        break; // Success, exit retry loop
+      } catch (error) {
+        retries++;
+        console.error(`Notification send failed (attempt ${retries}):`, error);
+        
+        if (retries >= maxRetries) {
+          console.error(`Failed to send notification after ${maxRetries} attempts`);
+          throw error;
+        }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+      }
     }
   }
 }

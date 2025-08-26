@@ -56,7 +56,7 @@ const ProfileDropdown = ({
     if (user?.id) {
       loadUserData();
     }
-  }, [user?.id]);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadUserData = async () => {
     try {
