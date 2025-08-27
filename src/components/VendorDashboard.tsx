@@ -173,7 +173,7 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
           user_id: user.id,
           phone_number: helpData.phone,
           message: helpData.message,
-          request_type: 'vendor_support'
+          request_type: 'technical_support'
         });
 
       if (error) throw error;
