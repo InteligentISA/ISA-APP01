@@ -22,10 +22,17 @@ const VendorHome = ({ vendorId, plan, planExpiry, productCount, onUpgrade }: Ven
   });
 
   useEffect(() => {
-    fetchStats();
+    if (vendorId) {
+      fetchStats();
+    }
   }, [vendorId]);
 
   const fetchStats = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchStats');
+      return;
+    }
+    
     try {
       // Fetch vendor products
       const { data: products } = await supabase

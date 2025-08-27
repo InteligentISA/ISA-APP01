@@ -43,11 +43,18 @@ const VendorPayments = ({ vendorId }: VendorPaymentsProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPayments();
-    fetchWithdrawals();
+    if (vendorId) {
+      fetchPayments();
+      fetchWithdrawals();
+    }
   }, [vendorId]);
 
   const fetchPayments = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchPayments');
+      return;
+    }
+    
     try {
       // Fetch payments from orders
       const { data: orders } = await supabase
@@ -101,6 +108,11 @@ const VendorPayments = ({ vendorId }: VendorPaymentsProps) => {
   };
 
   const fetchWithdrawals = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchWithdrawals');
+      return;
+    }
+    
     try {
       // Fetch withdrawals from profiles preferences
       const { data: profile } = await supabase

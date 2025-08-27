@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Menu, Bell } from "lucide-react";
+import { AlertTriangle, Menu, Bell, MessageCircle, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -35,6 +35,9 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [subscriptionBenefits, setSubscriptionBenefits] = useState<any>(null);
   const [vendorSubscriptionEnabled, setVendorSubscriptionEnabled] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpData, setHelpData] = useState({ phone: '', message: '' });
+  const [submittingHelp, setSubmittingHelp] = useState(false);
 
   const PLAN_LIMITS: Record<string, number> = {
     freemium: 5,
@@ -57,11 +60,18 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   }, [sidebarOpen]);
 
   useEffect(() => {
-    fetchPlanAndProducts();
-    checkVendorSubscriptionStatus();
-  }, [user.id]);
+    if (user?.id) {
+      fetchPlanAndProducts();
+      checkVendorSubscriptionStatus();
+    }
+  }, [user?.id]);
 
   const fetchPlanAndProducts = async () => {
+    if (!user?.id) {
+      console.log('User ID not available, skipping fetchPlanAndProducts');
+      return;
+    }
+    
     try {
       // Fetch subscription from vendor_subscriptions table
       const subscription = await CommissionService.getVendorSubscription(user.id);
@@ -144,6 +154,49 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
     }
   };
 
+  const submitHelpRequest = async () => {
+    if (!helpData.phone || !helpData.message) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both phone number and message.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmittingHelp(true);
+    try {
+      // Insert support request directly into the table
+      const { error } = await supabase
+        .from('support_requests' as any)
+        .insert({
+          user_id: user.id,
+          phone_number: helpData.phone,
+          message: helpData.message,
+          request_type: 'vendor_support'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Help Request Submitted",
+        description: "We'll get back to you shortly. Thank you for reaching out!",
+      });
+
+      setShowHelpModal(false);
+      setHelpData({ phone: '', message: '' });
+    } catch (error) {
+      console.error('Error submitting help request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit help request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmittingHelp(false);
+    }
+  };
+
   const handleNavigateToSubscription = () => {
     setActiveSection('subscription');
     setSidebarOpen(false); // Close sidebar on mobile
@@ -183,6 +236,18 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   };
 
   const renderContent = () => {
+    // Show loading state if user is not available
+    if (!user?.id) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading vendor dashboard...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeSection) {
       case "home":
         return <VendorHome vendorId={user.id} plan={plan} planExpiry={planExpiry} productCount={productCount} onUpgrade={handleUpgradeClick} />;
@@ -210,8 +275,14 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         return <VendorWallet vendorId={user.id} />;
       case "subscription":
         return <VendorSubscription />;
-      case "settings":
+      case "settings-account":
+        return <VendorSettings vendorId={user.id} defaultTab="account" showUpgradeModal={upgradeFromBanner} onCloseUpgradeModal={() => setUpgradeFromBanner(false)} />;
+      case "settings-payout":
+        return <VendorSettings vendorId={user.id} defaultTab="payout" showUpgradeModal={upgradeFromBanner} onCloseUpgradeModal={() => setUpgradeFromBanner(false)} />;
+      case "settings-billing":
         return <VendorSettings vendorId={user.id} defaultTab="billing" showUpgradeModal={upgradeFromBanner} onCloseUpgradeModal={() => setUpgradeFromBanner(false)} />;
+      case "settings":
+        return <VendorSettings vendorId={user.id} defaultTab="account" showUpgradeModal={upgradeFromBanner} onCloseUpgradeModal={() => setUpgradeFromBanner(false)} />;
       default:
         return <VendorHome vendorId={user.id} plan={plan} planExpiry={planExpiry} productCount={productCount} onUpgrade={handleUpgradeClick} />;
     }
@@ -365,6 +436,86 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
             </div>
           )}
         </div>
+
+        {/* Floating Help Button */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => setShowHelpModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-colors"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Help Modal */}
+        {showHelpModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Request Help</h3>
+                <button
+                  onClick={() => setShowHelpModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="helpPhone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    id="helpPhone"
+                    type="text"
+                    value={helpData.phone}
+                    onChange={(e) => setHelpData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Enter your phone number"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="helpMessage" className="block text-sm font-medium text-gray-700 mb-1">
+                    Message *
+                  </label>
+                  <textarea
+                    id="helpMessage"
+                    value={helpData.message}
+                    onChange={(e) => setHelpData(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Describe what you need help with..."
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={() => setShowHelpModal(false)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitHelpRequest}
+                    disabled={submittingHelp || !helpData.phone || !helpData.message}
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {submittingHelp ? (
+                      <div className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        Submitting...
+                      </div>
+                    ) : (
+                      'Submit Request'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

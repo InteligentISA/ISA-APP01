@@ -33,10 +33,17 @@ const VendorWallet = ({ vendorId }: VendorWalletProps) => {
   });
 
   useEffect(() => {
-    fetchWalletData();
+    if (vendorId) {
+      fetchWalletData();
+    }
   }, [vendorId]);
 
   const fetchWalletData = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchWalletData');
+      return;
+    }
+    
     try {
       // Fetch orders to calculate earnings
       const { data: orders } = await supabase

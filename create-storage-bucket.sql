@@ -1,42 +1,34 @@
--- Create storage bucket for product images
--- Run this in your Supabase SQL editor
+-- Create the product-images storage bucket
+-- Run this in the Supabase SQL editor
 
--- Create the storage bucket
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-  'product-images',
-  'product-images',
-  true,
-  524288, -- 512KB limit (slightly higher than 500KB for safety)
-  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-) ON CONFLICT (id) DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO NOTHING;
 
--- Enable RLS on storage.objects (if not already enabled)
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Create storage policies for the product-images bucket
+-- These policies allow authenticated users to upload and view files
 
--- Policy to allow authenticated users to upload images
-CREATE POLICY "Allow authenticated users to upload images" ON storage.objects
-  FOR INSERT WITH CHECK (
-    bucket_id = 'product-images' 
-    AND auth.role() = 'authenticated'
-  );
+-- Policy for uploading files (users can upload to their own folder)
+CREATE POLICY IF NOT EXISTS "Users can upload to their own folder" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'product-images' 
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
 
--- Policy to allow public read access to product images
-CREATE POLICY "Allow public read access to product images" ON storage.objects
-  FOR SELECT USING (
-    bucket_id = 'product-images'
-  );
+-- Policy for viewing files (public read access for product images)
+CREATE POLICY IF NOT EXISTS "Public read access for product images" ON storage.objects
+FOR SELECT USING (bucket_id = 'product-images');
 
--- Policy to allow users to update their own uploaded images
-CREATE POLICY "Allow users to update their own images" ON storage.objects
-  FOR UPDATE USING (
-    bucket_id = 'product-images' 
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  );
+-- Policy for updating files (users can update their own files)
+CREATE POLICY IF NOT EXISTS "Users can update their own files" ON storage.objects
+FOR UPDATE USING (
+  bucket_id = 'product-images' 
+  AND auth.uid()::text = (storage.foldername(name))[1]
+);
 
--- Policy to allow users to delete their own uploaded images
-CREATE POLICY "Allow users to delete their own images" ON storage.objects
-  FOR DELETE USING (
-    bucket_id = 'product-images' 
-    AND auth.uid()::text = (storage.foldername(name))[1]
-  ); 
+-- Policy for deleting files (users can delete their own files)
+CREATE POLICY IF NOT EXISTS "Users can delete their own files" ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'product-images' 
+  AND auth.uid()::text = (storage.foldername(name))[1]
+); 

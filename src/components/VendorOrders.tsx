@@ -20,7 +20,9 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchOrders();
+    if (vendorId) {
+      fetchOrders();
+    }
   }, [vendorId]);
 
   const verifyVendorAuth = async () => {
@@ -37,6 +39,12 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
   };
 
   const fetchOrders = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchOrders');
+      setLoading(false);
+      return;
+    }
+    
     // Verify vendor authorization first
     if (!(await verifyVendorAuth())) {
       setLoading(false);

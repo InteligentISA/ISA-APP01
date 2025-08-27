@@ -7,11 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { User, CreditCard, Settings as SettingsIcon, Phone, CreditCard as CreditCardIcon, Trash2, Edit2, Plus } from "lucide-react";
+import { User, CreditCard, Settings as SettingsIcon, Phone, CreditCard as CreditCardIcon, Trash2, Edit2, Plus, Building as BankIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useState as useLocalState } from "react";
 
 interface VendorSettingsProps {
   vendorId: string;
@@ -22,12 +21,12 @@ interface VendorSettingsProps {
 
 function ChangePasswordForm({ email }: { email: string }) {
   const { signIn } = useAuth();
-  const [currentPassword, setCurrentPassword] = useLocalState("");
-  const [newPassword, setNewPassword] = useLocalState("");
-  const [confirmPassword, setConfirmPassword] = useLocalState("");
-  const [loading, setLoading] = useLocalState(false);
-  const [error, setError] = useLocalState<string | null>(null);
-  const [success, setSuccess] = useLocalState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,6 +143,11 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [plan, setPlan] = useState('free');
   const [planExpiry, setPlanExpiry] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState({
+    bank_name: '',
+    account_number: '',
+    account_holder_name: ''
+  });
   // Plan options with price
   const PLAN_OPTIONS = [
     { value: 'premium_weekly', label: 'Premium Weekly (199 KES)', price: 199 },
@@ -166,10 +170,13 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
   useEffect(() => { setShowUpgrade(showUpgradeModal); }, [showUpgradeModal]);
 
   useEffect(() => {
-    fetchProfile();
-    fetchPayoutSettings();
-    fetchPaymentMethods();
-    fetchPlan();
+    if (vendorId) {
+      fetchProfile();
+      fetchPayoutSettings();
+      fetchBankDetails();
+      fetchPaymentMethods();
+      fetchPlan();
+    }
   }, [vendorId]);
 
   const parsePreferences = (prefs: any) => {
@@ -232,6 +239,31 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
       setPayoutSettings({
         mpesa_number: '', mpesa_name: '', airtel_number: '', bank_account: '', bank_name: ''
       });
+    }
+  };
+
+  const fetchBankDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('bank_name, account_number, account_holder_name')
+        .eq('id', vendorId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching bank details:', error);
+        return;
+      }
+
+      if (data) {
+        setBankDetails({
+          bank_name: data.bank_name || '',
+          account_number: data.account_number || '',
+          account_holder_name: data.account_holder_name || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching bank details:', error);
     }
   };
 
@@ -466,27 +498,35 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
     toast({ title: 'Plan Upgraded', description: 'Your plan has been upgraded successfully.' });
   };
 
+  // Show loading state if vendorId is not available
+  if (!vendorId) {
+    return (
+      <div className="space-y-4 md:space-y-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Loading...</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Settings</h1>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4 md:space-y-6">
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+        {defaultTab === 'account' && 'Account Settings'}
+        {defaultTab === 'payout' && 'Payout Settings'}
+        {defaultTab === 'billing' && 'Billing & Plans'}
+      </h1>
+
+      <Tabs value={defaultTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="account" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
-            <User className="h-3 w-3 md:h-4 md:w-4" />
-            <span>Account</span>
-          </TabsTrigger>
-          <TabsTrigger value="payout" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
-            <Phone className="h-3 w-3 md:h-4 md:w-4" />
-            <span>Payout</span>
-          </TabsTrigger>
-          <TabsTrigger value="billing" className="flex items-center space-x-1 md:space-x-2 text-xs md:text-sm">
-            <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
-            <span>Billing</span>
-          </TabsTrigger>
+          <TabsTrigger value="account">Account</TabsTrigger>
+          <TabsTrigger value="payout">Payout</TabsTrigger>
+          <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
         <TabsContent value="account">
+          {defaultTab === 'account' && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base md:text-lg">Account Settings</CardTitle>
@@ -574,9 +614,11 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
               </div>
             </CardContent>
           </Card>
+        )}
         </TabsContent>
 
         <TabsContent value="payout">
+          {defaultTab === 'payout' && (
           <Card>
             <CardHeader>
               <CardTitle>Payout Destination</CardTitle>
@@ -620,38 +662,66 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
                 </div>
               </div>
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Bank Account (Coming Soon)</h3>
+                <h3 className="text-lg font-medium">Bank Account Details</h3>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <BankIcon className="h-5 w-5 text-blue-600" />
+                    <span className="font-medium text-blue-800">Onboarding Bank Information</span>
+                  </div>
+                  <p className="text-sm text-blue-700 mb-3">
+                    These bank details were provided during your vendor onboarding and cannot be edited here. 
+                    Contact support if you need to update your bank information.
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="bank_account">Account Number</Label>
+                    <Label htmlFor="onboarding_bank_name">Bank Name</Label>
                     <Input
-                      id="bank_account"
-                      value={payoutSettings.bank_account}
-                      onChange={(e) => setPayoutSettings(prev => ({ ...prev, bank_account: e.target.value }))}
+                      id="onboarding_bank_name"
+                      value={bankDetails.bank_name}
                       disabled
-                      placeholder="Coming soon"
+                      className="bg-gray-50"
+                      placeholder="No bank details provided"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="bank_name">Bank Name</Label>
+                    <Label htmlFor="onboarding_account_number">Account Number</Label>
                     <Input
-                      id="bank_name"
-                      value={payoutSettings.bank_name}
-                      onChange={(e) => setPayoutSettings(prev => ({ ...prev, bank_name: e.target.value }))}
+                      id="onboarding_account_number"
+                      value={bankDetails.account_number}
                       disabled
-                      placeholder="Coming soon"
+                      className="bg-gray-50"
+                      placeholder="No account number provided"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="onboarding_account_holder">Account Holder Name</Label>
+                    <Input
+                      id="onboarding_account_holder"
+                      value={bankDetails.account_holder_name}
+                      disabled
+                      className="bg-gray-50"
+                      placeholder="No account holder name provided"
                     />
                   </div>
                 </div>
+                {!bankDetails.bank_name && !bankDetails.account_number && !bankDetails.account_holder_name && (
+                  <div className="text-center py-4 text-gray-500">
+                    <BankIcon className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p>No bank details were provided during onboarding</p>
+                  </div>
+                )}
               </div>
               <Button onClick={updatePayoutSettings} disabled={loading}>
                 {loading ? "Updating..." : "Update Payout Settings"}
               </Button>
             </CardContent>
           </Card>
+        )}
         </TabsContent>
 
         <TabsContent value="billing">
+          {defaultTab === 'billing' && (
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -861,6 +931,7 @@ const VendorSettings = ({ vendorId, defaultTab = 'account', showUpgradeModal = f
               </div>
             )}
           </div>
+        )}
         </TabsContent>
       </Tabs>
     </div>

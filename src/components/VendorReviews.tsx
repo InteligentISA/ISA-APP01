@@ -37,10 +37,18 @@ const VendorReviews = ({ vendorId }: VendorReviewsProps) => {
   });
 
   useEffect(() => {
-    fetchReviews();
+    if (vendorId) {
+      fetchReviews();
+    }
   }, [vendorId]);
 
   const fetchReviews = async () => {
+    if (!vendorId) {
+      console.log('Vendor ID not available, skipping fetchReviews');
+      setLoading(false);
+      return;
+    }
+    
     try {
       // Fetch reviews for vendor's products
       const { data: reviewsData } = await supabase

@@ -21,7 +21,11 @@ import {
   ArrowLeft,
   ChevronRight,
   ChevronLeft,
-  MapPin
+  MapPin,
+  AlertCircle,
+  ExternalLink,
+  MessageCircle,
+  X
 } from 'lucide-react';
 
 const countyConstituencyData = {
@@ -89,40 +93,92 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
   const [formData, setFormData] = useState({
     accountType: '',
     businessName: '',
-    contactPerson: '',
+    brandName: '',
     email: '',
     phone: '',
     businessType: '',
     otherBusinessType: '',
     description: '',
+    websiteUrl: '',
     location: { county: '', constituency: '' },
+    heardAboutUs: '',
+    otherHeardAboutUs: '',
     documents: {
       idCard: null as File | null,
-      businessCert: null as File | null,
-      pinCert: null as File | null,
-      bankDetails: ''
+      businessLicense: null as File | null,
+      bankName: '',
+      accountNumber: '',
+      accountHolderName: ''
     }
   });
+
   const [loading, setLoading] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
+  const [helpData, setHelpData] = useState({ phone: '', message: '' });
+  const [submittingHelp, setSubmittingHelp] = useState(false);
   const { toast } = useToast();
 
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    updateProgress();
+  const steps = [
+    { id: 1, title: 'Account Type', description: 'Basic information' },
+    { id: 2, title: 'Contact Details', description: 'Contact information' },
+    { id: 3, title: 'Business Info', description: 'Business details' },
+    { id: 4, title: 'Documents', description: 'Required documents' }
+  ];
+
+  // Calculate progress
+  const totalFields = 15; // Updated total fields
+  const completedFields = [
+    formData.accountType,
+    formData.businessName,
+    formData.brandName,
+    formData.heardAboutUs,
+    formData.email,
+    formData.phone,
+    formData.businessType,
+    formData.description,
+    formData.websiteUrl,
+    formData.location.county,
+    formData.location.constituency,
+    formData.documents.idCard,
+    formData.documents.businessLicense,
+    formData.documents.bankName,
+    formData.documents.accountNumber,
+    formData.documents.accountHolderName
+  ].filter(Boolean).length;
+
+  const progress = (completedFields / totalFields) * 100;
+
+  // Update progress callback
+  React.useEffect(() => {
+    onProgressChange?.(progress);
+  }, [progress, onProgressChange]);
+
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.accountType && formData.businessName && formData.brandName && formData.heardAboutUs;
+      case 2:
+        return formData.email && formData.phone && formData.location.county && formData.location.constituency;
+      case 3:
+        return formData.businessType && formData.description && formData.websiteUrl;
+      case 4:
+        return formData.documents.idCard && formData.documents.bankName && formData.documents.accountNumber && formData.documents.accountHolderName;
+      default:
+        return false;
+    }
   };
 
-  const handleLocationChange = (county: string, constituency: string) => {
-    setFormData(prev => ({
-      ...prev,
-      location: { county, constituency }
-    }));
-    updateProgress();
+  const handleNext = () => {
+    if (canProceed()) {
+      setCurrentStep(prev => Math.min(prev + 1, 4));
+    }
   };
 
-  const handleDocumentUpload = (field: string, file: File | null) => {
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const handleFileUpload = (field: keyof typeof formData.documents, file: File | null) => {
     setFormData(prev => ({
       ...prev,
       documents: {
@@ -130,120 +186,92 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
         [field]: file
       }
     }));
-    updateProgress();
-  };
-
-  const updateProgress = () => {
-    let completedFields = 0;
-    let totalFields = 0;
-
-    // Step 1: Account Type (2 fields)
-    totalFields += 2;
-    if (formData.accountType) completedFields++;
-    if (formData.businessName) completedFields++;
-    if (formData.contactPerson) completedFields++;
-
-    // Step 2: Contact Details (4 fields)
-    totalFields += 4;
-    if (formData.email) completedFields++;
-    if (formData.phone) completedFields++;
-    if (formData.businessType) completedFields++;
-    if (formData.businessType === 'other' ? formData.otherBusinessType : true) completedFields++;
-    if (formData.location.county) completedFields++;
-    if (formData.location.constituency) completedFields++;
-
-    // Step 3: Business Description (1 field)
-    totalFields += 1;
-    if (formData.description) completedFields++;
-
-    // Step 4: Documents (2 required fields)
-    totalFields += 2;
-    if (formData.documents.idCard) completedFields++;
-    if (formData.documents.bankDetails) completedFields++;
-
-    const progress = Math.round((completedFields / totalFields) * 100);
-    onProgressChange?.(progress);
-  };
-
-  const uploadDocument = async (file: File, fileName: string) => {
-    const fileExt = file.name.split('.').pop();
-    const filePath = `vendor-documents/${userId}/${fileName}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(filePath);
-
-    return data.publicUrl;
   };
 
   const handleSubmit = async () => {
+    if (!canProceed()) {
+      toast({
+        title: "Incomplete Form",
+        description: "Please complete all required fields before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Upload documents
-      const documentUrls: Record<string, string> = {};
-      if (formData.documents.idCard) {
-        documentUrls.idCard = await uploadDocument(formData.documents.idCard, 'id-card');
-      }
-      if (formData.documents.businessCert) {
-        documentUrls.businessCert = await uploadDocument(formData.documents.businessCert, 'business-cert');
-      }
-      if (formData.documents.pinCert) {
-        documentUrls.pinCert = await uploadDocument(formData.documents.pinCert, 'pin-cert');
-      }
+      // Upload files to Supabase Storage using the correct bucket
+      const idCardUrl = formData.documents.idCard ? await uploadFile(formData.documents.idCard, 'id-card') : null;
+      const businessLicenseUrl = formData.documents.businessLicense ? await uploadFile(formData.documents.businessLicense, 'business-license') : null;
 
-      // Upsert vendor application step
-      const { error: stepError } = await supabase
+      // Save application data
+      const { error } = await supabase
         .from('vendor_application_steps')
-        .upsert([
-          {
-            user_id: userId,
-            step_name: 'application_form',
-            step_data: {
-              ...formData,
-              documents: {
-                ...documentUrls,
-                bankDetails: formData.documents.bankDetails
-              }
-            },
-            is_completed: true,
-            completed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+        .upsert({
+          user_id: userId,
+          step_name: 'application_form',
+          step_data: {
+            accountType: formData.accountType,
+            businessName: formData.businessName,
+            brandName: formData.brandName,
+            email: formData.email,
+            phone: formData.phone,
+            businessType: formData.businessType,
+            otherBusinessType: formData.otherBusinessType,
+            description: formData.description,
+            websiteUrl: formData.websiteUrl,
+            location: formData.location,
+            heardAboutUs: formData.heardAboutUs,
+            otherHeardAboutUs: formData.otherHeardAboutUs,
+            documents: {
+              idCard: idCardUrl,
+              businessLicense: businessLicenseUrl,
+              bankName: formData.documents.bankName,
+              accountNumber: formData.documents.accountNumber,
+              accountHolderName: formData.documents.accountHolderName
+            }
           },
-        ]);
-      if (stepError) throw stepError;
+          is_completed: true,
+          completed_at: new Date().toISOString()
+        });
 
-      // Update profile with vendor status
+      if (error) throw error;
+
+      // Update profiles table with new fields
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          first_name: formData.contactPerson.split(' ')[0] || formData.contactPerson,
-          last_name: formData.contactPerson.split(' ').slice(1).join(' ') || '',
-          company: formData.businessName,
-          business_type: formData.businessType === 'other' ? formData.otherBusinessType : formData.businessType,
+          first_name: formData.brandName,
+          last_name: formData.businessName,
+          email: formData.email,
           phone_number: formData.phone,
-          user_type: 'vendor',
-          status: 'pending',
-          location: `${formData.location.county}, ${formData.location.constituency}`
+          company: formData.businessName,
+          business_type: formData.businessType,
+          location: `${formData.location.county}, ${formData.location.constituency}`,
+          heard_about_us: formData.heardAboutUs,
+          brand_name: formData.brandName,
+          website_url: formData.websiteUrl,
+          bank_name: formData.documents.bankName,
+          account_number: formData.documents.accountNumber,
+          account_holder_name: formData.documents.accountHolderName
         })
         .eq('id', userId);
+
       if (profileError) throw profileError;
+
+
 
       toast({
         title: "Application Submitted",
-        description: "Your vendor application has been submitted successfully!"
+        description: "Your vendor application has been submitted successfully. We'll review it and get back to you soon.",
       });
+
       onComplete();
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit application. Please try again.",
+        title: "Submission Failed",
+        description: "There was an error submitting your application. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -251,149 +279,323 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
     }
   };
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return formData.accountType && formData.businessName && formData.contactPerson;
-      case 2:
-        return formData.email && formData.phone && formData.businessType && 
-               (formData.businessType !== 'other' || formData.otherBusinessType) &&
-               formData.location.county && formData.location.constituency;
-      case 3:
-        return formData.description;
-      case 4:
-        return formData.documents.idCard && formData.documents.bankDetails;
-      default:
-        return false;
+  const uploadFile = async (file: File, fileName: string): Promise<string> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `vendor-documents/${userId}/${fileName}.${fileExt}`;
+
+      // Try to upload directly first
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        
+        // If bucket doesn't exist, try to create it or use a different approach
+        if (uploadError.message.includes('bucket') || uploadError.message.includes('not found')) {
+          throw new Error('Storage bucket not configured. Please contact support.');
+        }
+        
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Document upload failed:', error);
+      throw error;
     }
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <Label className="text-base font-medium">Account Type</Label>
-              <RadioGroup 
-                value={formData.accountType} 
-                onValueChange={(value) => handleInputChange('accountType', value)}
-                className="mt-2 space-y-3"
-              >
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <RadioGroupItem value="individual" id="individual" />
-                  <Label htmlFor="individual" className="text-sm">Individual Seller (small business or single person)</Label>
-                </div>
-                <div className="flex items-center space-x-3 p-3 border rounded-lg">
-                  <RadioGroupItem value="corporate" id="corporate" />
-                  <Label htmlFor="corporate" className="text-sm">Corporate Seller (registered business/brand)</Label>
-                </div>
-              </RadioGroup>
+  const submitHelpRequest = async () => {
+    if (!helpData.phone || !helpData.message) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide both phone number and message.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmittingHelp(true);
+    try {
+      // Insert support request directly into the table
+      const { error } = await supabase
+        .from('support_requests' as any)
+        .insert({
+          user_id: userId,
+          phone_number: helpData.phone,
+          message: helpData.message,
+          request_type: 'onboarding_help'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Help Request Submitted",
+        description: "We'll get back to you shortly. Thank you for reaching out!",
+      });
+
+      setShowHelpModal(false);
+      setHelpData({ phone: '', message: '' });
+    } catch (error) {
+      console.error('Error submitting help request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit help request. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmittingHelp(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 relative">
+      {/* Floating Help Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button
+          onClick={() => setShowHelpModal(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-lg"
+          size="icon"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </Button>
+      </div>
+      {/* Progress Steps */}
+      <Card className="border-0 shadow-sm">
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Application Progress</h2>
+              <span className="text-sm text-gray-600">{Math.round(progress)}% Complete</span>
             </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="businessName">Business/Personal Name</Label>
-                <Input
-                  id="businessName"
-                  value={formData.businessName}
-                  onChange={(e) => handleInputChange('businessName', e.target.value)}
-                  placeholder="Enter your business or personal name"
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="contactPerson">Contact Person</Label>
-                <Input
-                  id="contactPerson"
-                  value={formData.contactPerson}
-                  onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                  placeholder="Primary contact person name"
-                  className="mt-1"
-                />
-              </div>
+            <Progress value={progress} className="h-2" />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {steps.map((step, index) => {
+                const isCompleted = currentStep > step.id;
+                const isCurrent = currentStep === step.id;
+                return (
+                  <div
+                    key={step.id}
+                    className={`flex flex-col items-center space-y-2 p-3 rounded-lg transition-all ${
+                      isCompleted
+                        ? 'bg-green-50 border border-green-200'
+                        : isCurrent
+                        ? 'bg-blue-50 border border-blue-200'
+                        : 'bg-gray-50 border border-gray-200'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                        isCompleted
+                          ? 'bg-green-500 text-white'
+                          : isCurrent
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-300 text-gray-600'
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className={`text-xs font-medium ${
+                        isCompleted ? 'text-green-700' : isCurrent ? 'text-blue-700' : 'text-gray-500'
+                      }`}>
+                        {step.title}
+                      </p>
+                      <p className="text-xs text-gray-400">{step.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-        );
+        </CardContent>
+      </Card>
 
-      case 2:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="your.email@example.com"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                placeholder="+254 XXX XXX XXX"
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="businessType">Business Type</Label>
-              <Select value={formData.businessType} onValueChange={(value) => handleInputChange('businessType', value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select business type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fashion">Fashion & Clothing</SelectItem>
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="home">Home & Garden</SelectItem>
-                  <SelectItem value="beauty">Beauty & Personal Care</SelectItem>
-                  <SelectItem value="sports">Sports & Outdoors</SelectItem>
-                  <SelectItem value="books">Books & Media</SelectItem>
-                  <SelectItem value="toys">Toys & Games</SelectItem>
-                  <SelectItem value="automotive">Automotive</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {formData.businessType === 'other' && (
-              <div>
-                <Label htmlFor="otherBusinessType">Please specify your business type</Label>
-                <Input
-                  id="otherBusinessType"
-                  value={formData.otherBusinessType}
-                  onChange={(e) => handleInputChange('otherBusinessType', e.target.value)}
-                  placeholder="e.g., Food & Beverage, Health & Wellness, etc."
-                  className="mt-1"
-                />
+      {/* Step Content */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-semibold text-gray-900">
+            {steps[currentStep - 1].title}
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            {steps[currentStep - 1].description}
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Step 1: Account Type */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-800">Account Information</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Please provide your basic account information. This will help us set up your vendor profile correctly.
+                </p>
               </div>
-            )}
 
-            <div>
-              <Label className="text-base font-medium flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                Business Location
-              </Label>
-              <div className="space-y-3 mt-2">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="county" className="text-sm font-medium">County</Label>
-                  <Select 
-                    value={formData.location.county} 
-                    onValueChange={(value) => handleLocationChange(value, '')}
+                  <Label htmlFor="heardAboutUs" className="text-sm font-medium text-gray-700">
+                    How did you hear about us? *
+                  </Label>
+                  <Select
+                    value={formData.heardAboutUs}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, heardAboutUs: value }))}
                   >
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select how you heard about us" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="contacted_by_isa">I was contacted by ISA</SelectItem>
+                      <SelectItem value="tiktok">TikTok</SelectItem>
+                      <SelectItem value="facebook">Facebook</SelectItem>
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="twitter">X (Twitter)</SelectItem>
+                      <SelectItem value="tv_ads">TV Ads</SelectItem>
+                      <SelectItem value="referred_by_friend">Referred by friend</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {formData.heardAboutUs === 'other' && (
+                  <div>
+                    <Label htmlFor="otherHeardAboutUs" className="text-sm font-medium text-gray-700">
+                      Please specify
+                    </Label>
+                    <Input
+                      id="otherHeardAboutUs"
+                      value={formData.otherHeardAboutUs}
+                      onChange={(e) => setFormData(prev => ({ ...prev, otherHeardAboutUs: e.target.value }))}
+                      placeholder="How did you hear about us?"
+                      className="w-full"
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="accountType" className="text-sm font-medium text-gray-700">
+                    Account Type *
+                  </Label>
+                  <RadioGroup
+                    value={formData.accountType}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, accountType: value }))}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <RadioGroupItem value="individual" id="individual" />
+                      <Label htmlFor="individual" className="cursor-pointer">Individual</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <RadioGroupItem value="business" id="business" />
+                      <Label htmlFor="business" className="cursor-pointer">Business</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div>
+                  <Label htmlFor="businessName" className="text-sm font-medium text-gray-700">
+                    Business Name *
+                  </Label>
+                  <Input
+                    id="businessName"
+                    value={formData.businessName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, businessName: e.target.value }))}
+                    placeholder="Enter your business name"
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="brandName" className="text-sm font-medium text-gray-700">
+                    Brand Name *
+                  </Label>
+                  <Input
+                    id="brandName"
+                    value={formData.brandName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, brandName: e.target.value }))}
+                    placeholder="Enter your brand name"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Contact Details */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-800">Contact Information</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Please provide your contact details so we can reach you regarding your application and future business.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                    Email Address *
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="your@email.com"
+                    className="w-full"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                    Phone Number *
+                  </Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="254712345678"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="county" className="text-sm font-medium text-gray-700">
+                    County *
+                  </Label>
+                  <Select
+                    value={formData.location.county}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      location: { ...prev.location, county: value, constituency: '' }
+                    }))}
+                  >
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select your county" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(countyConstituencyData).map(county => (
+                      {Object.keys(countyConstituencyData).map((county) => (
                         <SelectItem key={county} value={county}>
                           {county}
                         </SelectItem>
@@ -401,18 +603,24 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
                     </SelectContent>
                   </Select>
                 </div>
+
                 <div>
-                  <Label htmlFor="constituency" className="text-sm font-medium">Constituency</Label>
-                  <Select 
-                    value={formData.location.constituency} 
-                    onValueChange={(value) => handleLocationChange(formData.location.county, value)}
+                  <Label htmlFor="constituency" className="text-sm font-medium text-gray-700">
+                    Constituency *
+                  </Label>
+                  <Select
+                    value={formData.location.constituency}
+                    onValueChange={(value) => setFormData(prev => ({ 
+                      ...prev, 
+                      location: { ...prev.location, constituency: value }
+                    }))}
                     disabled={!formData.location.county}
                   >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder={formData.location.county ? "Select constituency" : "Select county first"} />
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select your constituency" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getAvailableConstituencies(formData.location.county).map(constituency => (
+                      {getAvailableConstituencies(formData.location.county).map((constituency) => (
                         <SelectItem key={constituency} value={constituency}>
                           {constituency}
                         </SelectItem>
@@ -422,195 +630,325 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
                 </div>
               </div>
             </div>
-          </div>
-        );
+          )}
 
-      case 3:
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="description">Business Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
-                placeholder="Tell us about your business, products you sell, and what makes you unique..."
-                rows={5}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div>
-              <Label className="text-base font-medium">Required Documents</Label>
-              <p className="text-sm text-gray-600 mt-1">
-                Upload the following documents based on your account type
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="idCard">National ID / Passport *</Label>
-                <Input
-                  id="idCard"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={(e) => handleDocumentUpload('idCard', e.target.files?.[0] || null)}
-                  className="mt-1"
-                />
+          {/* Step 3: Business Info */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-800">Business Information</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Tell us more about your business to help us understand your operations and provide better support.
+                </p>
               </div>
 
-              {formData.accountType === 'corporate' && (
-                <>
-                  <div>
-                    <Label htmlFor="businessCert">Certificate of Incorporation</Label>
-                    <Input
-                      id="businessCert"
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleDocumentUpload('businessCert', e.target.files?.[0] || null)}
-                      className="mt-1"
-                    />
-                  </div>
+              <div>
+                <Label htmlFor="businessType" className="text-sm font-medium text-gray-700">
+                  In what industry does your business operate? *
+                </Label>
+                <Select
+                  value={formData.businessType}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, businessType: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your business industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                    <SelectItem value="electronics">Electronics & Technology</SelectItem>
+                    <SelectItem value="home">Home & Garden</SelectItem>
+                    <SelectItem value="beauty">Beauty & Personal Care</SelectItem>
+                    <SelectItem value="sports">Sports & Outdoor</SelectItem>
+                    <SelectItem value="books">Books & Media</SelectItem>
+                    <SelectItem value="automotive">Automotive</SelectItem>
+                    <SelectItem value="health">Health & Wellness</SelectItem>
+                    <SelectItem value="food">Food & Beverages</SelectItem>
+                    <SelectItem value="jewelry">Jewelry & Accessories</SelectItem>
+                    <SelectItem value="toys">Toys & Games</SelectItem>
+                    <SelectItem value="art">Art & Crafts</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  <div>
-                    <Label htmlFor="pinCert">PIN/VAT Certificate</Label>
-                    <Input
-                      id="pinCert"
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => handleDocumentUpload('pinCert', e.target.files?.[0] || null)}
-                      className="mt-1"
-                    />
-                  </div>
-                </>
+              {formData.businessType === 'other' && (
+                <div>
+                  <Label htmlFor="otherBusinessType" className="text-sm font-medium text-gray-700">
+                    Please specify your business type
+                  </Label>
+                  <Input
+                    id="otherBusinessType"
+                    value={formData.otherBusinessType}
+                    onChange={(e) => setFormData(prev => ({ ...prev, otherBusinessType: e.target.value }))}
+                    placeholder="Describe your business type"
+                    className="w-full"
+                  />
+                </div>
               )}
 
               <div>
-                <Label htmlFor="bankDetails">Bank Account Details *</Label>
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700">
+                  Business Description *
+                </Label>
                 <Textarea
-                  id="bankDetails"
-                  value={formData.documents.bankDetails}
-                  onChange={(e) => handleInputChange('documents', {
-                    ...formData.documents,
-                    bankDetails: e.target.value
-                  })}
-                  placeholder="Bank name, account number, account holder name..."
-                  rows={3}
-                  className="mt-1"
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe your business, products, and what makes you unique..."
+                  className="w-full min-h-[100px]"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="websiteUrl" className="text-sm font-medium text-gray-700">
+                  Website/Social Media URL
+                </Label>
+                <Input
+                  id="websiteUrl"
+                  value={formData.websiteUrl}
+                  onChange={(e) => setFormData(prev => ({ ...prev, websiteUrl: e.target.value }))}
+                  placeholder="https://your-website.com or social media profile"
+                  className="w-full"
                 />
               </div>
             </div>
-          </div>
-        );
+          )}
 
-      default:
-        return null;
-    }
-  };
-
-  const steps = [
-    { number: 1, title: "Account Type", icon: User },
-    { number: 2, title: "Contact Details", icon: Phone },
-    { number: 3, title: "Business Info", icon: Building },
-    { number: 4, title: "Documents", icon: FileText }
-  ];
-
-  return (
-    <div className="w-full max-w-lg mx-auto space-y-4 p-4">
-      {/* Progress Steps */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-semibold text-green-800">Step {currentStep} of {steps.length}</span>
-            <span className="text-sm font-medium text-green-700">{Math.round((currentStep / steps.length) * 100)}% Complete</span>
-          </div>
-          <Progress value={(currentStep / steps.length) * 100} className="h-3 bg-green-100" />
-          <div className="mt-4">
-            <h3 className="text-xl font-bold text-green-900 flex items-center gap-2">
-              {(() => {
-                const IconComponent = steps[currentStep - 1]?.icon;
-                return IconComponent ? <IconComponent className="w-5 h-5" /> : null;
-              })()}
-              {steps[currentStep - 1]?.title}
-            </h3>
-            <p className="text-sm text-green-700 mt-1">
-              {currentStep === 1 && "Tell us about your business type and basic information"}
-              {currentStep === 2 && "Provide your contact details and business location"}
-              {currentStep === 3 && "Describe your business and what makes you unique"}
-              {currentStep === 4 && "Upload required documents to complete your application"}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Form Content */}
-      <Card className="shadow-lg border-0">
-        <CardContent className="p-6">
-          {renderStep()}
-
-          <div className="flex flex-col sm:flex-row justify-between gap-3 mt-8">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep(prev => Math.max(1, prev - 1))}
-              disabled={currentStep === 1}
-              className="flex items-center justify-center order-2 sm:order-1"
-            >
-              <ChevronLeft className="w-4 h-4 mr-2" />
-              Previous
-            </Button>
-
-            {currentStep === steps.length ? (
-              <Button
-                onClick={handleSubmit}
-                disabled={!canProceed() || loading}
-                className="bg-green-600 hover:bg-green-700 flex items-center justify-center order-1 sm:order-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Application
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </>
-                )}
-              </Button>
-            ) : (
-              <Button
-                onClick={() => setCurrentStep(prev => prev + 1)}
-                disabled={!canProceed()}
-                className="bg-green-600 hover:bg-green-700 flex items-center justify-center order-1 sm:order-2"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Success Message */}
-      {currentStep === steps.length && (
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <h4 className="font-semibold text-green-900">Almost Done!</h4>
-                <p className="text-sm text-green-700">
-                  After submitting your application, you'll proceed to vendor training to learn about our platform.
+          {/* Step 4: Documents */}
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertCircle className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-800">Required Documents</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Please upload the required documents to complete your application. All documents will be kept secure and confidential.
                 </p>
               </div>
+
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="idCard" className="text-sm font-medium text-gray-700">
+                    National ID / Passport *
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-2">Required for verification</p>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <input
+                      type="file"
+                      id="idCard"
+                      accept="image/*,.pdf"
+                      onChange={(e) => handleFileUpload('idCard', e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                    <label htmlFor="idCard" className="cursor-pointer">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        {formData.documents.idCard ? formData.documents.idCard.name : 'Click to upload ID/Passport'}
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="businessLicense" className="text-sm font-medium text-gray-700">
+                    Business License (Optional)
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-2">If you have a business license, please upload it</p>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <input
+                      type="file"
+                      id="businessLicense"
+                      accept="image/*,.pdf"
+                      onChange={(e) => handleFileUpload('businessLicense', e.target.files?.[0] || null)}
+                      className="hidden"
+                    />
+                    <label htmlFor="businessLicense" className="cursor-pointer">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <p className="mt-2 text-sm text-gray-600">
+                        {formData.documents.businessLicense ? formData.documents.businessLicense.name : 'Click to upload Business License'}
+                      </p>
+                      <p className="text-xs text-gray-500">PNG, JPG, PDF up to 10MB</p>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Bank Account Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="bankName" className="text-sm font-medium text-gray-700">
+                        Bank Name (for withdrawals) *
+                      </Label>
+                      <Input
+                        id="bankName"
+                        value={formData.documents.bankName}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, bankName: e.target.value }
+                        }))}
+                        placeholder="e.g., Equity Bank, KCB, Co-op Bank"
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="accountNumber" className="text-sm font-medium text-gray-700">
+                        Account Number *
+                      </Label>
+                      <Input
+                        id="accountNumber"
+                        value={formData.documents.accountNumber}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, accountNumber: e.target.value }
+                        }))}
+                        placeholder="Enter your account number"
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <Label htmlFor="accountHolderName" className="text-sm font-medium text-gray-700">
+                        Account Holder Name *
+                      </Label>
+                      <Input
+                        id="accountHolderName"
+                        value={formData.documents.accountHolderName}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          documents: { ...prev.documents, accountHolderName: e.target.value }
+                        }))}
+                        placeholder="Name as it appears on the bank account"
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+
+        </CardContent>
+      </Card>
+
+      {/* Navigation Buttons */}
+      <div className="flex justify-between items-center">
+        <Button
+          variant="outline"
+          onClick={handlePrevious}
+          disabled={currentStep === 1}
+          className="flex items-center space-x-2"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Previous</span>
+        </Button>
+
+        {currentStep < 4 ? (
+          <Button
+            onClick={handleNext}
+            disabled={!canProceed()}
+            className="flex items-center space-x-2"
+          >
+            <span>Next</span>
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSubmit}
+            disabled={!canProceed() || loading}
+            className="flex items-center space-x-2"
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <>
+                <span>Submit Application</span>
+                <CheckCircle className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
+      {/* Help Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Request Help</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowHelpModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="helpPhone" className="text-sm font-medium text-gray-700">
+                  Phone Number *
+                </Label>
+                <Input
+                  id="helpPhone"
+                  value={helpData.phone}
+                  onChange={(e) => setHelpData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="Enter your phone number"
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="helpMessage" className="text-sm font-medium text-gray-700">
+                  Message *
+                </Label>
+                <Textarea
+                  id="helpMessage"
+                  value={helpData.message}
+                  onChange={(e) => setHelpData(prev => ({ ...prev, message: e.target.value }))}
+                  placeholder="Describe what you need help with..."
+                  className="w-full min-h-[100px]"
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowHelpModal(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={submitHelpRequest}
+                  disabled={submittingHelp || !helpData.phone || !helpData.message}
+                  className="flex-1"
+                >
+                  {submittingHelp ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Request'
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
