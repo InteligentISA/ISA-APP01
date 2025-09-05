@@ -47,6 +47,8 @@ interface VendorTrainingProps {
 }
 
 const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTrainingProps) => {
+  // Use untyped supabase for tables not present in generated types
+  const sb = supabase as any;
   const [modules, setModules] = useState<TrainingModule[]>([]);
   const [progress, setProgress] = useState<TrainingProgress[]>([]);
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
@@ -69,7 +71,7 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
   const loadTrainingData = async () => {
     try {
       // Load training modules
-      const { data: modulesData, error: modulesError } = await supabase
+      const { data: modulesData, error: modulesError } = await sb
         .from('training_modules')
         .select('*')
         .eq('is_active', true)
@@ -78,15 +80,15 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
       if (modulesError) throw modulesError;
 
       // Load user progress
-      const { data: progressData, error: progressError } = await supabase
+      const { data: progressData, error: progressError } = await sb
         .from('user_training_progress')
         .select('*')
         .eq('user_id', userId);
 
       if (progressError) throw progressError;
 
-      setModules(modulesData || []);
-      setProgress(progressData || []);
+      setModules((modulesData || []) as TrainingModule[]);
+      setProgress((progressData || []) as TrainingProgress[]);
 
       // Find first incomplete module
       const incompleteIndex = modulesData?.findIndex(module => 
@@ -108,7 +110,7 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
 
   const markModuleComplete = async (moduleId: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await sb
         .from('user_training_progress')
         .upsert({
           user_id: userId,
@@ -194,7 +196,7 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
     }
 
     try {
-      const { error } = await supabase
+      const { error } = await sb
         .from('support_requests')
         .insert({
           user_id: userId,
