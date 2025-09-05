@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { HCaptchaComponent } from '@/components/ui/hcaptcha';
 import { 
   BookOpen, 
   CheckCircle, 
@@ -55,7 +56,11 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
     phone: '',
     message: ''
   });
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const handleCaptchaVerify = (token: string) => setCaptchaToken(token);
+  const handleCaptchaError = () => setCaptchaToken(null);
 
   useEffect(() => {
     loadTrainingData();
@@ -145,6 +150,12 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
       );
 
       if (allCompleted) {
+        const hcaptchaEnabled = import.meta.env.VITE_ENABLE_HCAPTCHA === 'true';
+        if (hcaptchaEnabled && !captchaToken) {
+          toast({ title: "Verification required", description: "Please complete the captcha verification to finish training.", variant: "destructive" });
+          return;
+        }
+
         // Save training completion step
         await supabase
           .from('vendor_application_steps')
@@ -356,14 +367,20 @@ const VendorTraining = ({ userId, onComplete, onProgressChange }: VendorTraining
 
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 order-1 sm:order-2">
                 {!isModuleCompleted(currentModule.id) && (
-                  <Button
-                    onClick={() => markModuleComplete(currentModule.id)}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 flex items-center justify-center"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Mark Complete
-                  </Button>
+                  <div className="space-y-3">
+                    <HCaptchaComponent
+                      onVerify={handleCaptchaVerify}
+                      onError={handleCaptchaError}
+                    />
+                    <Button
+                      onClick={() => markModuleComplete(currentModule.id)}
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 flex items-center justify-center"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Mark Complete
+                    </Button>
+                  </div>
                 )}
 
                 {currentModuleIndex < modules.length - 1 && (

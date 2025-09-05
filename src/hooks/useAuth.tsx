@@ -79,6 +79,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (session?.user?.id) {
           console.log('AuthProvider: Fetching user profile for', session.user.id);
+          
+          // Check if this is a new user (Google OAuth signup)
+          if (event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google') {
+            try {
+              // Try to get existing profile
+              const { data: existingProfile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+              if (profileError && profileError.code === 'PGRST116') {
+                // New user - create profile with customer role
+                const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    email: session.user.email,
+                    first_name: session.user.user_metadata?.full_name?.split(' ')[0] || '',
+                    last_name: session.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || '',
+                    user_type: 'customer',
+                    avatar_url: session.user.user_metadata?.avatar_url || null,
+                    account_setup_completed: false // Flag for account setup completion
+                  });
+
+                if (insertError) {
+                  console.error('Error creating profile for Google OAuth user:', insertError);
+                } else {
+                  console.log('Profile created for Google OAuth user');
+                }
+              }
+            } catch (error) {
+              console.error('Error handling Google OAuth user profile:', error);
+            }
+          }
+          
           await fetchUserProfile(session.user.id);
         } else {
           console.log('AuthProvider: No session, clearing user profile');

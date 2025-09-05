@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,8 @@ interface ProfileCompletionModalProps {
     constituency: string;
     gender: string;
     phoneNumber: string;
-  }>;
+    dateOfBirth: string;
+  }> | null;
   onComplete: (data: any) => void;
   onClose: () => void;
 }
@@ -34,15 +35,42 @@ const constituencies = {
 
 export default function ProfileCompletionModal({ isOpen, initialData, onComplete, onClose }: ProfileCompletionModalProps) {
   const [form, setForm] = useState({
-    firstName: initialData.firstName || "",
-    lastName: initialData.lastName || "",
-    county: initialData.county || "",
-    constituency: initialData.constituency || "",
-    gender: initialData.gender || "",
-    phoneNumber: initialData.phoneNumber || "",
+    firstName: initialData?.firstName || "",
+    lastName: initialData?.lastName || "",
+    county: initialData?.county || "",
+    constituency: initialData?.constituency || "",
+    gender: initialData?.gender || "",
+    phoneNumber: initialData?.phoneNumber || "",
+    dateOfBirth: initialData?.dateOfBirth || "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Update form when initialData changes
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        firstName: initialData?.firstName || "",
+        lastName: initialData?.lastName || "",
+        county: initialData?.county || "",
+        constituency: initialData?.constituency || "",
+        gender: initialData?.gender || "",
+        phoneNumber: initialData?.phoneNumber || "",
+        dateOfBirth: initialData?.dateOfBirth || "",
+      });
+    } else {
+      // Reset form if initialData is null
+      setForm({
+        firstName: "",
+        lastName: "",
+        county: "",
+        constituency: "",
+        gender: "",
+        phoneNumber: "",
+        dateOfBirth: "",
+      });
+    }
+  }, [initialData]);
 
   const handleChange = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
@@ -52,7 +80,7 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate required fields
-    if (!form.firstName || !form.lastName || !form.county || !form.constituency || !form.gender || !form.phoneNumber) {
+    if (!form.firstName || !form.lastName || !form.county || !form.constituency || !form.gender || !form.phoneNumber || !form.dateOfBirth) {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -61,7 +89,7 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
     setIsLoading(false);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !initialData) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -107,6 +135,14 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
                   <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
                 </SelectContent>
               </Select>
+              <Input
+                type="date"
+                placeholder="Date of Birth"
+                value={form.dateOfBirth}
+                onChange={e => handleChange("dateOfBirth", e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                required
+              />
               <Input
                 placeholder="Phone Number"
                 value={form.phoneNumber}

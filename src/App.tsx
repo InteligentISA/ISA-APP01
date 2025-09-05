@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { ConfettiProvider } from "@/contexts/ConfettiContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthWrapper from "./components/AuthProvider";
@@ -77,19 +78,21 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class">
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
-            <AuthWrapper>
-              <AppContent />
-            </AuthWrapper>
-          </BrowserRouter>
-        </TooltipProvider>
+        <ConfettiProvider>
+          <TooltipProvider>
+            <Toaster />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true
+              }}
+            >
+              <AuthWrapper>
+                <AppContent />
+              </AuthWrapper>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ConfettiProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

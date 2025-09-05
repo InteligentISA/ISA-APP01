@@ -137,15 +137,39 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
       return;
     }
     try {
+      // Calculate age from date of birth for customers
+      let calculatedAge = null;
+      if (userType === 'customer' && customerData.dob) {
+        const birthDate = new Date(customerData.dob);
+        const today = new Date();
+        calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+      }
+
+      // Check if customer has all required fields for complete setup
+      const hasCompleteCustomerData = userType === 'customer' && 
+        customerData.firstName && 
+        customerData.lastName && 
+        customerData.phoneNumber && 
+        customerData.dob && 
+        customerData.gender && 
+        customerData.county && 
+        customerData.constituency;
+
       const userData = userType === 'customer' ? {
         first_name: customerData.firstName,
         last_name: customerData.lastName,
         date_of_birth: customerData.dob,
+        age: calculatedAge,
         location: `${customerData.constituency}, ${customerData.county}`,
         gender: customerData.gender,
         phone_number: customerData.phoneNumber,
         email: customerData.email,
         user_type: userType,
+        account_setup_completed: hasCompleteCustomerData,
         avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${customerData.firstName}`
       } : {
         first_name: vendorData.firstName,

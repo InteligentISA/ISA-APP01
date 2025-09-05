@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { useConfetti } from '@/contexts/ConfettiContext';
 import { supabase } from '@/integrations/supabase/client';
+import { HCaptchaComponent } from '@/components/ui/hcaptcha';
 import { 
   User, 
   Building, 
@@ -113,10 +115,12 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
   });
 
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpData, setHelpData] = useState({ phone: '', message: '' });
   const [submittingHelp, setSubmittingHelp] = useState(false);
   const { toast } = useToast();
+  const { triggerConfetti } = useConfetti();
 
   const steps = [
     { id: 1, title: 'Account Type', description: 'Basic information' },
@@ -188,6 +192,9 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
     }));
   };
 
+  const handleCaptchaVerify = (token: string) => setCaptchaToken(token);
+  const handleCaptchaError = () => setCaptchaToken(null);
+
   const handleSubmit = async () => {
     if (!canProceed()) {
       toast({
@@ -195,6 +202,12 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
         description: "Please complete all required fields before submitting.",
         variant: "destructive"
       });
+      return;
+    }
+
+    const hcaptchaEnabled = import.meta.env.VITE_ENABLE_HCAPTCHA === 'true';
+    if (hcaptchaEnabled && !captchaToken) {
+      toast({ title: "Verification required", description: "Please complete the captcha verification.", variant: "destructive" });
       return;
     }
 
@@ -259,7 +272,12 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
 
       if (profileError) throw profileError;
 
-
+      // Trigger confetti celebration for application submission
+      triggerConfetti({
+        duration: 4000,
+        particleCount: 150,
+        colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F']
+      });
 
       toast({
         title: "Application Submitted",
@@ -859,23 +877,29 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
             <ArrowRight className="w-4 h-4" />
           </Button>
         ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={!canProceed() || loading}
-            className="flex items-center space-x-2"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Submitting...</span>
-              </>
-            ) : (
-              <>
-                <span>Submit Application</span>
-                <CheckCircle className="w-4 h-4" />
-              </>
-            )}
-          </Button>
+          <div className="space-y-4">
+            <HCaptchaComponent
+              onVerify={handleCaptchaVerify}
+              onError={handleCaptchaError}
+            />
+            <Button
+              onClick={handleSubmit}
+              disabled={!canProceed() || loading}
+              className="flex items-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <span>Submit Application</span>
+                  <CheckCircle className="w-4 h-4" />
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
 

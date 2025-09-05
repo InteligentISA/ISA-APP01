@@ -1,0 +1,17 @@
+{
+  "lock": false,
+  "deploy": {
+    "permissions": {
+      "env": true,
+      "net": [
+        "secure.3gdirectpay.com",
+        "sandbox.safaricom.co.ke",
+        "openapi.airtel.africa",
+        "api-m.sandbox.paypal.com",
+        "api-m.paypal.com"
+      ]
+    }
+  }
+}
+
+

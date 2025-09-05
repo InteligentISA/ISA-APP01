@@ -25,7 +25,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -110,16 +110,16 @@ const Index = () => {
       // Fetch user profile to check role and approval
       UserProfileService.getUserProfile(authUser.id).then(profile => {
         if (profile) {
-          if (profile.role === 'admin') {
+          if ((profile as any).role === 'admin' || (profile as any).user_type === 'admin') {
             window.location.href = '/admin';
             return;
           }
           if (profile.user_type === 'vendor') {
             // Check vendor approval status
-            if (profile.status === 'approved' || profile.user_type === 'vendor_approved') {
+            if (profile.status === 'approved') {
               setCurrentView('vendor-dashboard');
               return;
-            } else if (profile.status === 'rejected' || profile.user_type === 'vendor_rejected') {
+            } else if (profile.status === 'rejected') {
               // Vendor rejected, show rejection page
               setRejectionReason(profile.rejection_reason || '');
               setCurrentView('rejected-application');
@@ -150,21 +150,20 @@ const Index = () => {
   }, [authLoading, authUser]);
 
   // Automatically prompt profile completion for any logged-in user with incomplete profile
-  /*
   useEffect(() => {
-    if (!authLoading && authUser) {
-      if (!userProfile || !isProfileComplete(userProfile)) {
+    if (!authLoading && authUser && userProfile) {
+      // Prompt completion if user profile is incomplete
+      if (userProfile.user_type === 'customer' && !isProfileComplete(userProfile)) {
         setProfileCompletionData({
           email: authUser.email,
-          first_name: userProfile?.first_name || "",
-          last_name: userProfile?.last_name || "",
-          user_type: userProfile?.user_type || "customer"
+          firstName: userProfile.first_name || "",
+          lastName: userProfile.last_name || "",
+          user_type: userProfile.user_type || "customer"
         });
         setProfileCompletionOpen(true);
       }
     }
   }, [authLoading, authUser, userProfile]);
-  */
 
   const handleGetStarted = () => {
     setCurrentView('auth-welcome');
@@ -185,9 +184,9 @@ const Index = () => {
     setUser(formattedUser);
     if (formattedUser.userType === 'vendor') {
       // Check if vendor is approved
-      if (formattedUser.status === 'approved' || formattedUser.userType === 'vendor_approved') {
+      if (formattedUser.status === 'approved') {
         setCurrentView('vendor-dashboard');
-      } else if (formattedUser.status === 'rejected' || formattedUser.userType === 'vendor_rejected') {
+      } else if (formattedUser.status === 'rejected') {
         // Vendor rejected, show rejection page
         setRejectionReason(formattedUser.rejection_reason || '');
         setCurrentView('rejected-application');
@@ -233,6 +232,80 @@ const Index = () => {
     setUser(updatedUser);
   };
 
+
+
+  const handleProfileCompletion = async (formData: any) => {
+    try {
+      // Calculate age from date of birth
+      let calculatedAge = null;
+      if (formData.dateOfBirth) {
+        const birthDate = new Date(formData.dateOfBirth);
+        const today = new Date();
+        calculatedAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          calculatedAge--;
+        }
+      }
+
+      // Update profile with completed data
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          date_of_birth: formData.dateOfBirth,
+          age: calculatedAge,
+          gender: formData.gender,
+          phone_number: formData.phoneNumber,
+          location: `${formData.constituency}, ${formData.county}`,
+          account_setup_completed: true
+        })
+        .eq('id', authUser?.id);
+
+      if (error) {
+        console.error('Error updating profile:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Close modal and refresh user profile
+      setProfileCompletionOpen(false);
+      toast({
+        title: "Profile Updated!",
+        description: "Your profile has been completed successfully.",
+      });
+
+      // Refresh the user profile
+      if (authUser?.id) {
+        const updatedProfile = await UserProfileService.getUserProfile(authUser.id);
+        if (updatedProfile) {
+          const formattedUser = {
+            ...updatedProfile,
+            name: updatedProfile.first_name && updatedProfile.last_name 
+              ? `${updatedProfile.first_name} ${updatedProfile.last_name}`
+              : updatedProfile.email?.split('@')[0] || 'User',
+            avatar: updatedProfile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedProfile.email || 'user'}`,
+            userType: updatedProfile.user_type || 'customer',
+            status: updatedProfile.status || 'approved'
+          };
+          setUser(formattedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Error completing profile:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleNavigateToGifts = () => {
     if (!isPremiumUser(user)) {
       setShowTierModal(true);
@@ -250,7 +323,10 @@ const Index = () => {
     if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
     if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
     if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
-    await supabase.from('profiles').update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) }).eq('id', user.id);
+    await supabase
+      .from('profiles')
+      .update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) } as any)
+      .eq('id', user.id);
     // Optionally, refetch user profile here
     setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
     setShowTierModal(false);
@@ -374,7 +450,11 @@ const Index = () => {
     }
   };
 
-  const handlePayAndUpgrade = async (plan, paymentMethod, phoneNumber) => {
+  const handlePayAndUpgrade = async (
+    plan: "weekly" | "monthly" | "annual",
+    paymentMethod: "mpesa" | "airtel_money",
+    phoneNumber: string
+  ) => {
     setUpgradeLoading(true);
     let paymentResponse;
     try {
@@ -398,7 +478,10 @@ const Index = () => {
         if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
         if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
         if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
-        await supabase.from('profiles').update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) }).eq('id', user.id);
+        await supabase
+          .from('profiles')
+          .update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) } as any)
+          .eq('id', user.id);
         setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
         setShowTierModal(false);
         toast({
@@ -519,6 +602,16 @@ const Index = () => {
       {currentView === 'my-shipping' && (
         <MyShipping />
       )}
+      
+      {/* Profile Completion Modal */}
+      {profileCompletionOpen && (
+        <ProfileCompletionModal
+          isOpen={profileCompletionOpen}
+          initialData={profileCompletionData}
+          onComplete={handleProfileCompletion}
+          onClose={() => setProfileCompletionOpen(false)}
+        />
+      )}
       {currentView === 'forgot-password' && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="light">
@@ -587,7 +680,7 @@ const Index = () => {
       <TierUpgradeModal
         isOpen={showTierModal}
         onClose={() => setShowTierModal(false)}
-        onPay={handlePayAndUpgrade}
+        onPay={(plan, paymentMethod, phoneNumber) => { void handlePayAndUpgrade(plan, paymentMethod, phoneNumber); }}
         loading={upgradeLoading}
       />
     </div>

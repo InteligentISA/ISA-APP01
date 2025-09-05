@@ -15,6 +15,7 @@ import { MpesaService } from '@/services/mpesaService';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CartItemWithProduct, Address, PaymentMethod, DeliveryMethod, DeliveryDetails } from '@/types/order';
 import { Product } from '@/types/product';
+import { HCaptchaComponent } from '@/components/ui/hcaptcha';
 
 interface EnhancedCheckoutModalProps {
   isOpen: boolean;
@@ -55,8 +56,12 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const [calculatedDeliveryFee, setCalculatedDeliveryFee] = useState(0);
   const [isCalculatingDeliveryFee, setIsCalculatingDeliveryFee] = useState(false);
   const [deliveryFeeDetails, setDeliveryFeeDetails] = useState<any>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const { toast } = useToast();
+
+  const handleCaptchaVerify = (token: string) => setCaptchaToken(token);
+  const handleCaptchaError = () => setCaptchaToken(null);
 
   // Recalculate delivery fee when delivery address changes
   useEffect(() => {
@@ -172,6 +177,12 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         description: "Please enter your M-Pesa phone number.",
         variant: "destructive"
       });
+      return;
+    }
+
+    const hcaptchaEnabled = import.meta.env.VITE_ENABLE_HCAPTCHA === 'true';
+    if (hcaptchaEnabled && !captchaToken) {
+      toast({ title: "Verification required", description: "Please complete the captcha verification.", variant: "destructive" });
       return;
     }
 
@@ -704,13 +715,19 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
                 </Button>
               )}
               {currentStep === 'mpesa' && (
-                <Button 
-                  onClick={handleMpesaPayment} 
-                  disabled={isProcessing}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isProcessing ? 'Processing...' : `Pay ${formatCheckoutPrice(totalAmount)}`}
-                </Button>
+                <div className="space-y-3">
+                  <HCaptchaComponent
+                    onVerify={handleCaptchaVerify}
+                    onError={handleCaptchaError}
+                  />
+                  <Button 
+                    onClick={handleMpesaPayment} 
+                    disabled={isProcessing}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isProcessing ? 'Processing...' : `Pay ${formatCheckoutPrice(totalAmount)}`}
+                  </Button>
+                </div>
               )}
             </div>
           </div>

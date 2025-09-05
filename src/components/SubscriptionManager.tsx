@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import IsaPayModal from '@/components/payments/IsaPayModal';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -25,14 +26,8 @@ const SubscriptionManager = ({ userId, isOpen, onClose }: SubscriptionManagerPro
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<string>('');
   const [selectedCurrency, setSelectedCurrency] = useState<string>('KES');
-  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'airtel' | 'card'>('mpesa');
-  const [paymentDetails, setPaymentDetails] = useState({
-    phoneNumber: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardholderName: ''
-  });
+  const [showIsaPay, setShowIsaPay] = useState(false);
+  const [pendingUpgrade, setPendingUpgrade] = useState<{ planId: string; amount: number; currency: string } | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const { toast } = useToast();
@@ -64,55 +59,13 @@ const SubscriptionManager = ({ userId, isOpen, onClose }: SubscriptionManagerPro
     const plan = SubscriptionService.getPlan(selectedPlan);
     if (!plan) return;
 
-    // Validate payment details
-    if (paymentMethod === 'mpesa' || paymentMethod === 'airtel') {
-      if (!paymentDetails.phoneNumber) {
-        toast({ title: 'Missing Information', description: 'Please enter your phone number', variant: 'destructive' });
-        return;
-      }
-    } else if (paymentMethod === 'card') {
-      if (!paymentDetails.cardNumber || !paymentDetails.expiryDate || !paymentDetails.cvv || !paymentDetails.cardholderName) {
-        toast({ title: 'Missing Information', description: 'Please fill in all card details', variant: 'destructive' });
-        return;
-      }
-    }
-
     setIsProcessing(true);
 
     try {
       // Get price in current currency
       const { amount: priceInCurrency } = CurrencyService.getCheckoutAmount(plan.priceKES, currency.code);
-      
-      // Process payment
-      const paymentMethodData: PaymentMethod = {
-        type: paymentMethod,
-        details: paymentDetails
-      };
-
-      const paymentResult = await SubscriptionService.processPayment(
-        priceInCurrency,
-        currency.code,
-        paymentMethodData
-      );
-
-      if (paymentResult.success) {
-        // Create subscription
-        const subscriptionResult = await SubscriptionService.createSubscription(
-          userId,
-          selectedPlan,
-          paymentMethodData
-        );
-
-        if (subscriptionResult.success) {
-          toast({ title: 'Success!', description: 'Your subscription has been upgraded successfully!' });
-          setShowUpgradeDialog(false);
-          loadSubscription();
-        } else {
-          toast({ title: 'Error', description: subscriptionResult.message, variant: 'destructive' });
-        }
-      } else {
-        toast({ title: 'Payment Failed', description: paymentResult.message, variant: 'destructive' });
-      }
+      setPendingUpgrade({ planId: selectedPlan, amount: priceInCurrency, currency: currency.code });
+      setShowIsaPay(true);
     } catch (error) {
       toast({ title: 'Error', description: 'An error occurred during payment processing', variant: 'destructive' });
     } finally {
@@ -344,76 +297,7 @@ const SubscriptionManager = ({ userId, isOpen, onClose }: SubscriptionManagerPro
 
 
 
-            {/* Payment Method */}
-            <div>
-              <Label>Payment Method</Label>
-              <Select value={paymentMethod} onValueChange={(value: 'mpesa' | 'airtel' | 'card') => setPaymentMethod(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mpesa">M-Pesa</SelectItem>
-                  <SelectItem value="airtel">Airtel Money</SelectItem>
-                  <SelectItem value="card">Credit/Debit Card</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Payment Details */}
-            {(paymentMethod === 'mpesa' || paymentMethod === 'airtel') && (
-              <div>
-                <Label>Phone Number</Label>
-                <Input
-                  type="tel"
-                  placeholder="e.g., 254700000000"
-                  value={paymentDetails.phoneNumber}
-                  onChange={(e) => setPaymentDetails({ ...paymentDetails, phoneNumber: e.target.value })}
-                />
-              </div>
-            )}
-
-            {paymentMethod === 'card' && (
-              <div className="space-y-4">
-                <div>
-                  <Label>Card Number</Label>
-                  <Input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={paymentDetails.cardNumber}
-                    onChange={(e) => setPaymentDetails({ ...paymentDetails, cardNumber: e.target.value })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Expiry Date</Label>
-                    <Input
-                      type="text"
-                      placeholder="MM/YY"
-                      value={paymentDetails.expiryDate}
-                      onChange={(e) => setPaymentDetails({ ...paymentDetails, expiryDate: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>CVV</Label>
-                    <Input
-                      type="text"
-                      placeholder="123"
-                      value={paymentDetails.cvv}
-                      onChange={(e) => setPaymentDetails({ ...paymentDetails, cvv: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Cardholder Name</Label>
-                  <Input
-                    type="text"
-                    placeholder="John Doe"
-                    value={paymentDetails.cardholderName}
-                    onChange={(e) => setPaymentDetails({ ...paymentDetails, cardholderName: e.target.value })}
-                  />
-                </div>
-              </div>
-            )}
+            {/* Payment handled via ISA Pay */}
 
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setShowUpgradeDialog(false)} className="flex-1">
@@ -430,6 +314,31 @@ const SubscriptionManager = ({ userId, isOpen, onClose }: SubscriptionManagerPro
           </div>
         </DialogContent>
       </Dialog>
+
+      {showIsaPay && pendingUpgrade && (
+        <IsaPayModal
+          open={showIsaPay}
+          onOpenChange={setShowIsaPay}
+          userId={userId}
+          amount={pendingUpgrade.amount}
+          currency={pendingUpgrade.currency}
+          orderId={`sub_${pendingUpgrade.planId}`}
+          description={`Upgrade to ${SubscriptionService.getPlan(pendingUpgrade.planId)?.name}`}
+          onSuccess={async () => {
+            const paymentMethodData: PaymentMethod = { type: 'card', details: {} };
+            const res = await SubscriptionService.createSubscription(userId, pendingUpgrade.planId, paymentMethodData);
+            if (res.success) {
+              toast({ title: 'Success!', description: 'Your subscription has been upgraded successfully!' });
+              setShowUpgradeDialog(false);
+              setShowIsaPay(false);
+              setPendingUpgrade(null);
+              loadSubscription();
+            } else {
+              toast({ title: 'Error', description: res.message, variant: 'destructive' });
+            }
+          }}
+        />
+      )}
     </>
   );
 };

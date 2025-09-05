@@ -3,10 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import IsaPayModal from '@/components/payments/IsaPayModal';
 import { Separator } from '@/components/ui/separator';
-import { X, CreditCard, Check, MapPin } from 'lucide-react';
+import { X, Check, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { OrderService } from '@/services/orderService';
 import { CartItemWithProduct, Address, PaymentMethod } from '@/types/order';
@@ -41,8 +40,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     email: user?.email || '',
     phone: ''
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mpesa');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [showIsaPay, setShowIsaPay] = useState(false);
   const [notes, setNotes] = useState('');
 
   const { toast } = useToast();
@@ -83,30 +81,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes,
-        payment_method: paymentMethod,
-        phone_number: phoneNumber // Add phone number to order
+        payment_method: 'isa_pay'
       });
-
-      await OrderService.processPayment(order.id, {
-        order_id: order.id,
-        payment_method: paymentMethod,
-        amount: totalAmount,
-        phone_number: phoneNumber // Add phone number to payment processing
-      });
-
       setOrderNumber(order.order_number);
-      setOrderComplete(true);
-      onOrderComplete();
-
-      toast({
-        title: "Order Placed Successfully!",
-        description: `Your order #${OrderService.formatOrderNumber(order.order_number)} has been confirmed.`,
-      });
-
-      setTimeout(() => {
-        onClose();
-        setOrderComplete(false);
-      }, 3000);
+      setShowIsaPay(true);
 
     } catch (error) {
       console.error('Checkout error:', error);
@@ -260,39 +238,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           <Separator />
 
-          {/* Payment Method */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <CreditCard className="w-5 h-5 mr-2" />
-              Payment Method
-            </h3>
-            <Select value={paymentMethod} onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}>
-              <SelectTrigger className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600">
-                <SelectValue placeholder="Select payment method" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                <SelectItem value="airtel_money">Airtel Money</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {['mpesa', 'airtel_money'].includes(paymentMethod) && (
-            <div>
-              <Label htmlFor="phone_number">{paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} Phone Number</Label>
-              <Input
-                id="phone_number"
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="254700000000"
-                className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Enter your {paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} registered phone number. You will receive a payment prompt on your phone.
-              </p>
-            </div>
-          )}
+          {/* Payment selection happens in ISA Pay modal */}
 
           <Separator />
 
@@ -348,15 +294,28 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </div>
 
           {/* Place Order Button */}
-          <Button 
-            onClick={handlePlaceOrder} 
-            disabled={isProcessing}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            {isProcessing ? 'Processing...' : `Place Order - ${formatPrice(totalAmount)}`}
+          <Button onClick={handlePlaceOrder} disabled={isProcessing} className="w-full bg-green-600 hover:bg-green-700 text-white">
+            {isProcessing ? 'Processing...' : `Review & Pay - ${formatPrice(totalAmount)}`}
           </Button>
         </CardContent>
       </Card>
+      {showIsaPay && (
+        <IsaPayModal
+          open={showIsaPay}
+          onOpenChange={setShowIsaPay}
+          userId={user.id}
+          amount={totalAmount}
+          currency={'KES'}
+          orderId={orderNumber}
+          description={`ISA Order #${OrderService.formatOrderNumber(orderNumber)}`}
+          onSuccess={() => {
+            setOrderComplete(true);
+            onOrderComplete();
+            toast({ title: 'Order Placed Successfully!', description: `Your order #${OrderService.formatOrderNumber(orderNumber)} has been confirmed.` });
+            setTimeout(() => { onClose(); setOrderComplete(false); }, 3000);
+          }}
+        />
+      )}
     </div>
   );
 };
