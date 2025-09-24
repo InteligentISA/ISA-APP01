@@ -645,7 +645,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onRemoveFromLiked={async (productId) => {
           await handleToggleLike({ id: productId });
         }}
-        userId={user?.id}
+              likedJumiaItems={likedJumiaItems}
       />
 
       <WelcomeChatbot

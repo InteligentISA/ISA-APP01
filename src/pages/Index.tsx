@@ -13,6 +13,7 @@ import RejectedApplication from "@/components/RejectedApplication";
 import AskISA from "@/components/AskISA";
 import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
+import AdminRedirectMessage from "@/components/AdminRedirectMessage";
 import MyShipping from './MyShipping';
 import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +26,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -111,7 +112,7 @@ const Index = () => {
       UserProfileService.getUserProfile(authUser.id).then(profile => {
         if (profile) {
           if ((profile as any).role === 'admin' || (profile as any).user_type === 'admin') {
-            window.location.href = '/admin';
+            setCurrentView('admin-redirect');
             return;
           }
           if (profile.user_type === 'vendor') {
@@ -307,10 +308,6 @@ const Index = () => {
   };
 
   const handleNavigateToGifts = () => {
-    if (!isPremiumUser(user)) {
-      setShowTierModal(true);
-      return;
-    }
     setCurrentView('gifts');
   };
 
@@ -601,6 +598,9 @@ const Index = () => {
       )}
       {currentView === 'my-shipping' && (
         <MyShipping />
+      )}
+      {currentView === 'admin-redirect' && (
+        <AdminRedirectMessage onLogout={handleLogout} />
       )}
       
       {/* Profile Completion Modal */}
