@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, MessageCircle, Shield, Truck, Gift } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import onboardingChat from "@/assets/onboarding-chat.png";
+import onboardingPayment from "@/assets/onboarding-payment.png";
+import onboardingDelivery from "@/assets/onboarding-delivery.png";
+import onboardingGifts from "@/assets/onboarding-gifts.jpg";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -11,22 +15,22 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const steps = [
     {
-      icon: <MessageCircle className="w-16 h-16 text-primary mx-auto mb-6" />,
+      image: onboardingChat,
       title: "Shop through chat",
       description: "As simple as chatting with your bestie and get curated items"
     },
     {
-      icon: <Shield className="w-16 h-16 text-primary mx-auto mb-6" />,
+      image: onboardingPayment,
       title: "Secured payments and Cashbacks",
       description: "Processed by ISA Pay"
     },
     {
-      icon: <Truck className="w-16 h-16 text-primary mx-auto mb-6" />,
+      image: onboardingDelivery,
       title: "Reliable door delivery",
       description: "Get reliable door delivery for items you ordered, same day deliveries are done by Fikisha"
     },
     {
-      icon: <Gift className="w-16 h-16 text-primary mx-auto mb-6" />,
+      image: onboardingGifts,
       title: "Buy gifts for friends and family",
       description: "Get suggestions and let ISA organize surprise delivery for you"
     }
@@ -49,50 +53,62 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto">
+      <div className="w-full max-w-lg mx-auto">
         {/* Progress indicators */}
-        <div className="flex justify-center mb-8 space-x-2">
+        <div className="flex justify-center mb-12 space-x-3">
           {steps.map((_, index) => (
             <div
               key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
+              className={`h-3 rounded-full transition-all duration-500 ease-in-out ${
                 index === currentStep 
-                  ? "w-8 bg-primary" 
+                  ? "w-12 bg-primary shadow-lg" 
                   : index < currentStep 
-                    ? "w-2 bg-primary/60" 
-                    : "w-2 bg-muted"
+                    ? "w-3 bg-primary/70" 
+                    : "w-3 bg-muted-foreground/20"
               }`}
             />
           ))}
         </div>
 
         {/* Content */}
-        <div className="text-center mb-8 min-h-[300px] flex flex-col justify-center">
-          {steps[currentStep].icon}
-          <h1 className="text-2xl font-bold text-foreground mb-4">
-            {steps[currentStep].title}
-          </h1>
-          <p className="text-muted-foreground text-lg leading-relaxed px-4">
-            {steps[currentStep].description}
-          </p>
+        <div className="text-center mb-12">
+          {/* Image Container */}
+          <div className="mb-8 relative overflow-hidden rounded-2xl shadow-2xl bg-card border">
+            <img
+              src={steps[currentStep].image}
+              alt={steps[currentStep].title}
+              className="w-full h-80 object-cover transition-all duration-700 ease-in-out transform hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+          </div>
+          
+          {/* Text Content */}
+          <div className="space-y-4 px-6">
+            <h1 className="text-3xl font-bold text-foreground leading-tight">
+              {steps[currentStep].title}
+            </h1>
+            <p className="text-muted-foreground text-lg leading-relaxed max-w-md mx-auto">
+              {steps[currentStep].description}
+            </p>
+          </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-col space-y-4">
+        <div className="flex flex-col space-y-4 px-6">
           <Button 
             onClick={handleNext}
-            className="w-full h-12 text-lg font-medium"
+            className="w-full h-14 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02]"
             size="lg"
           >
             {currentStep === steps.length - 1 ? (
               <>
                 Get Started
-                <ChevronRight className="w-5 h-5 ml-2" />
+                <ChevronRight className="w-6 h-6 ml-2" />
               </>
             ) : (
               <>
                 Next
-                <ChevronRight className="w-5 h-5 ml-2" />
+                <ChevronRight className="w-6 h-6 ml-2" />
               </>
             )}
           </Button>
@@ -101,7 +117,7 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <Button 
               variant="ghost" 
               onClick={handleSkip}
-              className="w-full text-muted-foreground hover:text-foreground"
+              className="w-full h-12 text-muted-foreground hover:text-foreground transition-all duration-300"
             >
               Skip
             </Button>
@@ -109,7 +125,7 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         </div>
 
         {/* Step counter */}
-        <div className="text-center mt-6 text-sm text-muted-foreground">
+        <div className="text-center mt-8 text-sm text-muted-foreground font-medium">
           {currentStep + 1} of {steps.length}
         </div>
       </div>
