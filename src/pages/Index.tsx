@@ -15,6 +15,7 @@ import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
 import AdminRedirectMessage from "@/components/AdminRedirectMessage";
 import MyShipping from './MyShipping';
+import OnboardingFlow from "@/components/OnboardingFlow";
 import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -140,8 +141,14 @@ const Index = () => {
     // Simulate preloader only if not authenticated
     console.log('Starting preloader timer - no authenticated user found');
     const timer = setTimeout(() => {
-      console.log('Preloader timer completed, setting view to welcome');
-      setCurrentView('welcome');
+      console.log('Preloader timer completed, checking onboarding status');
+      // Check if user has completed onboarding
+      const hasCompletedOnboarding = localStorage.getItem("isa_onboarding_completed");
+      if (hasCompletedOnboarding === "true") {
+        setCurrentView('welcome');
+      } else {
+        setCurrentView('onboarding');
+      }
     }, 3000);
     
     return () => {
@@ -309,6 +316,10 @@ const Index = () => {
 
   const handleNavigateToGifts = () => {
     setCurrentView('gifts');
+  };
+
+  const handleOnboardingComplete = () => {
+    setCurrentView('auth-welcome');
   };
 
   const handleUpgrade = async (plan: "weekly" | "monthly" | "annual") => {
@@ -507,6 +518,7 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       {currentView === 'preloader' && <Preloader />}
+      {currentView === 'onboarding' && <OnboardingFlow onComplete={handleOnboardingComplete} />}
       {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
       {currentView === 'auth-welcome' && (
         <AuthWelcome 
