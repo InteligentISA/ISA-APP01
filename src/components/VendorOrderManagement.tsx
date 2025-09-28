@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Search, 
   Filter, 
-  Eye, 
+  Eye,
   CheckCircle, 
   Truck, 
   Package,
@@ -16,7 +16,7 @@ import {
   Loader2
 } from "lucide-react";
 import { OrderService } from "@/services/orderService";
-import { OrderWithDetails } from "@/types/order";
+import { OrderWithDetails, OrderStatus } from "@/types/order";
 import { useToast } from "@/hooks/use-toast";
 
 interface VendorOrderManagementProps {
@@ -54,10 +54,10 @@ const VendorOrderManagement = ({ user }: VendorOrderManagementProps) => {
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     setProcessingOrder(orderId);
     try {
-      const { error } = await OrderService.updateOrderStatus(orderId, newStatus);
-      if (error) {
-        throw new Error(error.message);
-      }
+      await OrderService.updateOrderStatus(orderId, {
+        order_id: orderId,
+        status: newStatus as OrderStatus
+      });
       
       toast({
         title: "Success",

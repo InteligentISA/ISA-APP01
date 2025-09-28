@@ -16,6 +16,8 @@ import ProfileCompletionModal from "@/components/ProfileCompletionModal";
 import AdminRedirectMessage from "@/components/AdminRedirectMessage";
 import MyShipping from './MyShipping';
 import OnboardingFlow from "@/components/OnboardingFlow";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -516,10 +518,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      {currentView === 'preloader' && <Preloader />}
-      {currentView === 'onboarding' && <OnboardingFlow onComplete={handleOnboardingComplete} />}
-      {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
+    <ThemeProvider defaultTheme="light">
+      <div className="min-h-screen bg-background text-foreground relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ThemeToggle />
+        </div>
+        {currentView === 'preloader' && <Preloader />}
+        {currentView === 'onboarding' && <OnboardingFlow onComplete={handleOnboardingComplete} />}
+        {currentView === 'welcome' && <Welcome onGetStarted={handleGetStarted} />}
       {currentView === 'auth-welcome' && (
         <AuthWelcome 
           onClose={() => setCurrentView('welcome')}
@@ -689,13 +695,14 @@ const Index = () => {
         />
       )}
       */}
-      <TierUpgradeModal
-        isOpen={showTierModal}
-        onClose={() => setShowTierModal(false)}
-        onPay={(plan, paymentMethod, phoneNumber) => { void handlePayAndUpgrade(plan, paymentMethod, phoneNumber); }}
-        loading={upgradeLoading}
-      />
-    </div>
+        <TierUpgradeModal
+          isOpen={showTierModal}
+          onClose={() => setShowTierModal(false)}
+          onPay={(plan, paymentMethod, phoneNumber) => { void handlePayAndUpgrade(plan, paymentMethod, phoneNumber); }}
+          loading={upgradeLoading}
+        />
+      </div>
+    </ThemeProvider>
   );
 };
 

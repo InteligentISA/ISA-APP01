@@ -102,6 +102,7 @@ export interface OrderStatusHistory {
 
 export interface OrderWithDetails extends Order {
   items: OrderItem[];
+  order_items?: OrderItem[];
   payment?: Payment;
   shipping?: Shipping;
   status_history: OrderStatusHistory[];
@@ -127,7 +128,10 @@ export type OrderStatus =
 
 export type PaymentMethod = 
   | 'mpesa'
-  | 'airtel_money';
+  | 'airtel_money'
+  | 'isa_pay'
+  | 'cash_on_delivery'
+  | 'cash_on_pickup';
 
 export type PaymentStatus = 
   | 'pending'
@@ -145,7 +149,8 @@ export type ShippingStatus =
   | 'failed';
 
 export type DeliveryMethod = 
-  | 'delivery';
+  | 'delivery'
+  | 'pickup';
 
 // Request/Response types
 export interface CreateOrderRequest {

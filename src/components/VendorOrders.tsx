@@ -3,8 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { OrderService } from "@/services/orderService";
-import { OrderWithDetails } from "@/types/order";
+import { OrderService } from '@/services/orderService';
+import { OrderStatus, OrderWithDetails } from '@/types/order';
 import { format } from "date-fns";
 import { Package, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,7 +63,10 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
-      await OrderService.updateOrderStatus(orderId, status);
+      await OrderService.updateOrderStatus(orderId, {
+        order_id: orderId,
+        status: status as OrderStatus
+      });
       await fetchOrders(); // Refresh the list
     } catch (error) {
       console.error('Error updating order status:', error);
@@ -160,7 +163,7 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
                     <TableRow key={order.id}>
                       <TableCell className="font-medium text-xs md:text-sm">{order.order_number}</TableCell>
                       <TableCell className="text-xs md:text-sm">{order.customer_email}</TableCell>
-                      <TableCell className="text-xs md:text-sm">{order.order_items?.length || 0} items</TableCell>
+                      <TableCell className="text-xs md:text-sm">{order.items?.length || order.order_items?.length || 0} items</TableCell>
                       <TableCell className="text-xs md:text-sm">{order.currency} {order.total_amount}</TableCell>
                       <TableCell className="text-xs md:text-sm">{getStatusBadge(order.status)}</TableCell>
                       <TableCell className="text-xs md:text-sm">

@@ -122,9 +122,9 @@ export function CacheExample() {
             <Badge variant="secondary">Auto-refresh enabled</Badge>
           </div>
 
-          {recentSearches && (
+          {recentSearches && Array.isArray(recentSearches) && (
             <div className="flex flex-wrap gap-2">
-              {recentSearches.map((search, index) => (
+              {recentSearches.map((search: string, index: number) => (
                 <Badge key={index} variant="outline">
                   {search}
                 </Badge>
