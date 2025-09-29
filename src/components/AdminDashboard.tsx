@@ -10,6 +10,7 @@ import AdminProducts from './admin/sections/AdminProducts';
 import AdminPayments from './admin/sections/AdminPayments';
 import AdminWallet from './admin/sections/AdminWallet';
 import AdminNotifications from './admin/sections/AdminNotifications';
+import AdminReturns from './admin/sections/AdminReturns';
 
 interface AdminDashboardProps {
   user?: any;
@@ -45,6 +46,8 @@ const AdminDashboard = ({ user: propUser, onLogout: propOnLogout }: AdminDashboa
         return <AdminOrders />;
       case "products":
         return <AdminProducts />;
+      case "returns":
+        return <AdminReturns />;
       case "payments":
         return <AdminPayments />;
       case "wallet":

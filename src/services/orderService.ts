@@ -658,6 +658,33 @@ export class OrderService {
     }
   }
 
+  // User-specific methods
+  static async getUserOrders(userId: string): Promise<OrderWithDetails[]> {
+    if (!userId) {
+      console.warn('getUserOrders called with undefined userId');
+      return [];
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          items:order_items(*),
+          payment:payments(*),
+          status_history:order_status_history(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching user orders:', error);
+      return [];
+    }
+  }
+
   // Utility methods
   static async getOrderStats(userId: string): Promise<{
     total_orders: number;

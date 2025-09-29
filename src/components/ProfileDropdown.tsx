@@ -21,7 +21,8 @@ import {
   Gift,
   ChevronDown,
   Truck,
-  Award
+  Award,
+  Package
 } from "lucide-react";
 import { SubscriptionService, UserSubscription } from "@/services/subscriptionService";
 import { LoyaltyService } from "@/services/loyaltyService";
@@ -34,6 +35,7 @@ interface ProfileDropdownProps {
   onShowSubscriptions: () => void;
   onShowShipping: () => void;
   onShowWallet: () => void;
+  onShowOrders: () => void;
   onLogout: () => void;
 }
 
@@ -42,9 +44,10 @@ const ProfileDropdown = ({
   onShowProfile, 
   onShowSettings, 
   onShowStyleQuiz, 
-  onShowSubscriptions,
-  onShowShipping,
-  onShowWallet,
+  onShowSubscriptions, 
+  onShowShipping, 
+  onShowWallet, 
+  onShowOrders,
   onLogout 
 }: ProfileDropdownProps) => {
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
@@ -199,6 +202,11 @@ const ProfileDropdown = ({
         <DropdownMenuItem onClick={onShowShipping} className="flex items-center space-x-2 cursor-pointer">
           <Truck className="w-4 h-4" />
           <span>My Shipping</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={onShowOrders} className="flex items-center space-x-2 cursor-pointer">
+          <Package className="w-4 h-4" />
+          <span>My Orders</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={onShowSettings} className="flex items-center space-x-2 cursor-pointer">

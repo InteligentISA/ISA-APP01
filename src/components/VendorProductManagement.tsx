@@ -62,6 +62,10 @@ interface ProductFormData {
   commission_percentage?: number;
   pickup_location?: string;
   pickup_phone_number?: string;
+  // Return policy fields
+  return_eligible?: boolean;
+  return_policy_guidelines?: string;
+  return_policy_reason?: string;
 }
 
 // 1. Add the full category tree and types at the top
@@ -237,7 +241,11 @@ const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSu
     product_images: [],
     commission_percentage: undefined,
     pickup_location: "",
-    pickup_phone_number: ""
+    pickup_phone_number: "",
+    // Return policy fields
+    return_eligible: true,
+    return_policy_guidelines: "",
+    return_policy_reason: ""
   });
 
   const [tagInput, setTagInput] = useState("");
@@ -511,7 +519,11 @@ const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSu
       product_images: [], // Will be populated from API if needed
       commission_percentage: product.commission_percentage,
       pickup_location: product.pickup_location || "",
-      pickup_phone_number: product.pickup_phone_number || ""
+      pickup_phone_number: product.pickup_phone_number || "",
+      // Return policy fields
+      return_eligible: product.return_eligible ?? true,
+      return_policy_guidelines: product.return_policy_guidelines || "",
+      return_policy_reason: product.return_policy_reason || ""
     });
     
     // Set category hierarchy if available
@@ -564,7 +576,11 @@ const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSu
       product_images: [],
       commission_percentage: undefined,
       pickup_location: "",
-      pickup_phone_number: ""
+      pickup_phone_number: "",
+      // Return policy fields
+      return_eligible: true,
+      return_policy_guidelines: "",
+      return_policy_reason: ""
     });
     setTagInput("");
     setMainCategory("");
@@ -1233,6 +1249,53 @@ const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSu
                     checked={formData.is_active}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
                   />
+                </div>
+
+                {/* Return Policy Section */}
+                <div className="border-t pt-4">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Return Policy</h3>
+                  
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <div className="flex-1">
+                      <Label htmlFor="return_eligible">Item Eligible for Return</Label>
+                      <p className="text-sm text-gray-600">Allow customers to return this item</p>
+                    </div>
+                    <Switch
+                      id="return_eligible"
+                      checked={formData.return_eligible || false}
+                      onCheckedChange={(checked) => setFormData(prev => ({ ...prev, return_eligible: checked }))}
+                    />
+                  </div>
+
+                  {formData.return_eligible ? (
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="return_guidelines">Return Guidelines</Label>
+                        <p className="text-sm text-gray-600 mb-2">Specify conditions for returns (e.g., item must not be damaged, original packaging required)</p>
+                        <Textarea
+                          id="return_guidelines"
+                          value={formData.return_policy_guidelines || ""}
+                          onChange={(e) => setFormData(prev => ({ ...prev, return_policy_guidelines: e.target.value }))}
+                          placeholder="e.g., Item must be in original condition, with tags attached, and in original packaging. Returns must be initiated within 24 hours of delivery."
+                          className="w-full"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label htmlFor="return_reason">Reason for No Returns</Label>
+                      <p className="text-sm text-gray-600 mb-2">Explain why this item cannot be returned</p>
+                      <Textarea
+                        id="return_reason"
+                        value={formData.return_policy_reason || ""}
+                        onChange={(e) => setFormData(prev => ({ ...prev, return_policy_reason: e.target.value }))}
+                        placeholder="e.g., This item is highly perishable and cannot be returned once delivered."
+                        className="w-full"
+                        rows={3}
+                      />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

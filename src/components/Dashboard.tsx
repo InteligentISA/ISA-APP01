@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles, Crown, Palette, Truck, Settings } from "lucide-react";
+import { Heart, ShoppingCart, Search, LogOut, Menu, Star, MessageCircle, User, Moon, Sun, Gift, Sparkles, Crown, Palette, Truck, Settings, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import ProductGrid from "@/components/ProductGrid";
@@ -17,6 +17,7 @@ import LikedItemsModal from "@/components/LikedItemsModal";
 import WelcomeChatbot from "@/components/WelcomeChatbot";
 import UserWalletModal from "@/components/UserWalletModal";
 import MyShippingModal from "@/components/MyShippingModal";
+import { useNavigate } from "react-router-dom";
 import SettingsModal from "@/components/SettingsModal";
 import CurrencySelector from "@/components/CurrencySelector";
 import { Product } from "@/types/product";
@@ -38,6 +39,7 @@ interface DashboardProps {
 
 const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const { currency, formatPrice } = useCurrency();
+  const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -297,7 +299,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 variant="ghost"
                 size="icon"
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mr-2"
               >
                 {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
               </Button>
@@ -357,6 +359,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 onShowSubscriptions={() => setShowSubscriptions(true)}
                 onShowShipping={() => setShowShipping(true)}
                 onShowWallet={() => setShowWallet(true)}
+                onShowOrders={() => navigate('/my-orders')}
                 onLogout={onLogout}
               />
             </div>
@@ -522,6 +525,18 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   variant="ghost" 
                   size="sm"
                   onClick={() => {
+                    navigate('/my-orders');
+                    setShowMobileMenu(false);
+                  }}
+                  className="w-full justify-start text-blue-600"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  My Orders
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
                     setShowSettings(true);
                     setShowMobileMenu(false);
                   }}
@@ -679,6 +694,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onClose={() => setShowShipping(false)}
         user={user}
       />
+
 
       <SettingsModal
         isOpen={showSettings}

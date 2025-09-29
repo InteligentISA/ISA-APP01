@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  Bell
+  Bell,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ const AdminSidebar = ({ activeSection, onSectionChange, onLogout, userName }: Ad
     { id: 'vendors', label: 'Vendors', icon: Store },
     { id: 'orders', label: 'Orders', icon: ShoppingCart },
     { id: 'products', label: 'Products', icon: Package },
+    { id: 'returns', label: 'Returns', icon: RotateCcw },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'wallet', label: 'Wallet', icon: Wallet },
     { id: 'notifications', label: 'Notifications', icon: Bell },

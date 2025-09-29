@@ -231,4 +231,37 @@ export interface DeliveryDetails {
   pickup_phone?: string;
   delivery_address?: Address;
   delivery_fee?: number;
+}
+
+// Return request types
+export interface ReturnRequest {
+  id: string;
+  order_id: string;
+  user_id: string;
+  product_id: string;
+  vendor_id: string;
+  reason: string;
+  message?: string;
+  return_type: 'replacement' | 'exchange' | 'refund';
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  admin_notes?: string;
+  vendor_notes?: string;
+  processed_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateReturnRequestRequest {
+  order_id: string;
+  product_id: string;
+  reason: string;
+  message?: string;
+  return_type: 'replacement' | 'exchange' | 'refund';
+}
+
+export interface UpdateReturnRequestRequest {
+  return_request_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  admin_notes?: string;
+  vendor_notes?: string;
 } 

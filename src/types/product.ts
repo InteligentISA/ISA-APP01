@@ -39,6 +39,10 @@ export interface Product {
   // Approval workflow fields
   status?: 'pending' | 'approved' | 'rejected';
   rejection_reason?: string;
+  // Return policy fields
+  return_eligible?: boolean;
+  return_policy_guidelines?: string;
+  return_policy_reason?: string;
 }
 
 export interface ProductCategory {

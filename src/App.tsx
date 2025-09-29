@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { ConfettiProvider } from "@/contexts/ConfettiContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import MyOrdersPage from "./pages/MyOrders";
 import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import AdminDashboard from "./components/AdminDashboard";
@@ -49,6 +50,7 @@ const AppContent = () => {
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/premium" element={<CustomerPremium />} />
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
+        <Route path="/my-orders" element={<MyOrdersPage />} />
         <Route path="/reset-password" element={<div>Password Reset Page</div>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

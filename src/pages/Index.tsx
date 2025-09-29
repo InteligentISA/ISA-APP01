@@ -520,7 +520,7 @@ const Index = () => {
   return (
     <ThemeProvider defaultTheme="light">
       <div className="min-h-screen bg-background text-foreground relative">
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-4 right-20 z-40">
           <ThemeToggle />
         </div>
         {currentView === 'preloader' && <Preloader />}

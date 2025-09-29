@@ -15,7 +15,8 @@ import {
   X,
   Menu,
   ChevronDown,
-  Crown
+  Crown,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ const VendorSidebar = ({
     { id: 'store', label: 'My Store', icon: Store },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'reviews', label: 'Customer Reviews', icon: Star },
+    { id: 'returns', label: 'Returns', icon: RotateCcw },
     { id: 'wallet', label: 'Wallet', icon: Wallet },
     { id: 'subscription', label: 'Subscription', icon: Crown },
     { 
