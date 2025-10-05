@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
 import { useCurrency } from "@/hooks/useCurrency";
 import ProductImage from "@/components/ProductImage";
+import { soundService } from "@/services/soundService";
 
 interface ProductCardProps {
   product: DashboardProduct;
@@ -138,6 +139,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         onAddToCart(product);
       }
       
+      soundService.playAddToCartSound();
       toast({
         title: "Added to cart!",
         description: `${product.name} has been added to your cart.`,
