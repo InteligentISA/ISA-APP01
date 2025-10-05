@@ -1,6 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { StatusCode } from "https://deno.land/std@0.224.0/http/status.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { routeRequest } from "./utils.ts";
 import { initiateCardPayment, verifyCardPayment } from "./providers/dpo.ts";
@@ -79,11 +78,11 @@ async function handleWebhook(req: Request): Promise<Response> {
 
 serve(async (req: Request) => {
   const routed = routeRequest(req.url, req.method);
-  if (!routed) return new Response('Not Found', { status: StatusCode.NotFound });
+  if (!routed) return new Response('Not Found', { status: 404 });
   if (routed.name === 'initiate' && req.method === 'POST') return handleInitiate(req);
   if (routed.name === 'status' && req.method === 'GET') return handleStatus(req, routed.params.transaction_id);
   if (routed.name === 'webhook' && req.method === 'POST') return handleWebhook(req);
-  return new Response('Method Not Allowed', { status: StatusCode.MethodNotAllowed });
+  return new Response('Method Not Allowed', { status: 405 });
 });
 
 

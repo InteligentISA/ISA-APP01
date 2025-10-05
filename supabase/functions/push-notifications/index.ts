@@ -44,8 +44,9 @@ serve(async (req) => {
         )
     }
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -68,7 +69,8 @@ async function sendNotification(supabase: any, notification: any, tokens: string
         results.push({ token, success: result.success, result })
       }
     } catch (error) {
-      results.push({ token, success: false, error: error.message })
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      results.push({ token, success: false, error: errorMessage })
     }
   }
 
@@ -168,7 +170,7 @@ async function sendToUser(supabase: any, userId: string, notification: any) {
     )
   }
 
-  const tokenList = tokens.map(t => t.token)
+  const tokenList = tokens.map((t: { token: string }) => t.token)
   return await sendNotification(supabase, notification, tokenList)
 }
 

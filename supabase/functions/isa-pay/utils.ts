@@ -14,7 +14,7 @@ export function routeRequest(url: string, method: string): { name: 'initiate' | 
 }
 
 export function generateIsaTransactionId(): string {
-  return v4.generate();
+  return crypto.randomUUID();
 }
 
 export async function hmacSha256Hex(secret: string, payload: string): Promise<string> {

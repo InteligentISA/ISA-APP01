@@ -117,25 +117,34 @@ export class SoundService {
     this.saveConfig();
   }
 
-  private getSoundUrl(soundType: SoundType): string {
-    // Map sound types to their file names
-    const soundMap: Record<SoundType, string> = {
-      like: '/sounds/like.mp3',
-      unlike: '/sounds/unlike.mp3',
-      addToCart: '/sounds/add-to-cart.mp3',
-      removeFromCart: '/sounds/remove-from-cart.mp3',
-      checkout: '/sounds/checkout.mp3',
-      success: '/sounds/success.mp3',
-      error: '/sounds/error.mp3',
-      notification: '/sounds/notification.mp3',
-      message: '/sounds/message.mp3',
-      points: '/sounds/points.mp3',
-      orderUpdate: '/sounds/order-update.mp3',
-      payment: '/sounds/payment.mp3',
-      returnRequest: '/sounds/return-request.mp3',
-    };
+  private soundCache: Map<string, string> = new Map();
 
-    return soundMap[soundType] || '/sounds/notification.mp3';
+  private async getSoundUrl(soundType: SoundType): Promise<string> {
+    // Check cache first
+    if (this.soundCache.has(soundType)) {
+      return this.soundCache.get(soundType)!;
+    }
+
+    // Fetch from database
+    try {
+      const { supabase } = await import('../integrations/supabase/client');
+      const { data, error } = await supabase
+        .from('app_sounds')
+        .select('url')
+        .eq('event_key', soundType)
+        .eq('enabled', true)
+        .maybeSingle();
+
+      if (!error && data?.url) {
+        this.soundCache.set(soundType, data.url);
+        return data.url;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch sound from database:', error);
+    }
+
+    // Fallback to default
+    return '/sounds/notification.mp3';
   }
 
   private shouldPlaySound(soundType: SoundType): boolean {
@@ -172,7 +181,7 @@ export class SoundService {
 
     try {
       // Try to play audio file first
-      const soundUrl = this.getSoundUrl(soundType);
+      const soundUrl = await this.getSoundUrl(soundType);
       const audio = new Audio(soundUrl);
       audio.volume = this.config.volume;
       audio.preload = 'auto';
@@ -312,15 +321,15 @@ export class SoundService {
 
     const preloadPromises = soundsToPreload.map(async (soundType) => {
       try {
-        const soundUrl = this.getSoundUrl(soundType);
+        const soundUrl = await this.getSoundUrl(soundType);
         const audio = new Audio(soundUrl);
         audio.preload = 'auto';
         // Trigger loading
         await new Promise((resolve, reject) => {
           audio.addEventListener('canplaythrough', resolve, { once: true });
-      audio.addEventListener('error', reject, { once: true });
-      audio.load();
-    });
+          audio.addEventListener('error', reject, { once: true });
+          audio.load();
+        });
       } catch (error) {
         console.warn(`Failed to preload sound ${soundType}:`, error);
       }
