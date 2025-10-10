@@ -23,23 +23,31 @@ interface AdminSidebarProps {
   onSectionChange: (section: string) => void;
   onLogout: () => void;
   userName: string;
+  adminRole?: string;
 }
 
-const AdminSidebar = ({ activeSection, onSectionChange, onLogout, userName }: AdminSidebarProps) => {
+const AdminSidebar = ({ activeSection, onSectionChange, onLogout, userName, adminRole }: AdminSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  const menuItems = [
-    { id: 'home', label: 'Overview', icon: Home },
-    { id: 'users', label: 'Users', icon: Users },
-    { id: 'vendors', label: 'Vendors', icon: Store },
-    { id: 'orders', label: 'Orders', icon: ShoppingCart },
-    { id: 'products', label: 'Products', icon: Package },
-    { id: 'returns', label: 'Returns', icon: RotateCcw },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'wallet', label: 'Wallet', icon: Wallet },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
+  const allMenuItems = [
+    { id: 'home', label: 'Overview', icon: Home, roles: ['main_admin', 'vendor_admin', 'customer_service', 'order_admin'] },
+    { id: 'users', label: 'Users', icon: Users, roles: ['main_admin', 'customer_service'] },
+    { id: 'vendors', label: 'Vendors', icon: Store, roles: ['main_admin', 'vendor_admin', 'customer_service'] },
+    { id: 'orders', label: 'Orders', icon: ShoppingCart, roles: ['main_admin', 'order_admin'] },
+    { id: 'products', label: 'Products', icon: Package, roles: ['main_admin', 'vendor_admin', 'order_admin'] },
+    { id: 'returns', label: 'Returns', icon: RotateCcw, roles: ['main_admin', 'vendor_admin', 'customer_service', 'order_admin'] },
+    { id: 'payments', label: 'Payments', icon: CreditCard, roles: ['main_admin'] },
+    { id: 'wallet', label: 'Wallet', icon: Wallet, roles: ['main_admin'] },
+    { id: 'notifications', label: 'Notifications', icon: Bell, roles: ['main_admin', 'vendor_admin', 'customer_service', 'order_admin'] },
+    { id: 'admin-management', label: 'Admin Management', icon: Shield, roles: ['main_admin'] },
+    { id: 'vendor-guidelines', label: 'Vendor Guidelines', icon: Package, roles: ['main_admin', 'vendor_admin'] },
+    { id: 'password-reset', label: 'Reset Password', icon: Shield, roles: ['main_admin', 'vendor_admin', 'customer_service', 'order_admin'] },
   ];
+
+  const menuItems = adminRole 
+    ? allMenuItems.filter(item => item.roles.includes(adminRole))
+    : allMenuItems;
 
   const handleSectionChange = (section: string) => {
     onSectionChange(section);

@@ -18,11 +18,31 @@ import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 import { pushNotificationService } from "./services/pushNotificationService";
 import { mobileCacheService } from "./services/mobileCacheService";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user, loading } = useAuth();
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAdminRole = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('admin_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (data) {
+        setAdminRole(data.role);
+      }
+    };
+
+    fetchAdminRole();
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
@@ -46,7 +66,11 @@ const AppContent = () => {
     <div className="min-h-screen w-full overflow-x-hidden">
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/earth" element={<AdminDashboard adminRole="main_admin" />} />
+        <Route path="/earth/neptune-aq90yt7" element={<AdminDashboard adminRole="vendor_admin" />} />
+        <Route path="/earth/jupiter-er8wb97gh" element={<AdminDashboard adminRole="customer_service" />} />
+        <Route path="/earth/mars-kl45mn8rt" element={<AdminDashboard adminRole="order_admin" />} />
+        <Route path="/admin" element={<AdminDashboard adminRole={adminRole || undefined} />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/premium" element={<CustomerPremium />} />
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
