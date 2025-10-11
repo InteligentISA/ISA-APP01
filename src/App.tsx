@@ -14,6 +14,7 @@ import ProductDetail from "./components/ProductDetail";
 import CustomerPremium from "./components/CustomerPremium";
 import VendorSubscription from "./components/VendorSubscription";
 import AdminBlockedScreen from "./components/AdminBlockedScreen";
+import SupportCenter from "./components/SupportCenter";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 import { pushNotificationService } from "./services/pushNotificationService";
@@ -97,6 +98,7 @@ const AppContent = () => {
         <Route path="/premium" element={<CustomerPremium />} />
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
+        <Route path="/support" element={<SupportCenter />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>
