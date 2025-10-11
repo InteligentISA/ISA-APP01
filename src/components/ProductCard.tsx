@@ -213,6 +213,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }
       
       setLocalIsLiked(newLikeState);
+      
+      // Play sound based on like/unlike action
+      if (newLikeState) {
+        soundService.playLikeSound();
+      } else {
+        soundService.playUnlikeSound();
+      }
+      
       // Call parent handler if provided
       if (onToggleLike) {
         onToggleLike(product);

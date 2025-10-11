@@ -16,6 +16,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { CartItemWithProduct, Address, PaymentMethod, DeliveryMethod, DeliveryDetails } from '@/types/order';
 import { Product } from '@/types/product';
 import { HCaptchaComponent } from '@/components/ui/hcaptcha';
+import { soundService } from '@/services/soundService';
 
 interface EnhancedCheckoutModalProps {
   isOpen: boolean;
@@ -214,6 +215,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         setOrderNumber(order.order_number);
         setCurrentStep('complete');
         onOrderComplete();
+        soundService.playSuccessSound();
 
         toast({
           title: "Payment Request Sent!",
@@ -233,6 +235,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       if (error?.data) {
         console.error('Error data:', error.data);
       }
+      soundService.playErrorSound();
       toast({
         title: "Payment Failed",
         description: error instanceof Error ? error.message : "M-Pesa payment failed. Please try again.",
@@ -282,6 +285,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       setOrderNumber(order.order_number);
       setCurrentStep('complete');
       onOrderComplete();
+      soundService.playSuccessSound();
 
       toast({
         title: "Order Placed Successfully!",
@@ -298,6 +302,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       if (error?.data) {
         console.error('Error data:', error.data);
       }
+      soundService.playErrorSound();
       toast({
         title: "Checkout Failed",
         description: error instanceof Error ? error.message : "There was an error processing your order. Please try again.",
