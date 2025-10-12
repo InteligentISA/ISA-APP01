@@ -13,6 +13,7 @@ import VendorWallet from "./VendorWallet";
 import VendorSettings from "./VendorSettings";
 import VendorSubscription from "./VendorSubscription";
 import VendorReturns from "./vendor/sections/VendorReturns";
+import VendorSupport from "./vendor/VendorSupport";
 import { CommissionService } from "@/services/commissionService";
 import { LoyaltyService } from "@/services/loyaltyService";
 
@@ -276,6 +277,8 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
         return <VendorReturns vendorId={user.id} />;
       case "wallet":
         return <VendorWallet vendorId={user.id} />;
+      case "support":
+        return <VendorSupport vendorId={user.id} />;
       case "subscription":
         return <VendorSubscription />;
       case "settings-account":
