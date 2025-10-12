@@ -93,4 +93,20 @@ export class SupportService {
 
     return { data, error };
   }
+
+  static async getUserTickets(userId: string): Promise<SupportTicket[]> {
+    try {
+      const { data, error } = await supabase
+        .from('support_tickets')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching user tickets:', error);
+      return [];
+    }
+  }
 }
