@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/services/orderService";
 import { CartItemWithProduct } from "@/types/order";
 import EnhancedCheckoutModal from "./EnhancedCheckoutModal";
+import { soundService } from "@/services/soundService";
 import ProductImage from "@/components/ProductImage";
 
 interface CartModalProps {
@@ -85,6 +86,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
 
   const handleCheckout = () => {
     setShowCheckout(true);
+    try { soundService.playCheckoutSound(); } catch {}
   };
 
   const handleOrderComplete = () => {

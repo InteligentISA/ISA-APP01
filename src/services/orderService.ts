@@ -55,7 +55,7 @@ export class OrderService {
       .select('*')
       .eq('user_id', userId)
       .eq('product_id', request.product_id)
-      .single();
+      .maybeSingle();
 
     if (existingItem) {
       // Update quantity
@@ -137,13 +137,13 @@ export class OrderService {
   static async addToWishlist(userId: string, product: { product_id: string, product_name: string, product_category: string }): Promise<WishlistItem> {
     const { data, error } = await supabase
       .from('user_likes')
-      .insert({
+      .upsert({
         user_id: userId,
         product_id: product.product_id,
         product_name: product.product_name,
         product_category: product.product_category,
         created_at: new Date().toISOString(),
-      })
+      }, { onConflict: 'user_id,product_id' })
       .select()
       .single();
 

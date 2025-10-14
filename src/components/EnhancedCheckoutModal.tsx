@@ -16,6 +16,7 @@ import { useCurrency } from '@/hooks/useCurrency';
 import { CartItemWithProduct, Address, PaymentMethod, DeliveryMethod, DeliveryDetails } from '@/types/order';
 import { Product } from '@/types/product';
 import { HCaptchaComponent } from '@/components/ui/hcaptcha';
+import { soundService } from '@/services/soundService';
 
 interface EnhancedCheckoutModalProps {
   isOpen: boolean;
@@ -214,6 +215,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         setOrderNumber(order.order_number);
         setCurrentStep('complete');
         onOrderComplete();
+        try { soundService.playSuccessSound(); } catch {}
 
         toast({
           title: "Payment Request Sent!",
@@ -282,6 +284,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       setOrderNumber(order.order_number);
       setCurrentStep('complete');
       onOrderComplete();
+      try { soundService.playSuccessSound(); } catch {}
 
       toast({
         title: "Order Placed Successfully!",

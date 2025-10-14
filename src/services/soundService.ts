@@ -128,10 +128,27 @@ export class SoundService {
     // Fetch from database
     try {
       const { supabase } = await import('../integrations/supabase/client');
+      // Map app sound types to website's event_key naming
+      const eventKeyMap: Record<SoundType, string> = {
+        like: 'like_toggle',
+        unlike: 'like_toggle',
+        addToCart: 'add_to_cart',
+        removeFromCart: 'remove_from_cart',
+        checkout: 'checkout_open',
+        success: 'checkout_success',
+        error: 'error',
+        notification: 'notification',
+        message: 'message',
+        points: 'points',
+        orderUpdate: 'order_update',
+        payment: 'payment',
+        returnRequest: 'return_request',
+      } as any;
+      const mappedKey = eventKeyMap[soundType] || soundType;
       const { data, error } = await supabase
         .from('app_sounds')
         .select('url')
-        .eq('event_key', soundType)
+        .eq('event_key', mappedKey)
         .eq('enabled', true)
         .maybeSingle();
 
@@ -182,6 +199,11 @@ export class SoundService {
     try {
       // Try to play audio file first
       const soundUrl = await this.getSoundUrl(soundType);
+      if (!soundUrl || soundUrl === '/sounds/notification.mp3') {
+        // If URL is empty or default placeholder, use generated sound directly
+        this.playGeneratedSound(soundType);
+        return;
+      }
       const audio = new Audio(soundUrl);
       audio.volume = this.config.volume;
       audio.preload = 'auto';

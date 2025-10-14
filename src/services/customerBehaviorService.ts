@@ -25,7 +25,7 @@ export class CustomerBehaviorService {
           interaction_data: interactionData
         })
         .select()
-        .single();
+        .maybeSingle();
 
       return { data, error };
     } catch (error) {

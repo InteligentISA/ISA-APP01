@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Mail, Lock } from "lucide-react";
+import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +21,7 @@ const AuthSignIn = ({ onBack, onAuthSuccess, onForgotPassword }: AuthSignInProps
   });
   const { signIn } = useAuth();
   const { toast } = useToast();
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -99,13 +100,21 @@ const AuthSignIn = ({ onBack, onAuthSuccess, onForgotPassword }: AuthSignInProps
               <div className="relative">
                 <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                 <Input 
-                  type="password" 
+                  type={showPassword ? "text" : "password"} 
                   placeholder="Password" 
                   className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   required 
                 />
+                <button
+                  type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword(v => !v)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               
               <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12" disabled={isLoading}>

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Mail, Lock, User, Chrome, MapPin, Calendar, Phone, ArrowLeft, Building, FileText } from "lucide-react";
+import { X, Mail, Lock, User, Chrome, MapPin, Calendar, Phone, ArrowLeft, Building, FileText, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import VendorApplicationForm from "./VendorApplicationForm";
@@ -47,6 +47,11 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
 
   // Reset password form state
   const [resetEmail, setResetEmail] = useState("");
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
+  const [showVendorPassword, setShowVendorPassword] = useState(false);
+  const [showVendorConfirmPassword, setShowVendorConfirmPassword] = useState(false);
   const [pendingVendorSignup, setPendingVendorSignup] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [resetCaptchaToken, setResetCaptchaToken] = useState<string | null>(null);
@@ -561,13 +566,21 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input
-                        type="password"
+                        type={showSignInPassword ? "text" : "password"}
                         placeholder="Password"
                         className="pl-10"
                         value={signInData.password}
                         onChange={(e) => setSignInData(prev => ({ ...prev, password: e.target.value }))}
                         required
                       />
+                      <button
+                        type="button"
+                        aria-label={showSignInPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowSignInPassword(v => !v)}
+                      >
+                        {showSignInPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                     {/* Invisible hCaptcha for sign-in, triggered programmatically */}
                     <div className="hidden">
@@ -637,24 +650,40 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
-                          type="password"
+                          type={showSignUpPassword ? "text" : "password"}
                           placeholder="Password"
                           className="pl-10"
                           value={signUpData.password}
                           onChange={(e) => setSignUpData(prev => ({ ...prev, password: e.target.value }))}
                           required
                         />
+                        <button
+                          type="button"
+                          aria-label={showSignUpPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowSignUpPassword(v => !v)}
+                        >
+                          {showSignUpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
-                          type="password"
+                          type={showSignUpConfirmPassword ? "text" : "password"}
                           placeholder="Confirm Password"
                           className="pl-10"
                           value={signUpData.confirmPassword}
                           onChange={(e) => setSignUpData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           required
                         />
+                        <button
+                          type="button"
+                          aria-label={showSignUpConfirmPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowSignUpConfirmPassword(v => !v)}
+                        >
+                          {showSignUpConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
                     
@@ -784,24 +813,40 @@ const AuthenticationModal = ({ isOpen, onClose }: AuthenticationModalProps) => {
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
-                          type="password"
+                          type={showVendorPassword ? "text" : "password"}
                           placeholder="Password"
                           className="pl-10"
                           value={signUpData.password}
                           onChange={(e) => setSignUpData(prev => ({ ...prev, password: e.target.value }))}
                           required
                         />
+                        <button
+                          type="button"
+                          aria-label={showVendorPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowVendorPassword(v => !v)}
+                        >
+                          {showVendorPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                         <Input
-                          type="password"
+                          type={showVendorConfirmPassword ? "text" : "password"}
                           placeholder="Confirm Password"
                           className="pl-10"
                           value={signUpData.confirmPassword}
                           onChange={(e) => setSignUpData(prev => ({ ...prev, confirmPassword: e.target.value }))}
                           required
                         />
+                        <button
+                          type="button"
+                          aria-label={showVendorConfirmPassword ? "Hide password" : "Show password"}
+                          className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                          onClick={() => setShowVendorConfirmPassword(v => !v)}
+                        >
+                          {showVendorConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
                       </div>
                     </div>
                     

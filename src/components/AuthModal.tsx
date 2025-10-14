@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Mail, Lock, User, Chrome, MapPin, Calendar } from "lucide-react";
+import { X, Mail, Lock, User, Chrome, MapPin, Calendar, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
@@ -24,6 +24,8 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
     gender: ""
   });
   const { toast } = useToast();
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -113,7 +115,15 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                     </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <Input type="password" placeholder="Password" className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" required />
+                      <Input type={showLoginPassword ? "text" : "password"} placeholder="Password" className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" required />
+                      <button
+                        type="button"
+                        aria-label={showLoginPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowLoginPassword(v => !v)}
+                      >
+                        {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white" disabled={isLoading}>
@@ -150,13 +160,21 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                       <Input 
-                        type="password" 
+                        type={showRegisterPassword ? "text" : "password"} 
                         placeholder="Password" 
                         className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500" 
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         required 
                       />
+                      <button
+                        type="button"
+                        aria-label={showRegisterPassword ? "Hide password" : "Show password"}
+                        className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowRegisterPassword(v => !v)}
+                      >
+                        {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
