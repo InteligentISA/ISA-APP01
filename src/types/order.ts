@@ -106,6 +106,8 @@ export interface OrderWithDetails extends Order {
   payment?: Payment;
   shipping?: Shipping;
   status_history: OrderStatusHistory[];
+  product_rating?: number;
+  delivery_rating?: number;
 }
 
 export interface CartItemWithProduct extends CartItem {
@@ -249,6 +251,26 @@ export interface ReturnRequest {
   processed_at?: string;
   created_at: string;
   updated_at: string;
+  order?: {
+    order_number: string;
+    total_amount: number;
+    [key: string]: any;
+  };
+  product?: {
+    name: string;
+    main_image?: string;
+    [key: string]: any;
+  };
+  user?: {
+    first_name?: string;
+    last_name?: string;
+    [key: string]: any;
+  };
+  vendor?: {
+    first_name?: string;
+    last_name?: string;
+    [key: string]: any;
+  };
 }
 
 export interface CreateReturnRequestRequest {

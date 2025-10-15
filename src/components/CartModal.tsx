@@ -52,6 +52,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
     try {
       await OrderService.removeFromCart(cartItemId);
       setCartItems(prev => prev.filter(item => item.id !== cartItemId));
+      soundService.playRemoveFromCartSound();
       toast({
         title: "Removed from cart",
         description: "Item has been removed from your cart.",
@@ -86,7 +87,7 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
 
   const handleCheckout = () => {
     setShowCheckout(true);
-    try { soundService.playCheckoutSound(); } catch {}
+    try { (async () => { await soundService.unlockAudio(); await soundService.playCheckoutSound(); })(); } catch {}
   };
 
   const handleOrderComplete = () => {

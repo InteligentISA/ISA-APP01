@@ -22,15 +22,66 @@ export interface Product {
   vendor_id?: string;
   created_at: string;
   updated_at: string;
-  currency?: string; // Default to KES (Kenyan Shillings)
+  currency?: string;
   commission_percentage?: number;
-  pickup_location?: string; // Vendor pickup location
-  pickup_phone_number?: string; // Vendor phone number for pickup inquiries
+  pickup_location?: string;
+  pickup_phone_number?: string;
+  
+  // Product dimensions and weight
+  weight_kg?: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
+  
+  // Warranty
+  warranty_period?: number;
+  warranty_unit?: 'months' | 'years';
+  
+  // Materials (for household items)
+  materials?: string[];
+  
   // Electronics specific fields
   ram?: string;
   storage?: string;
   processor?: string;
   display_size?: string;
+  display_resolution?: string;
+  display_size_inch?: number;
+  hdd_size?: string;
+  memory_capacity_gb?: number;
+  modem_type?: string;
+  mount_type?: string;
+  plug_type?: string;
+  system_memory?: string;
+  voltage?: string;
+  battery_capacity_mah?: number;
+  connection_gender?: string;
+  cpu_manufacturer?: string;
+  graphics_memory_gb?: number;
+  memory_technology?: string;
+  panel_type?: string;
+  processor_type?: string;
+  storage_capacity_gb?: number;
+  
+  // Clothing/Fashion specific fields
+  measurements?: {
+    bust_min?: number;
+    bust_max?: number;
+    waist_min?: number;
+    waist_max?: number;
+    hips_min?: number;
+    hips_max?: number;
+    arm_length?: number;
+    height_range?: string;
+    bra_size?: string;
+    uk_size?: string;
+    usa_size?: string;
+    au_size?: string;
+    it_size?: string;
+    eu_size?: string;
+  };
+  collection_type?: string;
+  size_label?: string;
   // Vendor information
   vendor?: {
     first_name?: string;

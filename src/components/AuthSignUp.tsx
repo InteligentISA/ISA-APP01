@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import PrivacyPolicy from "@/components/PrivacyPolicy";
 
 interface AuthSignUpProps {
   onBack: () => void;
@@ -90,6 +91,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   });
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
 
@@ -502,7 +504,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                   </div>
                 </>
               )}
-              {/* Terms of Service Checkbox */}
+              {/* Terms of Service and Privacy Policy Checkbox */}
               {(userType === 'customer' || userType === 'vendor') && (
                 <div className="flex items-center space-x-2">
                   <Checkbox
@@ -517,7 +519,15 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       className="text-blue-600 hover:underline"
                       onClick={() => setShowTerms(true)}
                     >
-                      Terms of Service
+                      Terms & Conditions
+                    </button>
+                    {' '}and{' '}
+                    <button
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                      onClick={() => setShowPrivacy(true)}
+                    >
+                      Privacy Policy
                     </button>
                   </label>
                 </div>
@@ -827,6 +837,16 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     </div>
                   )}
                 </div>
+              </DialogContent>
+            </Dialog>
+            
+            {/* Privacy Policy Dialog */}
+            <Dialog open={showPrivacy} onOpenChange={setShowPrivacy}>
+              <DialogContent className="max-w-[95vw] w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6">
+                <DialogHeader className="mb-4">
+                  <DialogTitle className="text-lg sm:text-xl font-bold text-gray-900">Privacy Policy</DialogTitle>
+                </DialogHeader>
+                <PrivacyPolicy />
               </DialogContent>
             </Dialog>
           </CardContent>

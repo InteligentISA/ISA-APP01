@@ -70,6 +70,20 @@ export class SoundService {
     }
   }
 
+  // Unlock/resume audio after a user gesture to comply with browser policies
+  public async unlockAudio(): Promise<void> {
+    try {
+      if (!this.audioContext) {
+        this.initializeAudioContext();
+      }
+      if (this.audioContext && this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+    } catch (error) {
+      console.warn('Failed to unlock audio context:', error);
+    }
+  }
+
   private loadConfig() {
     try {
       const savedConfig = localStorage.getItem('isa-sound-config');

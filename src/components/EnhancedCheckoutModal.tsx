@@ -215,7 +215,11 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         setOrderNumber(order.order_number);
         setCurrentStep('complete');
         onOrderComplete();
+<<<<<<< HEAD
         try { soundService.playSuccessSound(); } catch {}
+=======
+        soundService.playSuccessSound();
+>>>>>>> 74b737fa2ed1f63ebca6504eac0caa9d0f6f4544
 
         toast({
           title: "Payment Request Sent!",
@@ -235,6 +239,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       if (error?.data) {
         console.error('Error data:', error.data);
       }
+      soundService.playErrorSound();
       toast({
         title: "Payment Failed",
         description: error instanceof Error ? error.message : "M-Pesa payment failed. Please try again.",
@@ -284,7 +289,11 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       setOrderNumber(order.order_number);
       setCurrentStep('complete');
       onOrderComplete();
+<<<<<<< HEAD
       try { soundService.playSuccessSound(); } catch {}
+=======
+      soundService.playSuccessSound();
+>>>>>>> 74b737fa2ed1f63ebca6504eac0caa9d0f6f4544
 
       toast({
         title: "Order Placed Successfully!",
@@ -301,6 +310,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       if (error?.data) {
         console.error('Error data:', error.data);
       }
+      soundService.playErrorSound();
       toast({
         title: "Checkout Failed",
         description: error instanceof Error ? error.message : "There was an error processing your order. Please try again.",

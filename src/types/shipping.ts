@@ -10,7 +10,7 @@ export interface ShippingRecord {
   shipping_method: string;
   estimated_delivery_date?: string;
   actual_delivery_date?: string;
-  shipping_address: Address;
+  shipping_address?: Address;
   created_at: string;
   updated_at: string;
   order?: {

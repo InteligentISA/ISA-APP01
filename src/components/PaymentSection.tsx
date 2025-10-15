@@ -113,11 +113,11 @@ const PaymentSection: React.FC = () => {
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = 
-      payment.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.customer_email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.products.some(product => 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.products?.some(product => 
+        product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.vendor_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
 
@@ -131,16 +131,16 @@ const PaymentSection: React.FC = () => {
     const csvContent = [
       ['Order Number', 'Customer', 'Email', 'Phone', 'Payment Method', 'Amount', 'Status', 'Date', 'Products', 'Vendors'],
       ...filteredPayments.map(payment => [
-        payment.order_number,
+        payment.order_number || '',
         payment.customer_name || 'Unknown',
-        payment.customer_email,
+        payment.customer_email || '',
         payment.customer_phone || 'N/A',
-        getPaymentMethodLabel(payment.payment_method),
+        getPaymentMethodLabel(payment.payment_method || ''),
         formatPrice(payment.amount),
         payment.status,
         formatDate(payment.created_at),
-        payment.products.map(p => `${p.name} (x${p.quantity})`).join('; '),
-        payment.products.map(p => p.vendor_name || 'Unknown').join('; ')
+        payment.products?.map(p => `${p.name} (x${p.quantity})`).join('; ') || '',
+        payment.products?.map(p => p.vendor_name || 'Unknown').join('; ') || ''
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -198,7 +198,7 @@ const PaymentSection: React.FC = () => {
                 <DollarSign className="w-5 h-5 text-blue-600" />
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-lg font-bold text-blue-900">{formatPrice(stats.totalAmount)}</p>
+                  <p className="text-lg font-bold text-blue-900">{formatPrice(stats.totalAmount || 0)}</p>
                 </div>
               </div>
             </div>
@@ -216,7 +216,7 @@ const PaymentSection: React.FC = () => {
                 <Phone className="w-5 h-5 text-purple-600" />
                 <div>
                   <p className="text-sm text-gray-600">M-Pesa Payments</p>
-                  <p className="text-lg font-bold text-purple-900">{stats.mpesaPayments}</p>
+                  <p className="text-lg font-bold text-purple-900">{stats.mpesaPayments || 0}</p>
                 </div>
               </div>
             </div>
@@ -225,7 +225,7 @@ const PaymentSection: React.FC = () => {
                 <Phone className="w-5 h-5 text-red-600" />
                 <div>
                   <p className="text-sm text-gray-600">Airtel Money Payments</p>
-                  <p className="text-lg font-bold text-red-900">{stats.airtelMoneyPayments ?? 0}</p>
+                  <p className="text-lg font-bold text-red-900">{stats.airtelMoneyPayments || 0}</p>
                 </div>
               </div>
             </div>
@@ -301,7 +301,7 @@ const PaymentSection: React.FC = () => {
                 filteredPayments.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>
-                      <div className="font-medium">{payment.order_number}</div>
+                      <div className="font-medium">{payment.order_number || 'N/A'}</div>
                       <div className="text-sm text-gray-500">
                         {payment.mpesa_phone_number && `📱 ${payment.mpesa_phone_number}`}
                       </div>
@@ -310,7 +310,7 @@ const PaymentSection: React.FC = () => {
                       <div className="font-medium">{payment.customer_name || 'Unknown'}</div>
                       <div className="text-sm text-gray-500 flex items-center gap-1">
                         <Mail className="w-3 h-3" />
-                        {payment.customer_email}
+                        {payment.customer_email || 'N/A'}
                       </div>
                       {payment.customer_phone && (
                         <div className="text-sm text-gray-500 flex items-center gap-1">
@@ -321,7 +321,7 @@ const PaymentSection: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {payment.products.map((product, index) => (
+                        {payment.products?.map((product, index) => (
                           <div key={index} className="text-sm">
                             <div className="font-medium">{product.name}</div>
                             <div className="text-gray-500">Qty: {product.quantity}</div>
@@ -331,7 +331,7 @@ const PaymentSection: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        {payment.products.map((product, index) => (
+                        {payment.products?.map((product, index) => (
                           <div key={index} className="text-sm text-gray-600">
                             {product.vendor_name || 'Unknown'}
                           </div>
@@ -340,8 +340,8 @@ const PaymentSection: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{getPaymentMethodIcon(payment.payment_method)}</span>
-                        <span className="text-sm">{getPaymentMethodLabel(payment.payment_method)}</span>
+                        <span className="text-lg">{getPaymentMethodIcon(payment.payment_method || '')}</span>
+                        <span className="text-sm">{getPaymentMethodLabel(payment.payment_method || '')}</span>
                       </div>
                       {payment.transaction_id && (
                         <div className="text-xs text-gray-500 mt-1">

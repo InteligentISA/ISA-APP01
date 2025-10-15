@@ -227,10 +227,14 @@ const Index = () => {
   };
 
   const handleAddToCart = (product: any) => {
+    // Ensure audio is unlocked on first interaction
+    try { (async () => { const { soundService } = await import('@/services/soundService'); await soundService.unlockAudio(); })(); } catch {}
     setCartItems(prev => [...prev, product]);
   };
 
   const handleToggleLike = (product: any) => {
+    // Ensure audio is unlocked on first interaction
+    try { (async () => { const { soundService } = await import('@/services/soundService'); await soundService.unlockAudio(); })(); } catch {}
     setLikedItems(prev => 
       prev.includes(product.id) 
         ? prev.filter(id => id !== product.id)

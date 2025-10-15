@@ -83,6 +83,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }, [user, product.id, product.source]);
 
   const handleAddToCart = async () => {
+    try { await soundService.unlockAudio(); } catch {}
     if (!user) {
       toast({
         title: "Please sign in",
@@ -160,6 +161,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const handleToggleLike = async () => {
+    try { await soundService.unlockAudio(); } catch {}
     if (!user) {
       toast({
         title: "Please sign in",
@@ -213,9 +215,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
       }
       
       setLocalIsLiked(newLikeState);
+<<<<<<< HEAD
       try {
         await (newLikeState ? soundService.playLikeSound() : soundService.playUnlikeSound());
       } catch {}
+=======
+      
+      // Play sound based on like/unlike action
+      if (newLikeState) {
+        soundService.playLikeSound();
+      } else {
+        soundService.playUnlikeSound();
+      }
+      
+>>>>>>> 74b737fa2ed1f63ebca6504eac0caa9d0f6f4544
       // Call parent handler if provided
       if (onToggleLike) {
         onToggleLike(product);

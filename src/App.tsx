@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { ConfettiProvider } from "@/contexts/ConfettiContext";
 import Index from "./pages/Index";
@@ -10,19 +10,62 @@ import NotFound from "./pages/NotFound";
 import MyOrdersPage from "./pages/MyOrders";
 import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
-import AdminDashboard from "./components/AdminDashboard";
 import ProductDetail from "./components/ProductDetail";
 import CustomerPremium from "./components/CustomerPremium";
 import VendorSubscription from "./components/VendorSubscription";
+import AdminBlockedScreen from "./components/AdminBlockedScreen";
+import SupportCenter from "./components/SupportCenter";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 import { pushNotificationService } from "./services/pushNotificationService";
 import { mobileCacheService } from "./services/mobileCacheService";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { user, loading } = useAuth();
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
+
+  useEffect(() => {
+    const checkIfAdmin = async () => {
+      if (!user?.id) {
+        setIsAdmin(false);
+        setCheckingAdmin(false);
+        return;
+      }
+      
+      try {
+        // Check if user is admin type in profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_type, role')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        // Check if user has admin role in user_roles
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin')
+          .maybeSingle();
+        
+        const hasAdminProfile = profile?.user_type === 'admin' || profile?.role === 'admin';
+        const hasAdminRole = !!userRole;
+        
+        setIsAdmin(hasAdminProfile || hasAdminRole);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkIfAdmin();
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id) {
@@ -34,7 +77,7 @@ const AppContent = () => {
     }
   }, [user?.id]);
 
-  if (loading) {
+  if (loading || checkingAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="animate-spin rounded-full h-16 w-16 sm:h-32 sm:w-32 border-b-2 border-gray-900"></div>
@@ -42,16 +85,20 @@ const AppContent = () => {
     );
   }
 
+  // Block admin access - show error screen
+  if (isAdmin) {
+    return <AdminBlockedScreen />;
+  }
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden">
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/premium" element={<CustomerPremium />} />
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
-        <Route path="/reset-password" element={<div>Password Reset Page</div>} />
+        <Route path="/support" element={<SupportCenter />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

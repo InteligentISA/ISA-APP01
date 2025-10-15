@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { OrderService } from '@/services/orderService';
 import { OrderStatus, OrderWithDetails } from '@/types/order';
 import { format } from "date-fns";
-import { Package, Truck } from "lucide-react";
+import { Package, Truck, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import VendorOrderDetail from "./vendor/VendorOrderDetail";
 
 interface VendorOrdersProps {
   vendorId: string;
@@ -17,6 +18,7 @@ interface VendorOrdersProps {
 const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -97,6 +99,17 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
     return <div className="flex justify-center items-center h-64">Loading orders...</div>;
   }
 
+  // Show order detail if selected
+  if (selectedOrderId) {
+    return (
+      <VendorOrderDetail 
+        orderId={selectedOrderId} 
+        vendorId={vendorId}
+        onBack={() => setSelectedOrderId(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 md:space-y-6">
       <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Orders Management</h1>
@@ -170,6 +183,15 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
                         {order.created_at ? format(new Date(order.created_at), 'MMM dd, yyyy') : 'N/A'}
                       </TableCell>
                       <TableCell className="text-xs md:text-sm">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedOrderId(order.id)}
+                          className="text-xs mb-2 w-full"
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
+                        </Button>
                         {order.status === 'pending' && (
                           <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                             <Button
