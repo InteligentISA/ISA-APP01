@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Mail, Lock, User, MapPin, Calendar, Store, ShoppingBag, Phone, Building } from "lucide-react";
+import { ArrowLeft, Mail, Lock, User, MapPin, Calendar, Store, ShoppingBag, Phone, Building, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
@@ -92,6 +92,8 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
 
@@ -295,13 +297,21 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <Input
                       id="signup-password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       placeholder="Password"
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                      className="pl-10 pr-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       value={customerData.password}
                       onChange={e => handleCommonInputChange('password', e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowPassword(v => !v)}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
                 <div>
@@ -310,13 +320,21 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
                     <Input
                       id="signup-confirm-password"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       placeholder="Confirm Password"
-                      className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                      className="pl-10 pr-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       value={customerData.confirmPassword}
                       onChange={e => handleCommonInputChange('confirmPassword', e.target.value)}
                       required
                     />
+                    <button
+                      type="button"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                      className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                      onClick={() => setShowConfirmPassword(v => !v)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               </div>

@@ -215,11 +215,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         setOrderNumber(order.order_number);
         setCurrentStep('complete');
         onOrderComplete();
-<<<<<<< HEAD
-        try { soundService.playSuccessSound(); } catch {}
-=======
         soundService.playSuccessSound();
->>>>>>> 74b737fa2ed1f63ebca6504eac0caa9d0f6f4544
 
         toast({
           title: "Payment Request Sent!",
@@ -289,11 +285,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
       setOrderNumber(order.order_number);
       setCurrentStep('complete');
       onOrderComplete();
-<<<<<<< HEAD
-      try { soundService.playSuccessSound(); } catch {}
-=======
       soundService.playSuccessSound();
->>>>>>> 74b737fa2ed1f63ebca6504eac0caa9d0f6f4544
 
       toast({
         title: "Order Placed Successfully!",

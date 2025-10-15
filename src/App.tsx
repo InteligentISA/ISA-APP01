@@ -15,6 +15,7 @@ import CustomerPremium from "./components/CustomerPremium";
 import VendorSubscription from "./components/VendorSubscription";
 import AdminBlockedScreen from "./components/AdminBlockedScreen";
 import SupportCenter from "./components/SupportCenter";
+import SplashScreen from "./components/SplashScreen";
 import React, { useEffect } from "react";
 import { initMixpanel } from "./lib/mixpanel";
 import { pushNotificationService } from "./services/pushNotificationService";
@@ -106,6 +107,8 @@ const AppContent = () => {
 };
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
+
   useEffect(() => {
     initMixpanel();
     
@@ -124,6 +127,11 @@ function App() {
     
     initializeCache();
   }, []);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class">
