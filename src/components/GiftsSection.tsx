@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Gift, Heart, ShoppingCart, Star, Sparkles } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Heart, ShoppingCart, Star, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AIService } from "@/services/aiService";
 import { ProductService } from "@/services/productService";
@@ -14,101 +14,66 @@ interface GiftsSectionProps {
   onBack: () => void;
   onAddToCart: (product: any) => void;
   onToggleLike: (product: any) => void;
+  onViewProduct: (product: any) => void;
   likedItems: string[];
 }
 
-const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: GiftsSectionProps) => {
-  const [selectedCategory, setSelectedCategory] = useState("surprise");
+const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, likedItems }: GiftsSectionProps) => {
   const { toast } = useToast();
 
-  // State for custom gift builder inputs
-  const [recipientAge, setRecipientAge] = useState("");
-  const [budget, setBudget] = useState("");
-  const [interests, setInterests] = useState("");
+  // State for gift finder form
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [relationship, setRelationship] = useState("");
   const [occasion, setOccasion] = useState("");
+  const [interests, setInterests] = useState("");
+  const [budgetMin, setBudgetMin] = useState("");
+  const [budgetMax, setBudgetMax] = useState("");
   const [loading, setLoading] = useState(false);
   const [suggestedProducts, setSuggestedProducts] = useState<any[]>([]);
-  const [suggestionLoading, setSuggestionLoading] = useState(false);
 
-  const giftCategories = [
-    { id: "surprise", name: "Surprise Me", icon: "✨" },
-    { id: "birthday", name: "Birthday", icon: "🎂" },
-    { id: "anniversary", name: "Anniversary", icon: "💝" },
-    { id: "graduation", name: "Graduation", icon: "🎓" },
-    { id: "wedding", name: "Wedding", icon: "💒" },
-    { id: "holiday", name: "Holiday", icon: "🎄" }
-  ];
-
-  const surpriseGifts = [
-    {
-      id: "gift-1",
-      name: "Mystery Tech Bundle",
-      price: "KES 5,000 - 15,000",
-      image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=300&h=300&fit=crop",
-      description: "A surprise selection of tech gadgets",
-      rating: "4.8 (120 reviews)"
-    },
-    {
-      id: "gift-2", 
-      name: "Fashion Surprise Box",
-      price: "KES 3,000 - 10,000",
-      image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901?w=300&h=300&fit=crop",
-      description: "Curated fashion items for any style",
-      rating: "4.6 (89 reviews)"
-    },
-    {
-      id: "gift-3",
-      name: "Home Comfort Package",
-      price: "KES 4,000 - 12,000", 
-      image: "https://images.unsplash.com/photo-1721322800607-8c38375eef04?w=300&h=300&fit=crop",
-      description: "Cozy home essentials and decor",
-      rating: "4.7 (95 reviews)"
+  const handleLetISASuggest = async () => {
+    if (!age || !interests || !budgetMin || !budgetMax) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields (Age, Hobbies & Interests, Budget)",
+        variant: "destructive"
+      });
+      return;
     }
-  ];
 
-  const handleAddToCart = (gift: any) => {
-    onAddToCart(gift);
-    toast({
-      title: "Gift added to cart!",
-      description: `${gift.name} has been added to your cart.`,
-    });
-  };
-
-  // Handler for "Ask ISA for Help"
-  const handleAskISA = async () => {
     setLoading(true);
-    setSuggestionLoading(true);
     setSuggestedProducts([]);
-    const prompt = `I want to buy a gift. Recipient's age: ${recipientAge || 'unknown'}. Budget: ${budget || 'not specified'}. Interests/hobbies: ${interests || 'not specified'}. Occasion: ${occasion || 'not specified'}. Please suggest a creative and thoughtful gift idea.`;
+    
+    const prompt = `Find gifts for: Age ${age}, Gender: ${gender || 'any'}, Relationship: ${relationship || 'anyone'}, Occasion: ${occasion || 'general'}, Interests: ${interests}, Budget: KES ${budgetMin} - ${budgetMax}`;
+    
     try {
       const aiResult = await AIService.processMessage(prompt, user, []);
-      // Try to extract a search term from the AI's analysis or response
-      let searchTerm = '';
-      if (aiResult.analysis && aiResult.analysis.searchTerms && aiResult.analysis.searchTerms.length > 0) {
-        searchTerm = aiResult.analysis.searchTerms.join(' ');
+      let searchTerm = interests;
+      
+      const { data: products } = await ProductService.searchProducts(searchTerm, 12);
+      
+      if (products && products.length > 0) {
+        const filtered = products.filter((p: any) => {
+          const price = p.price || 0;
+          return price >= Number(budgetMin) && price <= Number(budgetMax);
+        });
+        setSuggestedProducts(filtered.length > 0 ? filtered : products);
       } else {
-        // fallback: use the AI's response as a search term
-        searchTerm = aiResult.response.split(' ').slice(0, 5).join(' ');
-      }
-      // Fetch product suggestions
-      const { data: products } = await ProductService.searchProducts(searchTerm, 6);
-      setSuggestedProducts(products || []);
-      if (!products || products.length === 0) {
         toast({
           title: "No products found",
-          description: "ISA couldn't find any matching products. Try different details!",
+          description: "ISA couldn't find any matching products. Try different criteria!",
           variant: "destructive"
         });
       }
     } catch (err) {
       toast({
-        title: "ISA Error",
-        description: "Sorry, I'm having trouble connecting to the AI service.",
+        title: "Error",
+        description: "Unable to fetch gift suggestions. Please try again.",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
-      setSuggestionLoading(false);
     }
   };
 
@@ -135,182 +100,192 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, likedItems }: G
         {/* Welcome Section */}
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            <Gift className="inline w-6 h-6 sm:w-8 sm:h-8 mr-2 text-yellow-500" />
-            Perfect Gifts for Every Occasion
+            Find the Perfect Gift
           </h2>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Let ISA help you find the perfect surprise for your loved ones</p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+            Let ISA help you discover thoughtful gifts that will make someone's day special ✨
+          </p>
         </div>
 
-        {/* Gift Categories */}
-        <div className="mb-6 sm:mb-8">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Choose Occasion</h3>
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {giftCategories.map((category) => (
-              <Button
-                key={category.id}
-                variant={selectedCategory === category.id ? "default" : "outline"}
-                onClick={() => setSelectedCategory(category.id)}
-                className="rounded-full text-xs sm:text-sm"
-                size="sm"
-              >
-                <span className="mr-1 sm:mr-2">{category.icon}</span>
-                {category.name}
-              </Button>
-            ))}
-          </div>
-        </div>
+        {/* Gift Finder Form */}
+        <Card className="max-w-2xl mx-auto mb-8">
+          <CardHeader>
+            <CardTitle className="text-center text-gray-900 dark:text-white">Tell us about them</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">
+                Age <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g., 25"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600"
+              />
+            </div>
 
-        {/* Surprise Gifts Grid */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-            <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              <Sparkles className="inline w-5 h-5 sm:w-6 sm:h-6 mr-2 text-yellow-500" />
-              Surprise Packages
-            </h3>
-            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 w-fit">
-              ISA Curated
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {surpriseGifts.map((gift) => (
-              <Card key={gift.id} className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
-                <CardContent className="p-0">
-                  <div className="relative overflow-hidden rounded-t-lg">
-                    <img
-                      src={gift.image}
-                      alt={gift.name}
-                      className="w-full h-40 sm:h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 right-2">
-                      <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
-                        Surprise
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">{gift.name}</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">{gift.description}</p>
-                    </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-3 h-3 sm:w-4 sm:h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">{gift.rating}</span>
-                    </div>
-                    
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                      <span className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                        {gift.price}
-                      </span>
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddToCart(gift)}
-                        className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-xs sm:text-sm w-full sm:w-auto"
-                      >
-                        <Gift className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                        Buy Surprise
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">Gender</label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger className="bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-        {/* Custom Gift Builder */}
-        <div className="mt-8 sm:mt-12">
-          <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-700">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-center text-gray-900 dark:text-white text-lg sm:text-xl">
-                <Sparkles className="inline w-5 h-5 sm:w-6 sm:h-6 mr-2 text-purple-600 dark:text-purple-400" />
-                Create Custom Surprise
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-              <p className="text-center text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-3 sm:mb-4">
-                Tell ISA about the person and let AI create the perfect surprise package
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <Input 
-                  placeholder="Recipient's age" 
-                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
-                  value={recipientAge}
-                  onChange={e => setRecipientAge(e.target.value)}
-                />
-                <Input 
-                  placeholder="Budget range (e.g., 5000-10000)" 
-                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
-                  value={budget}
-                  onChange={e => setBudget(e.target.value)}
-                />
-                <Input 
-                  placeholder="Their interests/hobbies" 
-                  className="sm:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
-                  value={interests}
-                  onChange={e => setInterests(e.target.value)}
-                />
-                <Input 
-                  placeholder="Special occasion details" 
-                  className="sm:col-span-2 bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm sm:text-base"
-                  value={occasion}
-                  onChange={e => setOccasion(e.target.value)}
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">Relationship</label>
+              <Select value={relationship} onValueChange={setRelationship}>
+                <SelectTrigger className="bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Select relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="friend">Friend</SelectItem>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="partner">Partner</SelectItem>
+                  <SelectItem value="colleague">Colleague</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">
+                Special Occasion
+              </label>
+              <Select value={occasion} onValueChange={setOccasion}>
+                <SelectTrigger className="bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Select occasion (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="birthday">Birthday</SelectItem>
+                  <SelectItem value="anniversary">Anniversary</SelectItem>
+                  <SelectItem value="graduation">Graduation</SelectItem>
+                  <SelectItem value="wedding">Wedding</SelectItem>
+                  <SelectItem value="holiday">Holiday</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">
+                Hobbies & Interests <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g., reading, music, cooking, sports"
+                value={interests}
+                onChange={(e) => setInterests(e.target.value)}
+                className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">
+                  Budget Min (KES) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="e.g., 1000"
+                  type="number"
+                  value={budgetMin}
+                  onChange={(e) => setBudgetMin(e.target.value)}
+                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600"
                 />
               </div>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-2">
-                <Button className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-sm sm:text-base">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Create Surprise
-                </Button>
-                <Button variant="outline" className="flex-1 text-sm sm:text-base" onClick={handleAskISA} disabled={loading}>
-                  Ask ISA for Help
-                </Button>
+              <div>
+                <label className="text-sm font-medium text-gray-900 dark:text-white mb-1 block">
+                  Budget Max (KES) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="e.g., 5000"
+                  type="number"
+                  value={budgetMax}
+                  onChange={(e) => setBudgetMax(e.target.value)}
+                  className="bg-white dark:bg-slate-800 border-gray-300 dark:border-slate-600"
+                />
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
 
-        {/* AI Product Suggestions */}
-        {suggestionLoading && (
-          <div className="text-center py-6 text-gray-500">Loading suggestions...</div>
+            <Button
+              onClick={handleLetISASuggest}
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
+            >
+              {loading ? "Finding gifts..." : "Let ISA Suggest"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Suggestions Section */}
+        {suggestedProducts.length === 0 && !loading && (
+          <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 max-w-2xl mx-auto">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Your suggestions will appear here</h3>
+            <p className="text-gray-600 dark:text-gray-300">
+              Fill in the form and let ISA find amazing gifts!
+            </p>
+          </div>
         )}
-        {suggestedProducts.length > 0 && !suggestionLoading && (
-          <div className="mt-8">
-            <h4 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">ISA's Gift Suggestions</h4>
+
+        {suggestedProducts.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+              Perfect Gift Suggestions
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {suggestedProducts.map(product => (
-                <Card key={product.id} className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+              {suggestedProducts.map((product) => (
+                <Card key={product.id} className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
-                    <ProductImage
-                      mainImage={product.main_image}
-                      fallbackImages={product.images || []}
-                      alt={product.name}
-                      className="w-full h-40 object-cover rounded-t"
-                    />
-                    <div className="p-4 space-y-2">
-                      <h5 className="font-semibold text-gray-900 dark:text-white text-base">{product.name}</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">{product.description}</p>
-                      <div className="flex items-center space-x-2 text-sm">
-                        <span className="font-bold text-orange-600 dark:text-orange-300">KES {product.price.toLocaleString()}</span>
-                        <span className="text-gray-500 dark:text-gray-400">Stock: {product.stock_quantity}</span>
-                        <span className="flex items-center text-yellow-500"><Star className="w-4 h-4 mr-1" />{product.rating}</span>
+                    <div className="relative">
+                      <ProductImage
+                        mainImage={product.main_image}
+                        fallbackImages={product.images || []}
+                        alt={product.name}
+                        className="w-full h-48 object-cover rounded-t-lg"
+                      />
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <h4 className="font-semibold text-gray-900 dark:text-white line-clamp-2">
+                        {product.name}
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                        {product.description}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-lg font-bold text-orange-600 dark:text-orange-400">
+                          KES {product.price.toLocaleString()}
+                        </span>
+                        <div className="flex items-center space-x-1 text-yellow-500">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span className="text-sm">{product.rating}</span>
+                        </div>
                       </div>
-                      <div className="flex space-x-2 pt-2">
+                      <div className="flex gap-2">
                         <Button
                           size="sm"
-                          variant={likedItems.includes(product.id) ? "default" : "outline"}
+                          variant="outline"
                           onClick={() => onToggleLike(product)}
-                          className={likedItems.includes(product.id) ? "bg-red-500 text-white" : ""}
+                          className={likedItems.includes(product.id) ? "bg-red-50 text-red-600 border-red-300" : ""}
                         >
-                          <Heart className="w-4 h-4 mr-1" />
-                          {likedItems.includes(product.id) ? "Liked" : "Like"}
+                          <Heart className={`w-4 h-4 ${likedItems.includes(product.id) ? "fill-current" : ""}`} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onViewProduct(product)}
+                        >
+                          <Eye className="w-4 h-4" />
                         </Button>
                         <Button
                           size="sm"
                           onClick={() => onAddToCart(product)}
-                          className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-xs sm:text-sm"
+                          className="flex-1 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
                         >
                           <ShoppingCart className="w-4 h-4 mr-1" />
                           Add to Cart
