@@ -22,7 +22,7 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     {
       image: onboardingPayment,
       title: "Secured payments and Cashbacks",
-      description: "Processed by ISA Pay"
+      description: "Processed by MyPlug Pay"
     },
     {
       image: onboardingDelivery,
@@ -32,7 +32,7 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     {
       image: onboardingGifts,
       title: "Buy gifts for friends and family",
-      description: "Get suggestions and let ISA organize surprise delivery for you"
+      description: "Get suggestions and let MyPlug organize surprise delivery for you"
     }
   ];
 
@@ -41,13 +41,13 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setCurrentStep(currentStep + 1);
     } else {
       // Mark onboarding as completed
-      localStorage.setItem("isa_onboarding_completed", "true");
+      localStorage.setItem("myplug_onboarding_completed", "true");
       onComplete();
     }
   };
 
   const handleSkip = () => {
-    localStorage.setItem("isa_onboarding_completed", "true");
+    localStorage.setItem("myplug_onboarding_completed", "true");
     onComplete();
   };
 

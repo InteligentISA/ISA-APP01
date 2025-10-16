@@ -32,12 +32,12 @@ import { useCurrency } from '@/hooks/useCurrency';
 interface DashboardProps {
   user: any;
   onLogout: () => void;
-  onNavigateToAskISA: () => void;
+  onNavigateToAskMyPlug: () => void;
   onNavigateToGifts: () => void;
   onUserUpdate?: (updatedUser: any) => void;
 }
 
-const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
+const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, onUserUpdate }: DashboardProps) => {
   const { currency, formatPrice } = useCurrency();
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -252,7 +252,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
 
   const handleNavigateToAskISAWithQuery = (query?: string) => {
     setShowWelcomeChatbot(false);
-    onNavigateToAskISA();
+    onNavigateToAskMyPlug();
   };
 
   const handleNavigateToGiftsFromChatbot = () => {
@@ -308,7 +308,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                 variant="ghost" 
                 size="icon" 
                 className="relative bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg"
-                onClick={onNavigateToAskISA}
+                onClick={onNavigateToAskMyPlug}
               >
                 <MessageCircle className="w-5 h-5" />
                 <Sparkles className="absolute -top-1 -right-1 w-3 h-3" />
@@ -411,10 +411,10 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
                   variant="ghost" 
                   size="sm"
                   className="bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                  onClick={onNavigateToAskISA}
+                  onClick={onNavigateToAskMyPlug}
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
-                  Ask ISA
+                  Ask MyPlug
                 </Button>
                 <Button 
                   variant="ghost" 
@@ -582,13 +582,13 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
             ))}
             <Button
               variant="outline"
-              onClick={onNavigateToAskISA}
+              onClick={onNavigateToAskMyPlug}
               size="sm"
               className="rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white border-none hover:from-purple-600 hover:to-pink-600 animate-pulse shadow-lg text-xs sm:text-sm"
             >
               <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              Ask ISA
+              Ask MyPlug
             </Button>
             <Button
               variant="outline"
@@ -668,7 +668,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskISA, onNavigateToGifts, onUs
         onClose={() => setShowWelcomeChatbot(false)}
         user={user}
         onNavigateToGifts={handleNavigateToGiftsFromChatbot}
-        onNavigateToAskISA={handleNavigateToAskISAWithQuery}
+        onNavigateToAskMyPlug={handleNavigateToAskISAWithQuery}
       />
 
       <SubscriptionManager

@@ -214,7 +214,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
           title: "Account created!",
           description: userType === 'vendor' 
             ? "Your vendor application has been submitted! Please wait for admin approval."
-            : `Welcome to ISA as a ${userType}! Please check your email to verify your account.`,
+            : `Welcome to MyPlug as a ${userType}! Please check your email to verify your account.`,
         });
         const appUser = userType === 'customer' ? {
           name: `${customerData.firstName} ${customerData.lastName}`,
@@ -568,7 +568,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                   {userType === 'vendor' ? (
                     <div className="text-sm sm:text-base leading-relaxed text-gray-700 space-y-4">
                       <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
-                        <h2 className="text-lg font-bold text-blue-900 mb-2">ISA AI SHOPPING ASSISTANT – VENDOR TERMS & CONDITIONS</h2>
+                        <h2 className="text-lg font-bold text-blue-900 mb-2">MYPLUG AI SHOPPING ASSISTANT – VENDOR TERMS & CONDITIONS</h2>
                         <p className="text-blue-800 text-sm">
                           <strong>Effective Date:</strong> 7/17/2025<br/>
                           <strong>Version:</strong> 1.0
@@ -576,17 +576,17 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       </div>
                       
                       <p className="text-gray-800">
-                        These Terms and Conditions ("Agreement") govern the participation of vendors ("Vendor", "You", or "Your") on the ISA AI Shopping Assistant platform ("ISA", "we", "us", or "our"), operated by ISA AI Shopping Assistant Ltd., a company registered in Kenya. By listing your products or services on ISA or engaging with the ISA team, you agree to abide by these Terms in full.
+                        These Terms and Conditions ("Agreement") govern the participation of vendors ("Vendor", "You", or "Your") on the MyPlug AI Shopping Assistant platform ("MyPlug", "we", "us", or "our"), operated by MyPlug Technologies Limited, a company registered in Kenya. By listing your products or services on MyPlug or engaging with the MyPlug team, you agree to abide by these Terms in full.
                       </p>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">1. DEFINITIONS</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>"ISA Platform"</strong> – The AI-powered mobile and web platform, application interface, API systems, databases, and related services used by customers for smart shopping assistance.</li>
-                          <li><strong>"Vendor Account"</strong> – The registered profile ISA creates or grants access to for managing listings and commercial activity.</li>
+                          <li><strong>"MyPlug Platform"</strong> – The AI-powered mobile and web platform, application interface, API systems, databases, and related services used by customers for smart shopping assistance.</li>
+                          <li><strong>"Vendor Account"</strong> – The registered profile MyPlug creates or grants access to for managing listings and commercial activity.</li>
                           <li><strong>"Product"</strong> – Any goods, services, or offers listed by a Vendor.</li>
-                          <li><strong>"Customer"</strong> – End-users or shoppers who use ISA to browse, compare, and purchase Products.</li>
-                          <li><strong>"Commission"</strong> – A percentage fee retained by ISA from sales, unless otherwise negotiated.</li>
+                          <li><strong>"Customer"</strong> – End-users or shoppers who use MyPlug to browse, compare, and purchase Products.</li>
+                          <li><strong>"Commission"</strong> – A percentage fee retained by MyPlug from sales, unless otherwise negotiated.</li>
                           <li><strong>"Listing"</strong> – A product's profile including description, pricing, images, stock info, and delivery options.</li>
                         </ul>
                       </section>
