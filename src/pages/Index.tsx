@@ -242,6 +242,11 @@ const Index = () => {
     );
   };
 
+  const handleViewProduct = (product: any) => {
+    setSelectedProduct(product);
+    setShowProductDetail(true);
+  };
+
   const handleUserUpdate = (updatedUser: any) => {
     setUser(updatedUser);
   };
@@ -615,6 +620,7 @@ const Index = () => {
           onBack={handleBackToDashboard}
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
+          onViewProduct={handleViewProduct}
           likedItems={likedItems}
         />
       )}
