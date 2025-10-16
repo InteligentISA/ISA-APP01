@@ -259,7 +259,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
               <div className="flex items-center space-x-3">
                 <SidebarTrigger />
                 <div className="flex items-center space-x-2">
-                  <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
+                  <img src="ISA-APP01/public/AskISA.ico" alt="Ask MyPlug Logo" className="h-6 w-6" />
                   <h1 className="text-xl font-semibold text-gray-800">Ask MyPlug</h1>
                 </div>
               </div>
@@ -280,27 +280,27 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
                   <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                    Hi! I'm MyPlug 👋
+                    Hi! MyPlug here👋
                   </h2>
                   <p className="text-gray-600 mb-6 max-w-md">
-                    Your AI Shopping Assistant is here to help you discover amazing products, 
+                    Your Shopping Assistant is here to help you discover amazing products, 
                     compare prices, and find exactly what you're looking for!
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
                     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">🛍️ Find Products</h3>
+                      <h3 className="font-medium text-gray-800 mb-2">Find Products</h3>
                       <p className="text-sm text-gray-600">Search for items across multiple stores and platforms</p>
                     </div>
                     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">💰 Compare Prices</h3>
+                      <h3 className="font-medium text-gray-800 mb-2">Compare Prices</h3>
                       <p className="text-sm text-gray-600">Get the best deals and price comparisons</p>
                     </div>
                     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">✨ Get Recommendations</h3>
+                      <h3 className="font-medium text-gray-800 mb-2">Get Recommendations</h3>
                       <p className="text-sm text-gray-600">Personalized suggestions based on your preferences</p>
                     </div>
                     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">🎁 Suggest gifts for loved one</h3>
+                      <h3 className="font-medium text-gray-800 mb-2">Suggest gifts for loved one</h3>
                       <p className="text-sm text-gray-600">Get thoughtful gift ideas for special occasions</p>
                     </div>
                   </div>

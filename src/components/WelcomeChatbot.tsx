@@ -18,7 +18,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
   const [messages, setMessages] = useState([
     {
       type: 'myplug',
-      content: `Hey ${user?.name || 'there'}! ☺️\n\nI'm MyPlug — your personal shopping assistant.\nI can help you:\n🛍️ Compare products (mobiles, beauty, clothing, etc.)\n💸 Find the best prices and deals\n🤔 Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
+      content: `Hey ${user?.name || 'there'}! ☺️\n\nThis is MyPlug, your personal shopping assistant.\nI can help you:\n Compare products (mobiles, beauty, clothing, etc.)\n Find the best prices and deals\n Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
     }
   ]);
 
@@ -69,7 +69,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
             <div className="text-center p-4 sm:p-8 pb-4 sm:pb-6 bg-white">
               <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                 <img
-                  src="/AskISA.png"
+                  src="ISA-APP01/public/AskISA.ico"
                   alt="MyPlug Logo"
                   className="w-full h-full object-contain bg-white rounded-full shadow"
                 />

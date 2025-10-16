@@ -12,7 +12,7 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
       <div className="max-w-4xl mx-auto text-center space-y-8 sm:space-y-12 animate-fade-in-up">
         <div className="space-y-4 sm:space-y-6">
           <img 
-            src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
+            src="ISA-APP01/public/AskISA.ico" 
             alt="ISA Logo" 
             className="w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-6 sm:mb-8"
           />
