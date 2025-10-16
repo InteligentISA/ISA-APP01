@@ -18,11 +18,10 @@ import { AIService } from "@/services/aiService";
 import { ProductService } from '@/services/productService';
 import TierUpgradeModal from "@/components/TierUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
-// import { Link } from "react-router-dom"; // If you use react-router, otherwise replace with your navigation
 
 interface Message {
   id: number;
-  type: 'user' | 'isa';
+  type: 'user' | 'myplug';
   content: string;
   timestamp: Date;
 }
@@ -42,7 +41,7 @@ interface JumiaProduct {
   image: string;
 }
 
-interface AskISAProps {
+interface AskMyPlugProps {
   onBack: () => void;
   user: any;
   onAddToCart: (product: any) => void;
@@ -52,7 +51,7 @@ interface AskISAProps {
   onUpgrade: () => void;
 }
 
-const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats, onUpgrade }: AskISAProps) => {
+const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats, onUpgrade }: AskMyPlugProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
@@ -63,7 +62,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
 
   // Load chat history from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("isa_chat_history");
+    const stored = localStorage.getItem("myplug_chat_history");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -77,7 +76,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
 
   // Save chat history to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("isa_chat_history", JSON.stringify(chatHistory));
+    localStorage.setItem("myplug_chat_history", JSON.stringify(chatHistory));
   }, [chatHistory]);
 
   const handleSendMessage = async () => {
@@ -114,7 +113,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
       ]);
     }
 
-    // Call AIService for ISA response
+    // Call AIService for MyPlug response
     try {
       const aiResult = await AIService.processMessage(
         currentMessage,
@@ -156,20 +155,18 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
         setProductResults([]);
         setJumiaResults([]);
       }
-      const isaResponse: Message = {
+      const myplugResponse: Message = {
         id: Date.now() + 1,
-        type: 'isa',
+        type: 'myplug',
         content: aiResult.response,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, isaResponse]);
+      setMessages(prev => [...prev, myplugResponse]);
       setChatCount(prev => prev + 1);
-      // Update chat_count in Supabase
-      // Remove chat_count update as it is not a valid property
     } catch (err) {
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
-        type: 'isa',
+        type: 'myplug',
         content: "Sorry, I'm having trouble connecting to the AI service.",
         timestamp: new Date()
       }]);
@@ -208,8 +205,8 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center space-x-2">
-              <img src="/AskISA.png" alt="Ask ISA Logo" className="h-6 w-6" />
-              <span className="font-semibold text-gray-800">ISA Chat</span>
+              <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
+              <span className="font-semibold text-gray-800">MyPlug Chat</span>
             </div>
             <Button 
               onClick={startNewChat}
@@ -262,15 +259,14 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
               <div className="flex items-center space-x-3">
                 <SidebarTrigger />
                 <div className="flex items-center space-x-2">
-                  <img src="/AskISA.png" alt="Ask ISA Logo" className="h-6 w-6" />
-                  <h1 className="text-xl font-semibold text-gray-800">Ask ISA</h1>
+                  <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
+                  <h1 className="text-xl font-semibold text-gray-800">Ask MyPlug</h1>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-gray-500">
                   Your AI Shopping Assistant
                 </div>
-                {/* Replace with your navigation if needed */}
                 <Button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 hover:scale-105 transition-transform flex items-center" onClick={onBack}>
                   <Home className="h-4 w-4 mr-2" />
                   Back Home
@@ -282,9 +278,9 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
             <ScrollArea className="flex-1 p-4 bg-white">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <img src="/AskISA.png" alt="Ask ISA Logo" className="h-16 w-16 mb-4" />
+                  <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
                   <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                    Hi! I'm ISA 👋
+                    Hi! I'm MyPlug 👋
                   </h2>
                   <p className="text-gray-600 mb-6 max-w-md">
                     Your AI Shopping Assistant is here to help you discover amazing products, 
@@ -323,10 +319,10 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
                             : 'bg-white border border-gray-200 text-gray-800'
                         }`}
                       >
-                        {message.type === 'isa' && (
+                        {message.type === 'myplug' && (
                           <div className="flex items-center space-x-2 mb-2">
-                            <img src="/AskISA.png" alt="Ask ISA Logo" className="h-4 w-4" />
-                            <span className="text-xs font-medium text-orange-600">ISA</span>
+                            <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
+                            <span className="text-xs font-medium text-orange-600">MyPlug</span>
                           </div>
                         )}
                         <p className="text-sm leading-relaxed">{message.content}</p>
@@ -362,13 +358,12 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
                         <span className="inline-block text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">External • Jumia</span>
                       </a>
                     ) : (
-                      // Own product card (reuse your existing card or markup)
+                      // Own product card
                       <div key={prod.id || idx} className="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-lg transition">
                         <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-32 w-full object-contain mb-2" />
                         <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
                         <div className="text-orange-600 font-bold mb-1">KES {prod.price}</div>
                         <div className="text-xs text-gray-500 mb-2">{prod.rating || 'No rating'}</div>
-                        {/* Add like/cart buttons as needed */}
                       </div>
                     )
                   ))}
@@ -384,7 +379,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask ISA about products, prices, recommendations..."
+                    placeholder="Ask MyPlug about products, prices, recommendations..."
                     className="flex-1 rounded-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
                   />
                   <Button
@@ -396,7 +391,7 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  ISA can make mistakes. Please verify important information.
+                  MyPlug can make mistakes. Please verify important information.
                 </p>
               </div>
             </div>
@@ -413,4 +408,4 @@ const AskISA = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats,
   );
 };
 
-export default AskISA;
+export default AskMyPlug;

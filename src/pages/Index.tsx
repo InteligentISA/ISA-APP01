@@ -10,7 +10,7 @@ import VendorApplicationForm from "@/components/VendorApplicationForm";
 import VendorTraining from "@/components/VendorTraining";
 import PendingApproval from "@/components/PendingApproval";
 import RejectedApplication from "@/components/RejectedApplication";
-import AskISA from "@/components/AskISA";
+import AskMyPlug from "@/components/AskMyPlug";
 import GiftsSection from "@/components/GiftsSection";
 import ProfileCompletionModal from "@/components/ProfileCompletionModal";
 import AdminRedirectMessage from "@/components/AdminRedirectMessage";
@@ -29,7 +29,7 @@ import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askisa' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -145,7 +145,7 @@ const Index = () => {
     const timer = setTimeout(() => {
       console.log('Preloader timer completed, checking onboarding status');
       // Check if user has completed onboarding
-      const hasCompletedOnboarding = localStorage.getItem("isa_onboarding_completed");
+      const hasCompletedOnboarding = localStorage.getItem("myplug_onboarding_completed");
       if (hasCompletedOnboarding === "true") {
         setCurrentView('welcome');
       } else {
@@ -214,8 +214,8 @@ const Index = () => {
     setCurrentView('welcome');
   };
 
-  const handleNavigateToAskISA = () => {
-    setCurrentView('askisa');
+  const handleNavigateToAskMyPlug = () => {
+    setCurrentView('askmyplug');
   };
 
   const handleBackToDashboard = () => {
@@ -482,14 +482,14 @@ const Index = () => {
           phoneNumber,
           amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
           orderId: user.id + "-" + Date.now(),
-          description: `ISA Premium ${plan} plan`
+          description: `MyPlug Premium ${plan} plan`
         });
       } else {
         paymentResponse = await AirtelService.initiatePayment({
           phoneNumber,
           amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
           orderId: user.id + "-" + Date.now(),
-          description: `ISA Premium ${plan} plan`
+          description: `MyPlug Premium ${plan} plan`
         });
       }
       if (paymentResponse.success) {
@@ -562,7 +562,7 @@ const Index = () => {
         <Dashboard 
           user={user} 
           onLogout={handleLogout} 
-          onNavigateToAskISA={handleNavigateToAskISA}
+          onNavigateToAskMyPlug={handleNavigateToAskMyPlug}
           onNavigateToGifts={handleNavigateToGifts}
           onUserUpdate={handleUserUpdate}
         />
@@ -603,8 +603,8 @@ const Index = () => {
           rejectionReason={rejectionReason}
         />
       )}
-      {currentView === 'askisa' && (
-        <AskISA
+      {currentView === 'askmyplug' && (
+        <AskMyPlug
           user={user}
           onBack={handleBackToDashboard}
           onAddToCart={handleAddToCart}

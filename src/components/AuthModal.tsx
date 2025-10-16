@@ -97,7 +97,7 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
             >
               <X className="w-4 h-4" />
             </Button>
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
+            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to MyPlug</CardTitle>
           </CardHeader>
           <CardContent className="px-8">
             <Tabs defaultValue="login" className="space-y-4">

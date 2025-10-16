@@ -10,15 +10,15 @@ interface WelcomeChatbotProps {
   onClose: () => void;
   user: any;
   onNavigateToGifts: () => void;
-  onNavigateToAskISA: (query?: string) => void;
+  onNavigateToAskMyPlug: (query?: string) => void;
 }
 
-const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateToAskISA }: WelcomeChatbotProps) => {
+const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateToAskMyPlug }: WelcomeChatbotProps) => {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([
     {
-      type: 'isa',
-      content: `Hey ${user?.name || 'there'}! ☺️\n\nI'm ISA — your personal shopping assistant.\nI can help you:\n🛍️ Compare products (mobiles, beauty, clothing, etc.)\n💸 Find the best prices and deals\n🤔 Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
+      type: 'myplug',
+      content: `Hey ${user?.name || 'there'}! ☺️\n\nI'm MyPlug — your personal shopping assistant.\nI can help you:\n🛍️ Compare products (mobiles, beauty, clothing, etc.)\n💸 Find the best prices and deals\n🤔 Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
     }
   ]);
 
@@ -27,8 +27,8 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
       // Add user message
       setMessages(prev => [...prev, { type: 'user', content: query }]);
       
-      // Navigate to Ask ISA with the query
-      onNavigateToAskISA(query);
+      // Navigate to Ask MyPlug with the query
+      onNavigateToAskMyPlug(query);
     }
   };
 
@@ -65,12 +65,12 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
         {/* Main chatbot card */}
         <Card className="w-full bg-white shadow-2xl border-0 overflow-hidden rounded-2xl flex flex-col max-h-[90vh] sm:max-h-[80vh] h-auto">
           <CardContent className="p-0 h-full flex flex-col bg-gray-50">
-            {/* ISA Avatar and Header */}
+            {/* MyPlug Avatar and Header */}
             <div className="text-center p-4 sm:p-8 pb-4 sm:pb-6 bg-white">
               <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                 <img
                   src="/AskISA.png"
-                  alt="ISA Logo"
+                  alt="MyPlug Logo"
                   className="w-full h-full object-contain bg-white rounded-full shadow"
                 />
               </div>
@@ -80,7 +80,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
             <div className="flex-1 px-4 sm:px-8 pb-4 bg-white min-h-0 flex flex-col items-center justify-center overflow-hidden">
               <div
                 className="space-y-4 cursor-pointer max-w-2xl mx-auto"
-                onClick={() => onNavigateToAskISA()}
+                onClick={() => onNavigateToAskMyPlug()}
                 style={{ userSelect: 'none' }}
               >
                 <div className="flex justify-center">
@@ -93,14 +93,14 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
               </div>
             </div>
 
-            {/* Cute Ask ISA Button (only one, always visible) */}
+            {/* Cute Ask MyPlug Button (only one, always visible) */}
             <div className="bg-white px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100 flex flex-col items-center sticky bottom-0 z-10 w-full">
               <Button
-                onClick={() => onNavigateToAskISA()}
+                onClick={() => onNavigateToAskMyPlug()}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold px-8 sm:px-12 py-3 sm:py-4 text-base sm:text-lg rounded-full shadow-lg hover:scale-105 transition-all duration-300 w-full max-w-xs"
                 style={{ minWidth: 220 }}
               >
-                Ask ISA anything for free now
+                Ask MyPlug anything for free now
               </Button>
             </div>
 

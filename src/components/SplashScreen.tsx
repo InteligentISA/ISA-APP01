@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import myPlugLogo from '@/assets/myplug-logo.png';
-import myPlugAnimated from '@/assets/myplug-logo-animated.png';
+import myPlugAnimatedVideo from '@/assets/myplug-logo-animated.mp4';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -29,13 +29,21 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgb(246, 132, 4)' }}>
       <div className="relative">
-        <img 
-          src={showAnimated ? myPlugAnimated : myPlugLogo}
-          alt="MyPlug Logo" 
-          className={`w-64 h-64 object-contain transition-all duration-500 ${
-            showAnimated ? 'animate-scale-in' : 'animate-fade-in'
-          }`}
-        />
+        {showAnimated ? (
+          <video 
+            src={myPlugAnimatedVideo}
+            autoPlay
+            muted
+            playsInline
+            className="w-64 h-64 object-contain animate-scale-in"
+          />
+        ) : (
+          <img 
+            src={myPlugLogo}
+            alt="MyPlug Logo" 
+            className="w-64 h-64 object-contain animate-fade-in"
+          />
+        )}
       </div>
     </div>
   );
