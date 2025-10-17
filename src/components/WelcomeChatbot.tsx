@@ -18,7 +18,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
   const [messages, setMessages] = useState([
     {
       type: 'myplug',
-      content: `Hey ${user?.name || 'there'}! ☺️\n\nThis is MyPlug, your personal shopping assistant.\nI can help you:\n Compare products (mobiles, beauty, clothing, etc.)\n Find the best prices and deals\n Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
+      content: `Hey ${user?.name || 'there'}! ☺️\n\nThis is MyPlug, your personal shopping assistant.\nI can help you with the following:\n - Compare products (mobiles, beauty, clothing, etc.)\n - Find the best prices and deals\n - Make smarter buying decisions\nJust tell me what you're shopping for (e.g., "Best speaker under KES2000").\nReady? Click the button below?`
     }
   ]);
 
