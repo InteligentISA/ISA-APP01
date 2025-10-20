@@ -77,46 +77,57 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
   const [message, setMessage] = useState('');
-  const [show, setShow] = useState(true);
-  const [blur, setBlur] = useState(true);
+  const [showMessage, setShowMessage] = useState(false);
+  const [showLogo, setShowLogo] = useState(false);
+  const [logoOpacity, setLogoOpacity] = useState(0);
   const [isFirstTime, setIsFirstTime] = useState(false);
 
   useEffect(() => {
     const hasCompleted = localStorage.getItem('has_completed_onboarding');
     setIsFirstTime(!hasCompleted);
-    setTimeout(() => setBlur(false), 1000); // remove blur after loading
+    
+    // Start logo fade in animation
+    setTimeout(() => {
+      setShowLogo(true);
+      setLogoOpacity(1);
+    }, 500);
   }, []);
 
   useEffect(() => {
-    if (blur) return;
+    if (!showLogo) return;
 
-    if (isFirstTime) {
-      // Scenario A - First time user
-      setMessage('Hello, welcome to MyPlug!');
-      setTimeout(() => {
-        setShow(false);
+    // Wait for logo to fade in, then start message sequence
+    setTimeout(() => {
+      if (isFirstTime) {
+        // Scenario A - First time user
+        setMessage('Hello, welcome to MyPlug!');
+        setShowMessage(true);
         setTimeout(() => {
-          setMessage("A leading 'Shop Through Chat' platform.");
-          setShow(true);
+          setShowMessage(false);
           setTimeout(() => {
-            localStorage.setItem('has_completed_onboarding', 'true');
-            onComplete('walkthrough');
-          }, 2500);
-        }, 500);
-      }, 1500);
-    } else {
-      // Scenario B - Returning user
-      setMessage(`Hello ${userName || 'there'}, welcome back to MyPlug!`);
-      setTimeout(() => {
-        setShow(false);
+            setMessage("A leading 'Shop Through Chat' platform.");
+            setShowMessage(true);
+            setTimeout(() => {
+              localStorage.setItem('has_completed_onboarding', 'true');
+              onComplete('walkthrough');
+            }, 2500);
+          }, 500);
+        }, 1500);
+      } else {
+        // Scenario B - Returning user
+        setMessage(`Hello ${userName || 'there'}, welcome back to MyPlug!`);
+        setShowMessage(true);
         setTimeout(() => {
-          setMessage('Happy shopping.');
-          setShow(true);
-          setTimeout(() => onComplete('dashboard'), 2000);
-        }, 500);
-      }, 1500);
-    }
-  }, [blur, isFirstTime, userName, onComplete]);
+          setShowMessage(false);
+          setTimeout(() => {
+            setMessage('Happy shopping.');
+            setShowMessage(true);
+            setTimeout(() => onComplete('dashboard'), 2000);
+          }, 500);
+        }, 1500);
+      }
+    }, 1500); // Wait 1.5 seconds after logo appears
+  }, [showLogo, isFirstTime, userName, onComplete]);
 
   return (
     <div 
@@ -125,29 +136,34 @@ const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
         backgroundColor: '#ff7a00',
         color: 'white',
         fontFamily: 'Poppins, sans-serif',
-        textAlign: 'center',
-        transition: 'all 0.5s ease-in-out'
+        textAlign: 'center'
       }}
     >
-      <img
-        src={myPlugLogo}
-        alt="MyPlug Logo"
-        className="w-32 h-32 object-contain mb-5"
-        style={{
-          filter: blur ? 'blur(10px)' : 'blur(0)',
-          opacity: blur ? 0.8 : 1,
-          transition: 'filter 1s ease-in-out, opacity 1s ease-in-out'
-        }}
-      />
-      <h2 
-        className="text-xl font-medium max-w-[90%] leading-relaxed"
-        style={{
-          opacity: show ? 1 : 0,
-          transition: 'opacity 0.5s ease-in-out'
-        }}
-      >
-        {message}
-      </h2>
+      {/* Logo Section */}
+      <div className="flex items-center justify-center mb-8">
+        <img
+          src={myPlugLogo}
+          alt="MyPlug Logo"
+          className="w-32 h-32 object-contain"
+          style={{
+            opacity: logoOpacity,
+            transition: 'opacity 1s ease-in-out'
+          }}
+        />
+      </div>
+      
+      {/* Message Section */}
+      <div className="flex items-center justify-center min-h-[60px]">
+        <h2 
+          className="text-xl font-medium max-w-[90%] leading-relaxed"
+          style={{
+            opacity: showMessage ? 1 : 0,
+            transition: 'opacity 0.5s ease-in-out'
+          }}
+        >
+          {message}
+        </h2>
+      </div>
     </div>
   );
 };
