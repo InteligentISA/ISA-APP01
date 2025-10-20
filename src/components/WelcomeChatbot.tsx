@@ -69,7 +69,7 @@ const WelcomeChatbot = ({ isOpen, onClose, user, onNavigateToGifts, onNavigateTo
             <div className="text-center p-4 sm:p-8 pb-4 sm:pb-6 bg-white">
               <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 flex items-center justify-center">
                 <img
-                  src="MyPlug-APP01/public/AskMyPlug.ico"
+                  src="/lovable-uploads/myplug-logo.png"
                   alt="MyPlug Logo"
                   className="w-full h-full object-contain bg-white rounded-full shadow"
                 />

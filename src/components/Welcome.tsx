@@ -54,7 +54,7 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
           </Button>
           {/* <div className="flex justify-center">
             <img
-              src="/lovable-uploads/app-icon.png"
+              src="/lovable-uploads/myplug-logo.png"
               alt="MyPlug App Icon"
               className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-white rounded-full shadow"
             />

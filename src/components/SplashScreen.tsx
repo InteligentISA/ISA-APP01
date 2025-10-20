@@ -68,7 +68,6 @@
 
 
 import { useEffect } from 'react';
-import myPlugLogo from '@/assets/myplug-logo.png';
 import onboardingChat from "@/assets/onboarding-chat.png";
 import onboardingPayment from "@/assets/onboarding-payment.png";
 import onboardingDelivery from "@/assets/onboarding-delivery.png";
@@ -118,7 +117,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ backgroundColor: 'rgb(246, 132, 4)' }}>
       <div className="relative">
         <img 
-          src={myPlugLogo}
+          src="/lovable-uploads/myplug-logo.png"
           alt="MyPlug Logo" 
           className="w-64 h-64 object-contain animate-pulse-blur"
         />

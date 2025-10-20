@@ -94,7 +94,7 @@ export default function MyPlugPayModal({ open, onOpenChange, userId, amount, cur
       <DialogContent className="w-[95vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <img src="/lovable-uploads/app-icon.png" alt="MyPlug Pay" className="h-6" />
+            <img src="/lovable-uploads/myplug-logo.png" alt="MyPlug Pay" className="h-6" />
             <span>Pay securely with MyPlug Pay</span>
           </DialogTitle>
           <DialogDescription>Encrypted checkout. We never share your card or wallet details with merchants.</DialogDescription>

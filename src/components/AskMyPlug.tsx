@@ -329,7 +329,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center space-x-2">
-              <img src="/lovable-uploads/app-icon.png" alt="MyPlug App Icon" className="h-6 w-6" />
+              <img src="/lovable-uploads/myplug-logo.png" alt="MyPlug App Icon" className="h-6 w-6" />
               <span className="font-semibold text-gray-800">MyPlug Chat</span>
             </div>
             <Button 
@@ -399,7 +399,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
               <div className="flex items-center space-x-3">
                 <SidebarTrigger />
                 <div className="flex items-center space-x-2">
-                  <img src="MyPlug-APP01/public/AskMyPlug.ico" alt="Ask MyPlug Logo" className="h-6 w-6" />
+                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
                   <h1 className="text-xl font-semibold text-gray-800">Ask MyPlug</h1>
                 </div>
               </div>
@@ -418,7 +418,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
             <ScrollArea className="flex-1 p-4 bg-white">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <img src="/AskMyPlug.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
+                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
                   <h2 className="text-2xl font-semibold text-gray-800 mb-2">
                     Hi! MyPlug here👋
                   </h2>
@@ -461,7 +461,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                       >
                         {message.type === 'myplug' && (
                           <div className="flex items-center space-x-2 mb-2">
-                            <img src="/AskMyPlug.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
+                            <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
                             <span className="text-xs font-medium text-orange-600">MyPlug</span>
                           </div>
                         )}

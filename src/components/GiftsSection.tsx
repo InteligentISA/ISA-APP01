@@ -87,7 +87,7 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 dark:text-white" />
             </Button>
             <img 
-              src="/lovable-uploads/app-icon.png" 
+              src="/lovable-uploads/myplug-logo.png" 
               alt="MyPlug App Icon" 
               className="w-6 h-6 sm:w-8 sm:h-8"
             />
