@@ -31,6 +31,8 @@ import { ProductService } from "@/services/productService";
 import { OrderService } from "@/services/orderService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import ProductImageLoader from "./ProductImage";
+import ShareButton from "./ShareButton";
 
 const ProductDetail = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -322,12 +324,13 @@ const ProductDetail = () => {
           {/* Product Images */}
           <div className="space-y-4">
             <div className="relative aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
-              <img
-                src={productImages[currentImageIndex]?.image_url || product.main_image || '/placeholder.svg'}
-                alt={productImages[currentImageIndex]?.image_description || product.name}
-                className="w-full h-full object-cover cursor-pointer"
-                onClick={() => setShowImageModal(true)}
-              />
+              <div onClick={() => setShowImageModal(true)} className="cursor-pointer">
+                <ProductImageLoader
+                  src={productImages[currentImageIndex]?.image_url || product.main_image || '/placeholder.svg'}
+                  alt={productImages[currentImageIndex]?.image_description || product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
               
               {productImages.length > 1 && (
                 <>
@@ -381,7 +384,18 @@ const ProductDetail = () => {
           {/* Product Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+                <ShareButton
+                  contentType="product"
+                  contentId={product.id}
+                  contentData={product}
+                  title={product.name}
+                  description={`KES ${product.price} - ${product.description || ''}`}
+                  image={product.main_image}
+                  size="md"
+                />
+              </div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="flex items-center">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 mr-1" />
@@ -641,7 +655,7 @@ const ProductDetail = () => {
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
         <DialogContent className="max-w-4xl">
           <div className="relative">
-            <img
+            <ProductImageLoader
               src={productImages[currentImageIndex]?.image_url || product.main_image}
               alt={productImages[currentImageIndex]?.image_description || product.name}
               className="w-full h-auto max-h-[80vh] object-contain"

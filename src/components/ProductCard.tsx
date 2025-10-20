@@ -17,8 +17,9 @@ import Carousel from "@/components/ui/carousel";
 import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
 import { useCurrency } from "@/hooks/useCurrency";
-import ProductImage from "@/components/ProductImage";
+import ProductImageLoader from "@/components/ProductImage";
 import { soundService } from "@/services/soundService";
+import ShareButton from "@/components/ShareButton";
 
 interface ProductCardProps {
   product: DashboardProduct;
@@ -372,9 +373,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
-        <ProductImage
-          mainImage={product.main_image}
-          fallbackImages={product.images || []}
+        <ProductImageLoader
+          src={product.main_image || '/placeholder.svg'}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
@@ -443,9 +443,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
           )}
 
           {/* Product Name */}
-          <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 min-h-[2.5rem]">
-            {product.name}
-          </h3>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2 min-h-[2.5rem] flex-1">
+              {product.name}
+            </h3>
+            <ShareButton
+              contentType="product"
+              contentId={product.id}
+              contentData={product}
+              title={product.name}
+              description={`KES ${product.price} - ${product.description || ''}`}
+              image={product.main_image}
+              size="sm"
+            />
+          </div>
 
           {/* Rating */}
           <div className="flex items-center space-x-1">

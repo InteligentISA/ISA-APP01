@@ -45,11 +45,11 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* ISA Brand Colors */
-    --isa-navy: 217 32% 17%;
-    --isa-gold: 45 70% 58%;
-    --isa-dark: 217 33% 12%;
-    --isa-light-gold: 45 40% 75%;
+    /* MyPlug Brand Colors */
+    --myplug-navy: 217 32% 17%;
+    --myplug-gold: 45 70% 58%;
+    --myplug-dark: 217 33% 12%;
+    --myplug-light-gold: 45 40% 75%;
   }
 
   .dark {

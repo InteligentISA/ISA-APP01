@@ -21,6 +21,8 @@ import { initMixpanel } from "./lib/mixpanel";
 import { pushNotificationService } from "./services/pushNotificationService";
 import { mobileCacheService } from "./services/mobileCacheService";
 import { supabase } from "@/integrations/supabase/client";
+import LogoPreloader from "./components/LogoPreloader";
+import SharedContent from "./pages/SharedContent";
 
 const queryClient = new QueryClient();
 
@@ -80,8 +82,8 @@ const AppContent = () => {
 
   if (loading || checkingAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-16 w-16 sm:h-32 sm:w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen bg-orange-500 flex items-center justify-center p-4">
+        <LogoPreloader message="MyPlug is loading..." size="lg" />
       </div>
     );
   }
@@ -100,6 +102,7 @@ const AppContent = () => {
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
         <Route path="/support" element={<SupportCenter />} />
+        <Route path="/shared/:shareCode" element={<SharedContent />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </div>

@@ -102,7 +102,7 @@ export class ChatService {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
       type: 'assistant',
-      content: `Hi! I'm ISA, your AI shopping assistant. I can help you find the perfect products from our catalog. 
+      content: `Hi! I'm MyPlug, your AI shopping assistant. I can help you find the perfect products from our catalog. 
 
 Just tell me what you're looking for! For example:
 • "I want an HP laptop under 50,000 KSH"

@@ -145,7 +145,7 @@ export class AIService {
     // Create user preferences context
     const preferencesContext = this.formatUserPreferences(userContext);
 
-    return `You are ISA, an intelligent AI shopping assistant for an e-commerce platform. You are helpful, friendly, and knowledgeable about products and general topics.
+    return `You are MyPlug, an intelligent AI shopping assistant for an e-commerce platform. You are helpful, friendly, and knowledgeable about products and general topics.
 
 USER CONTEXT:
 - Name: ${userName}
@@ -160,7 +160,7 @@ CURRENT MESSAGE:
 ${userName} says: "${message}"
 
 INSTRUCTIONS:
-1. Respond naturally and conversationally as ISA
+1. Respond naturally and conversationally as MyPlug
 2. If the user is asking about products or shopping, help them find what they need
 3. If it's a general question, answer it knowledgeably
 4. If it's a greeting, respond warmly and ask how you can help
@@ -220,7 +220,7 @@ RESPONSE:`;
           messages: [
             {
               role: 'system',
-              content: 'You are ISA, an intelligent AI shopping assistant. Be helpful, friendly, and knowledgeable.'
+              content: 'You are MyPlug, an intelligent AI shopping assistant. Be helpful, friendly, and knowledgeable.'
             },
             {
               role: 'user',
@@ -639,7 +639,7 @@ RESPONSE:`;
    * Ask GPT to explain why this product is a good fit for the user, using their profile and preferences.
    */
   static async explainProductToUser(product: Product, userContext: UserContext): Promise<string> {
-    const prompt = `You are ISA, an intelligent AI shopping assistant. The user is a ${userContext.gender}, age ${userContext.age}. Their preferences: ${this.formatUserPreferences(userContext)}. Explain in a friendly, concise way why the following product is a good fit for them, and highlight its key features:
+    const prompt = `You are MyPlug, an intelligent AI shopping assistant. The user is a ${userContext.gender}, age ${userContext.age}. Their preferences: ${this.formatUserPreferences(userContext)}. Explain in a friendly, concise way why the following product is a good fit for them, and highlight its key features:
 
 Product:
 Name: ${product.name}
@@ -648,7 +648,7 @@ Brand: ${product.brand || 'N/A'}
 Description: ${product.description || 'No description'}
 Price: ${product.price} KSH
 
-Respond as ISA, directly to the user.`;
+Respond as MyPlug, directly to the user.`;
     return this.callGPT(prompt);
   }
 

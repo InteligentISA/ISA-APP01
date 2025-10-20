@@ -1,58 +1,67 @@
-import React from 'react';
-import { useImageFallback } from '@/hooks/useImageFallback';
+import React, { useState } from 'react';
+import LogoPreloader from './LogoPreloader';
 
 interface ProductImageProps {
-  mainImage?: string;
-  fallbackImages?: string[];
+  src: string;
   alt: string;
   className?: string;
-  placeholderImage?: string;
+  fallbackSrc?: string;
+  onError?: () => void;
+  onLoad?: () => void;
 }
 
-const ProductImage: React.FC<ProductImageProps> = ({
-  mainImage,
-  fallbackImages = [],
+export default function ProductImageLoader({
+  src,
   alt,
-  className = "w-full h-full object-cover",
-  placeholderImage = '/placeholder.svg'
-}) => {
-  const {
-    currentImage,
-    imageError,
-    isLoading,
-    handleImageError,
-    handleImageLoad,
-    hasMoreImages
-  } = useImageFallback({
-    mainImage,
-    fallbackImages,
-    placeholderImage
-  });
+  className = '',
+  fallbackSrc = '/placeholder.svg',
+  onError,
+  onLoad
+}: ProductImageProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  const handleLoad = () => {
+    setIsLoading(false);
+    onLoad?.();
+  };
+
+  const handleError = () => {
+    if (currentSrc !== fallbackSrc) {
+      setCurrentSrc(fallbackSrc);
+      setHasError(false);
+    } else {
+      setHasError(true);
+      setIsLoading(false);
+      onError?.();
+    }
+  };
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-slate-700">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900 dark:border-white"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded">
+          <LogoPreloader size="md" message="" />
         </div>
       )}
-      <img
-        src={currentImage}
-        alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-200`}
-        onError={handleImageError}
-        onLoad={handleImageLoad}
-      />
-      {imageError && !hasMoreImages && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-slate-600">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            <div className="text-2xl mb-1">📷</div>
-            <div className="text-xs">Image unavailable</div>
+      
+      {hasError ? (
+        <div className="flex items-center justify-center bg-gray-100 rounded h-full min-h-[200px]">
+          <div className="text-center text-gray-500">
+            <div className="text-2xl mb-2">📷</div>
+            <div className="text-sm">Image not available</div>
           </div>
         </div>
+      ) : (
+        <img
+          src={currentSrc}
+          alt={alt}
+          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          onLoad={handleLoad}
+          onError={handleError}
+        />
       )}
     </div>
   );
-};
-
-export default ProductImage;
+}

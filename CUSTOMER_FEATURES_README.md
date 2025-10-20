@@ -1,8 +1,8 @@
-# Customer Features Implementation - ISA-APP04
+# Customer Features Implementation - MyPlug-APP04
 
 ## Overview
 
-This document outlines the integration of existing customer features from ISA-WEB05 into ISA-APP04, including subscription plans, loyalty points system, style quiz, and enhanced profile management. **All features use the same Supabase backend as ISA-WEB05**.
+This document outlines the integration of existing customer features from MyPlug-WEB05 into MyPlug-APP04, including subscription plans, loyalty points system, style quiz, and enhanced profile management. **All features use the same Supabase backend as MyPlug-WEB05**.
 
 ## 🌟 Features Implemented
 

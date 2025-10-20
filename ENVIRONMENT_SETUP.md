@@ -2,7 +2,7 @@
 
 ## M-Pesa API Configuration
 
-To enable M-Pesa payments, you need to create a `.env` file in the ISA directory with the following variables:
+To enable M-Pesa payments, you need to create a `.env` file in the MyPlug directory with the following variables:
 
 ```env
 # M-Pesa API Credentials
@@ -21,7 +21,7 @@ NODE_ENV=development
 
 ## Steps to Set Up:
 
-1. Create a `.env` file in the ISA directory
+1. Create a `.env` file in the MyPlug directory
 2. Copy the above content into the `.env` file
 3. Replace the placeholder values with your actual M-Pesa credentials
 4. Restart your development server

@@ -131,7 +131,7 @@ export type OrderStatus =
 export type PaymentMethod = 
   | 'mpesa'
   | 'airtel_money'
-  | 'isa_pay'
+  | 'myplug_pay'
   | 'cash_on_delivery'
   | 'cash_on_pickup';
 

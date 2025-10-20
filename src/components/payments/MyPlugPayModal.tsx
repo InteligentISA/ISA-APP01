@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { initiateMyPlugPayment, getMyPlugPaymentStatus, MyPlugPayMethod } from "@/services/myPlugPayService";
-import IsaPayTerms from "./IsaPayTerms";
+import MyPlugPayTerms from "./MyPlugPayTerms";
 
 interface MyPlugPayModalProps {
   open: boolean;

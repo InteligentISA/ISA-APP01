@@ -594,7 +594,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">2. ELIGIBILITY & ONBOARDING</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>2.1 Vendor Approval:</strong> Vendors must complete the ISA onboarding process and be approved by ISA before listing any Products.</li>
+                          <li><strong>2.1 Vendor Approval:</strong> Vendors must complete the MyPlug onboarding process and be approved by MyPlug before listing any Products.</li>
                           <li><strong>2.2 Accurate Information:</strong> All information provided during onboarding (including business details, contact info, product categories, etc.) must be truthful and regularly updated.</li>
                           <li><strong>2.3 Legal Status:</strong> Vendors must be legally registered businesses or individuals eligible to operate and sell products in their respective jurisdiction.</li>
                         </ul>
@@ -605,27 +605,27 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                         <ul className="space-y-2 text-sm">
                           <li><strong>3.1 Responsibility:</strong> Vendors are solely responsible for ensuring all listed Products comply with applicable laws, are accurately described, safe, and meet quality standards.</li>
                           <li><strong>3.2 Accuracy:</strong> Product names, descriptions, prices, images, shipping timelines, stock levels, and variations must be complete and truthful. Misleading content may result in removal.</li>
-                          <li><strong>3.3 Intellectual Property:</strong> Vendors must not use copyrighted content, trademarks, or logos without permission. You agree to indemnify ISA against claims related to IP violations.</li>
-                          <li><strong>3.4 Restricted Items:</strong> Vendors may not list illegal products, counterfeit goods, expired items, or anything ISA deems unsafe or unethical (e.g., weapons, hate merchandise, etc.).</li>
+                          <li><strong>3.3 Intellectual Property:</strong> Vendors must not use copyrighted content, trademarks, or logos without permission. You agree to indemnify MyPlug against claims related to IP violations.</li>
+                          <li><strong>3.4 Restricted Items:</strong> Vendors may not list illegal products, counterfeit goods, expired items, or anything MyPlug deems unsafe or unethical (e.g., weapons, hate merchandise, etc.).</li>
                         </ul>
                       </section>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">4. ORDER FULFILMENT & CUSTOMER SERVICE</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>4.1 Timeliness:</strong> Vendors must fulfill orders within the agreed timeline. Delays must be communicated to ISA and customers in real time.</li>
+                          <li><strong>4.1 Timeliness:</strong> Vendors must fulfill orders within the agreed timeline. Delays must be communicated to MyPlug and customers in real time.</li>
                           <li><strong>4.2 Delivery:</strong> Where Vendors manage logistics, clear shipping policies and delivery schedules must be defined. Vendors are liable for damaged or undelivered goods if using third-party couriers.</li>
-                          <li><strong>4.3 Returns & Refunds:</strong> Vendors must adhere to ISA's refund/return policy or provide an equivalent policy approved during onboarding.</li>
-                          <li><strong>4.4 Customer Complaints:</strong> Vendors are expected to respond to any customer-related complaint or inquiry referred by ISA within 24–48 hours.</li>
+                          <li><strong>4.3 Returns & Refunds:</strong> Vendors must adhere to MyPlug's refund/return policy or provide an equivalent policy approved during onboarding.</li>
+                          <li><strong>4.4 Customer Complaints:</strong> Vendors are expected to respond to any customer-related complaint or inquiry referred by MyPlug within 24–48 hours.</li>
                         </ul>
                       </section>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">5. COMMISSIONS, PAYMENTS & FEES</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>5.1 Commission Structure:</strong> ISA retains a commission on each sale, as agreed upon during onboarding or updated periodically with notice. This may vary by category or volume.</li>
+                          <li><strong>5.1 Commission Structure:</strong> MyPlug retains a commission on each sale, as agreed upon during onboarding or updated periodically with notice. This may vary by category or volume.</li>
                           <li><strong>5.2 Payouts:</strong> Net revenue (after commissions and applicable charges) will be remitted to the Vendor on a [weekly/bi-weekly/monthly] basis, depending on the payout schedule.</li>
-                          <li><strong>5.3 Deductions:</strong> ISA reserves the right to deduct amounts for:
+                          <li><strong>5.3 Deductions:</strong> MyPlug reserves the right to deduct amounts for:
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>• Refunds or chargebacks</li>
                               <li>• Promotional discounts</li>
@@ -640,16 +640,16 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">6. PROMOTIONS & MARKETING</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>6.1 Platform Campaigns:</strong> ISA may run promotional campaigns involving Vendor products. Participation may be voluntary or opt-in unless included in partnership agreements.</li>
-                          <li><strong>6.2 Use of Vendor Content:</strong> Vendors authorize ISA to use their brand name, product images, and offers for platform promotion, newsletters, or AI-generated recommendations.</li>
+                          <li><strong>6.1 Platform Campaigns:</strong> MyPlug may run promotional campaigns involving Vendor products. Participation may be voluntary or opt-in unless included in partnership agreements.</li>
+                          <li><strong>6.2 Use of Vendor Content:</strong> Vendors authorize MyPlug to use their brand name, product images, and offers for platform promotion, newsletters, or AI-generated recommendations.</li>
                         </ul>
                       </section>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">7. DATA USE & PRIVACY</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>7.1 Confidentiality:</strong> Any commercial terms, internal data, or proprietary insights exchanged between the Vendor and ISA are strictly confidential.</li>
-                          <li><strong>7.2 Data Ownership:</strong> Customer data (emails, Browse behavior, purchase patterns) collected by ISA remains the property of ISA and may be used in accordance with its Privacy Policy.</li>
+                          <li><strong>7.1 Confidentiality:</strong> Any commercial terms, internal data, or proprietary insights exchanged between the Vendor and MyPlug are strictly confidential.</li>
+                          <li><strong>7.2 Data Ownership:</strong> Customer data (emails, Browse behavior, purchase patterns) collected by MyPlug remains the property of MyPlug and may be used in accordance with its Privacy Policy.</li>
                           <li><strong>7.3 AI Personalization:</strong> Vendors acknowledge that their product data may be used to train recommendation systems or improve AI user experience.</li>
                         </ul>
                       </section>
@@ -658,19 +658,19 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">8. INTELLECTUAL PROPERTY (IP)</h3>
                         <ul className="space-y-2 text-sm">
                           <li><strong>8.1</strong> Vendors retain ownership of their own IP, including logos, product designs, and branded assets.</li>
-                          <li><strong>8.2</strong> Any technology, code, AI system, or platform developed by ISA (including interface logic, chatbot systems, or analytics dashboards) remains ISA's exclusive IP.</li>
-                          <li><strong>8.3</strong> Vendors may not reverse engineer, replicate, or commercialize ISA's platform or proprietary features.</li>
+                          <li><strong>8.2</strong> Any technology, code, AI system, or platform developed by MyPlug (including interface logic, chatbot systems, or analytics dashboards) remains MyPlug's exclusive IP.</li>
+                          <li><strong>8.3</strong> Vendors may not reverse engineer, replicate, or commercialize MyPlug's platform or proprietary features.</li>
                         </ul>
                       </section>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">9. SUSPENSION & TERMINATION</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>9.1</strong> ISA reserves the right to suspend or terminate a Vendor account at any time, with or without notice, if the Vendor:
+                          <li><strong>9.1</strong> MyPlug reserves the right to suspend or terminate a Vendor account at any time, with or without notice, if the Vendor:
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>• Breaches these Terms</li>
                               <li>• Provides false or harmful listings</li>
-                              <li>• Damages ISA's brand or user trust</li>
+                              <li>• Damages MyPlug's brand or user trust</li>
                               <li>• Violates laws or ethical guidelines</li>
                             </ul>
                           </li>
@@ -686,14 +686,14 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">10. LIABILITY & INDEMNITY</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>10.1</strong> Vendors agree to indemnify and hold harmless ISA, its officers, and agents from any claims, damages, or liabilities resulting from:
+                          <li><strong>10.1</strong> Vendors agree to indemnify and hold harmless MyPlug, its officers, and agents from any claims, damages, or liabilities resulting from:
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>• Product defects, misinformation, or regulatory violations</li>
                               <li>• Intellectual property disputes</li>
                               <li>• Loss or injury related to delivered goods</li>
                             </ul>
                           </li>
-                          <li><strong>10.2</strong> ISA is not liable for:
+                          <li><strong>10.2</strong> MyPlug is not liable for:
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>• Vendor-side delivery failures</li>
                               <li>• Third-party payment gateway interruptions</li>
@@ -710,7 +710,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">12. MODIFICATIONS</h3>
-                        <p className="text-sm">ISA may update these Terms from time to time. Vendors will be notified of major changes via email or platform notice. Continued use of the platform constitutes acceptance.</p>
+                        <p className="text-sm">MyPlug may update these Terms from time to time. Vendors will be notified of major changes via email or platform notice. Continued use of the platform constitutes acceptance.</p>
                       </section>
 
                       <section className="space-y-3">
@@ -721,7 +721,7 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                   ) : (
                     <div className="text-sm sm:text-base leading-relaxed text-gray-700 space-y-4">
                       <div className="bg-green-50 border-l-4 border-green-400 p-4 mb-4">
-                        <h2 className="text-lg font-bold text-green-900 mb-2">ISA AI SHOPPING ASSISTANT – CUSTOMER TERMS & CONDITIONS</h2>
+                        <h2 className="text-lg font-bold text-green-900 mb-2">MyPlug AI SHOPPING ASSISTANT – CUSTOMER TERMS & CONDITIONS</h2>
                         <p className="text-green-800 text-sm">
                           <strong>Effective Date:</strong> 7/17/2025<br/>
                           <strong>Version:</strong> 1.0
@@ -729,13 +729,13 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                       </div>
                       
                       <p className="text-gray-800">
-                        These Terms and Conditions ("Terms") govern your use of the ISA AI Shopping Assistant platform ("ISA", "we", "us", or "our"), which provides intelligent shopping assistance via app, web, or messaging platforms. By accessing or using ISA, you ("User", "Customer", or "You") agree to be bound by these Terms and our Privacy Policy.
+                        These Terms and Conditions ("Terms") govern your use of the MyPlug AI Shopping Assistant platform ("MyPlug", "we", "us", or "our"), which provides intelligent shopping assistance via app, web, or messaging platforms. By accessing or using MyPlug, you ("User", "Customer", or "You") agree to be bound by these Terms and our Privacy Policy.
                       </p>
                       <p className="text-gray-800 font-medium">Please read them carefully before using the service.</p>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">1. OVERVIEW</h3>
-                        <p className="text-sm">ISA is a smart shopping assistant that uses AI to help users discover, compare, and shop from a variety of brands and vendors. Through ISA, users can:</p>
+                        <p className="text-sm">MyPlug is a smart shopping assistant that uses AI to help users discover, compare, and shop from a variety of brands and vendors. Through MyPlug, users can:</p>
                         <ul className="space-y-1 text-sm ml-4">
                           <li>• Receive personalized product recommendations</li>
                           <li>• Compare prices, styles, and features across vendors</li>
@@ -749,24 +749,24 @@ const AuthSignUp = ({ onBack, onAuthSuccess }: AuthSignUpProps) => {
                         <ul className="space-y-2 text-sm">
                           <li><strong>2.1 Minimum Age:</strong> You must be at least 18 years old or have the consent of a parent or legal guardian to use the platform.</li>
                           <li><strong>2.2 Location:</strong> Some services or offers may only be available in specific countries or regions (e.g., Kenya). It is your responsibility to check availability.</li>
-                          <li><strong>2.3 Account Accuracy:</strong> You agree to provide accurate and current information when creating an account or placing orders. ISA reserves the right to suspend or delete accounts with fraudulent or misleading information.</li>
+                          <li><strong>2.3 Account Accuracy:</strong> You agree to provide accurate and current information when creating an account or placing orders. MyPlug reserves the right to suspend or delete accounts with fraudulent or misleading information.</li>
                         </ul>
                       </section>
 
                       <section className="space-y-3">
                         <h3 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">3. PLATFORM USE</h3>
                         <ul className="space-y-2 text-sm">
-                          <li><strong>3.1 License:</strong> ISA grants you a limited, non-exclusive, non-transferable license to use the platform for personal shopping purposes.</li>
+                          <li><strong>3.1 License:</strong> MyPlug grants you a limited, non-exclusive, non-transferable license to use the platform for personal shopping purposes.</li>
                           <li><strong>3.2 Prohibited Use:</strong> You agree not to:
                             <ul className="ml-4 mt-1 space-y-1">
                               <li>• Use the platform for illegal or harmful purposes</li>
-                              <li>• Copy, distribute, or modify ISA's technology</li>
+                              <li>• Copy, distribute, or modify MyPlug's technology</li>
                               <li>• Harass or abuse vendors or other users</li>
-                              <li>• Attempt to reverse-engineer ISA's AI systems</li>
+                              <li>• Attempt to reverse-engineer MyPlug's AI systems</li>
                               <li>• Use bots or automated systems to scrape or exploit data</li>
                             </ul>
                           </li>
-                          <li><strong>3.3 Content Ownership:</strong> ISA retains all rights to its technology, content, recommendation engines, and interface. You may not use ISA's content for commercial purposes without prior written consent.</li>
+                          <li><strong>3.3 Content Ownership:</strong> MyPlug retains all rights to its technology, content, recommendation engines, and interface. You may not use MyPlug's content for commercial purposes without prior written consent.</li>
                         </ul>
                       </section>
 

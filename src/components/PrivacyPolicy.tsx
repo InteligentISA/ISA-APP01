@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
           <strong>Version:</strong> 1.0
         </p>
         <p className="mb-4">
-        MyPlug Technologies Ltd. ("MyPlug", "we", "our", "us") is committed to protecting the privacy of vendors ("you", "your") who use our platform. This Privacy Policy explains how we collect, use, and protect Vendor data during the onboarding process and while using the ISA platform.
+        MyPlug Technologies Ltd. ("MyPlug", "we", "our", "us") is committed to protecting the privacy of vendors ("you", "your") who use our platform. This Privacy Policy explains how we collect, use, and protect Vendor data during the onboarding process and while using the MyPlug platform.
         </p>
       </div>
 
@@ -59,7 +59,7 @@ export default function PrivacyPolicy() {
       <div>
         <h3 className="text-xl font-semibold text-gray-900 mb-3">5. Data Retention</h3>
         <p>
-          Vendor data will be retained as long as the Vendor maintains an account with ISA, or as required by law (e.g., tax records). Upon account termination, ISA may retain certain records for compliance.
+          Vendor data will be retained as long as the Vendor maintains an account with MyPlug, or as required by law (e.g., tax records). Upon account termination, MyPlug may retain certain records for compliance.
         </p>
       </div>
 

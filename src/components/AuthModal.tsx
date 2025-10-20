@@ -72,8 +72,8 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }: AuthModalProps) => {
         description: "You've been signed in with Google.",
       });
       onAuthSuccess({
-        name: "John Doe",
-        email: "john@gmail.com",
+        name: "Milton Kiprop",
+        email: "milton@gmail.com",
         dob: "1990-01-01",
         location: "Nairobi, Kenya",
         gender: "male",

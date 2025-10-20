@@ -7,7 +7,7 @@ import { ArrowLeft, Heart, ShoppingCart, Star, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AIService } from "@/services/aiService";
 import { ProductService } from "@/services/productService";
-import ProductImage from "@/components/ProductImage";
+import ProductImageLoader from "@/components/ProductImage";
 
 interface GiftsSectionProps {
   user: any;
@@ -87,8 +87,8 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
               <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 dark:text-white" />
             </Button>
             <img 
-              src="/lovable-uploads/c01498a5-d048-4876-b256-a7fdc6f331ba.png" 
-              alt="ISA Logo" 
+              src="/lovable-uploads/app-icon.png" 
+              alt="MyPlug App Icon" 
               className="w-6 h-6 sm:w-8 sm:h-8"
             />
             <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Gifts & Surprises</h1>
@@ -243,9 +243,8 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
                 <Card key={product.id} className="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 hover:shadow-lg transition-shadow">
                   <CardContent className="p-0">
                     <div className="relative">
-                      <ProductImage
-                        mainImage={product.main_image}
-                        fallbackImages={product.images || []}
+                      <ProductImageLoader
+                        src={product.main_image || '/placeholder.svg'}
                         alt={product.name}
                         className="w-full h-48 object-cover rounded-t-lg"
                       />

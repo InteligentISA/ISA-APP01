@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingCart, Star, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import ProductImage from '@/components/ProductImage';
+import ProductImageLoader from '@/components/ProductImage';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -38,9 +38,8 @@ const ChatMessage = ({ message, onAddToCart, onToggleLike, likedItems, onProduct
             if (onProductInterest) onProductInterest(product);
           }}
         >
-          <ProductImage
-            mainImage={product.main_image}
-            fallbackImages={product.images || []}
+          <ProductImageLoader
+            src={product.main_image || '/placeholder.svg'}
             alt={product.name}
             className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-300"
           />

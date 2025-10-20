@@ -12,8 +12,8 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
       <div className="max-w-4xl mx-auto text-center space-y-8 sm:space-y-12 animate-fade-in-up">
         <div className="space-y-4 sm:space-y-6">
           <img 
-            src="ISA-APP01/public/AskISA.ico" 
-            alt="ISA Logo" 
+            src="MyPlug-APP01/public/AskMyPlug.ico" 
+            alt="MyPlug Logo" 
             className="w-40 h-40 sm:w-48 sm:h-48 mx-auto mb-6 sm:mb-8"
           />
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-3 sm:mb-4">
@@ -54,8 +54,8 @@ const Welcome = ({ onGetStarted }: WelcomeProps) => {
           </Button>
           {/* <div className="flex justify-center">
             <img
-              src="/lovable-uploads/216ed5fd-182f-42f9-9af9-a8e6b5a633d9.png"
-              alt="ISA Logo"
+              src="/lovable-uploads/app-icon.png"
+              alt="MyPlug App Icon"
               className="w-16 h-16 sm:w-20 sm:h-20 object-contain bg-white rounded-full shadow"
             />
           </div> */}

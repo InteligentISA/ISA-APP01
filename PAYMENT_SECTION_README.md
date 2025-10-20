@@ -1,7 +1,7 @@
 # Payment Section - Admin Dashboard
 
 ## Overview
-The Payment Section has been added to the Admin Dashboard to provide comprehensive visibility into all successful payments made through the ISA platform. This section allows admins to monitor transactions, track revenue, and manage payment data efficiently.
+The Payment Section has been added to the Admin Dashboard to provide comprehensive visibility into all successful payments made through the MyPlug platform. This section allows admins to monitor transactions, track revenue, and manage payment data efficiently.
 
 ## Features
 

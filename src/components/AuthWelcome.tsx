@@ -56,8 +56,8 @@ const AuthWelcome = ({ onClose, onAuthSuccess, onNavigateToSignIn, onNavigateToS
       <div className="light">
         <Card className="w-full max-w-md bg-white backdrop-blur-sm border-gray-200">
           <CardHeader className="text-center relative">
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to ISA</CardTitle>
-            <p className="text-gray-600 mt-2">Your Intelligent Shopping Assistant</p>
+            <CardTitle className="text-2xl font-bold text-gray-900">Welcome to MyPlug</CardTitle>
+            <p className="text-gray-600 mt-2">Your Shopping Assistant</p>
           </CardHeader>
           <CardContent className="px-8 pb-8">
             <div className="space-y-4">

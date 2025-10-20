@@ -1,8 +1,8 @@
-# AI-Powered AskISA Feature
+# AI-Powered AskMyPlug Feature
 
 ## Overview
 
-The AskISA feature is an AI-powered shopping assistant that allows customers to search for products using natural language queries. The system uses intelligent natural language processing to understand customer intent and convert queries into product search parameters.
+The AskMyPlug feature is an AI-powered shopping assistant that allows customers to search for products using natural language queries. The system uses intelligent natural language processing to understand customer intent and convert queries into product search parameters.
 
 ## How It Works
 
@@ -43,7 +43,7 @@ The AI generates contextual responses including:
 - **`productService.ts`**: Handles product database queries
 
 ### Components
-- **`AskISA.tsx`**: Main chat interface
+- **`AskMyPlug.tsx`**: Main chat interface
 - **`ChatMessage.tsx`**: Individual message display with product cards
 - **`SuggestionChips.tsx`**: Quick query suggestions
 

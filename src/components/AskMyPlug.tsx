@@ -18,6 +18,10 @@ import { AIService } from "@/services/aiService";
 import { ProductService } from '@/services/productService';
 import TierUpgradeModal from "@/components/TierUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
+import { ConversationService } from "@/services/conversationService";
+import { SharingService } from "@/services/sharingService";
+import ShareButton from "./ShareButton";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: number;
@@ -56,6 +60,10 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
   const [currentMessage, setCurrentMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [productResults, setProductResults] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const [jumiaResults, setJumiaResults] = useState<JumiaProduct[]>([]);
   const [chatCount, setChatCount] = useState(user?.chat_count || 0);
   const [showTierModal, setShowTierModal] = useState(false);
@@ -78,6 +86,122 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
   useEffect(() => {
     localStorage.setItem("myplug_chat_history", JSON.stringify(chatHistory));
   }, [chatHistory]);
+
+  // Load conversations on mount
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  const loadConversations = async () => {
+    try {
+      const convs = await ConversationService.getConversations();
+      setConversations(convs);
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  const saveConversation = async () => {
+    if (messages.length === 0) return;
+    
+    try {
+      setIsLoading(true);
+      const conversationId = currentConversationId || Date.now().toString();
+      
+      const conversation = await ConversationService.saveConversation(
+        conversationId,
+        messages.map(msg => ({
+          id: msg.id.toString(),
+          type: msg.type,
+          content: msg.content,
+          timestamp: msg.timestamp,
+          productResults: msg.type === 'myplug' ? productResults : null
+        })),
+        messages[0]?.content?.substring(0, 50) + '...'
+      );
+
+      if (conversation) {
+        setCurrentConversationId(conversation.id);
+        await loadConversations();
+        toast({
+          title: 'Conversation saved',
+          description: 'Your conversation has been saved successfully'
+        });
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      toast({
+        title: 'Save failed',
+        description: 'Failed to save conversation. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      setIsLoading(true);
+      const convMessages = await ConversationService.getConversationMessages(conversationId);
+      
+      setMessages(convMessages.map(msg => ({
+        id: parseInt(msg.id),
+        type: msg.type,
+        content: msg.content,
+        timestamp: msg.timestamp
+      })));
+      
+      setCurrentConversationId(conversationId);
+      
+      // Load product results from the last message
+      const lastMessage = convMessages[convMessages.length - 1];
+      if (lastMessage?.productResults) {
+        setProductResults(lastMessage.productResults);
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      toast({
+        title: 'Load failed',
+        description: 'Failed to load conversation. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const shareConversation = async () => {
+    if (!currentConversationId) {
+      toast({
+        title: 'No conversation to share',
+        description: 'Please save the conversation first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const conversation = conversations.find(c => c.id === currentConversationId);
+      if (!conversation) return;
+
+      const shareUrl = await SharingService.shareConversation(currentConversationId, conversation);
+      if (shareUrl) {
+        await SharingService.copyToClipboard(shareUrl);
+        toast({
+          title: 'Conversation shared!',
+          description: 'Share link copied to clipboard'
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing conversation:', error);
+      toast({
+        title: 'Share failed',
+        description: 'Failed to share conversation. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!currentMessage.trim()) return;
@@ -205,7 +329,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="p-4 border-b border-gray-200 bg-white">
             <div className="flex items-center space-x-2">
-              <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
+              <img src="/lovable-uploads/app-icon.png" alt="MyPlug App Icon" className="h-6 w-6" />
               <span className="font-semibold text-gray-800">MyPlug Chat</span>
             </div>
             <Button 
@@ -220,27 +344,43 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
           
           <SidebarContent className="bg-white">
             <div className="p-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-600 mb-3">
-                <History className="h-4 w-4" />
-                <span>Recent Chats</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                  <History className="h-4 w-4" />
+                  <span>Saved Conversations</span>
+                </div>
+                {messages.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={saveConversation}
+                    disabled={isLoading}
+                    className="text-xs"
+                  >
+                    {isLoading ? 'Saving...' : 'Save Chat'}
+                  </Button>
+                )}
               </div>
               
               <SidebarMenu>
-                {chatHistory.length === 0 ? (
-                  <div className="text-xs text-gray-400 px-3 py-6 text-center">Your history will appear here</div>
+                {conversations.length === 0 ? (
+                  <div className="text-xs text-gray-400 px-3 py-6 text-center">No saved conversations</div>
                 ) : (
-                  chatHistory.map((chat) => (
-                    <SidebarMenuItem key={chat.id}>
-                      <SidebarMenuButton className="w-full text-left p-3 hover:bg-gray-100 rounded-lg">
+                  conversations.map((conversation) => (
+                    <SidebarMenuItem key={conversation.id}>
+                      <SidebarMenuButton 
+                        onClick={() => loadConversation(conversation.id)}
+                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg"
+                      >
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-sm text-gray-800 truncate">
-                            {chat.title}
+                            {conversation.title}
                           </div>
                           <div className="text-xs text-gray-500 truncate mt-1">
-                            {chat.preview}
+                            {conversation.preview}
                           </div>
                           <div className="text-xs text-gray-400 mt-1">
-                            {formatTime(chat.lastMessage)}
+                            {new Date(conversation.updated_at).toLocaleDateString()}
                           </div>
                         </div>
                       </SidebarMenuButton>
@@ -259,7 +399,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
               <div className="flex items-center space-x-3">
                 <SidebarTrigger />
                 <div className="flex items-center space-x-2">
-                  <img src="ISA-APP01/public/AskISA.ico" alt="Ask MyPlug Logo" className="h-6 w-6" />
+                  <img src="MyPlug-APP01/public/AskMyPlug.ico" alt="Ask MyPlug Logo" className="h-6 w-6" />
                   <h1 className="text-xl font-semibold text-gray-800">Ask MyPlug</h1>
                 </div>
               </div>
@@ -278,7 +418,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
             <ScrollArea className="flex-1 p-4 bg-white">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
+                  <img src="/AskMyPlug.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
                   <h2 className="text-2xl font-semibold text-gray-800 mb-2">
                     Hi! MyPlug here👋
                   </h2>
@@ -321,7 +461,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                       >
                         {message.type === 'myplug' && (
                           <div className="flex items-center space-x-2 mb-2">
-                            <img src="/AskISA.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
+                            <img src="/AskMyPlug.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
                             <span className="text-xs font-medium text-orange-600">MyPlug</span>
                           </div>
                         )}
@@ -339,7 +479,33 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
             {/* Product Results */}
             {productResults.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Product Results</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Product Results</h3>
+                  <div className="flex space-x-2">
+                    <ShareButton
+                      contentType="conversation"
+                      contentId={currentConversationId || 'current'}
+                      contentData={{
+                        title: messages[0]?.content?.substring(0, 50) + '...',
+                        preview: messages.map(m => m.content).join(' | ').substring(0, 200),
+                        messages: messages
+                      }}
+                      title="Share this conversation"
+                      description="Check out this conversation with MyPlug AI"
+                      size="sm"
+                    />
+                    {currentConversationId && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={shareConversation}
+                        className="text-xs"
+                      >
+                        Share Chat
+                      </Button>
+                    )}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {productResults.map((prod, idx) => (
                     prod.link ? (
@@ -360,7 +526,20 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                     ) : (
                       // Own product card
                       <div key={prod.id || idx} className="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-lg transition">
-                        <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-32 w-full object-contain mb-2" />
+                        <div className="relative">
+                          <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-32 w-full object-contain mb-2" />
+                          <div className="absolute top-2 right-2">
+                            <ShareButton
+                              contentType="product"
+                              contentId={prod.id}
+                              contentData={prod}
+                              title={prod.name}
+                              description={`KES ${prod.price} - ${prod.description || ''}`}
+                              image={prod.main_image}
+                              size="sm"
+                            />
+                          </div>
+                        </div>
                         <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
                         <div className="text-orange-600 font-bold mb-1">KES {prod.price}</div>
                         <div className="text-xs text-gray-500 mb-2">{prod.rating || 'No rating'}</div>

@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import IsaPayModal from '@/components/payments/IsaPayModal';
+import MyPlugPayModal from '@/components/payments/MyPlugPayModal';
 import { Separator } from '@/components/ui/separator';
-import { X, Check, MapPin } from 'lucide-react';
+import { X, Check, MapPin, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { OrderService } from '@/services/orderService';
 import { CartItemWithProduct, Address, PaymentMethod } from '@/types/order';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -40,8 +41,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     email: user?.email || '',
     phone: ''
   });
-  const [showIsaPay, setShowIsaPay] = useState(false);
+  const [showMyPlugPay, setShowMyPlugPay] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isGift, setIsGift] = useState(false);
+  const [giftMessage, setGiftMessage] = useState('');
 
   const { toast } = useToast();
 
@@ -80,11 +83,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         billing_address: shippingAddress,
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
-        notes,
-        payment_method: 'isa_pay'
+        notes: isGift ? `${notes}${notes ? ' | ' : ''}Gift: ${giftMessage || 'No message'}` : notes,
+        payment_method: 'myplug_pay',
+        is_gift: isGift,
+        gift_message: giftMessage
       });
       setOrderNumber(order.order_number);
-      setShowIsaPay(true);
+      setShowMyPlugPay(true);
 
     } catch (error) {
       console.error('Checkout error:', error);
@@ -281,6 +286,36 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           <Separator />
 
+          {/* Gift Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isGift"
+                checked={isGift}
+                onCheckedChange={(checked) => setIsGift(checked as boolean)}
+              />
+              <Label htmlFor="isGift" className="flex items-center space-x-2">
+                <Gift className="h-4 w-4" />
+                <span>This is a gift</span>
+              </Label>
+            </div>
+            
+            {isGift && (
+              <div className="space-y-2">
+                <Label htmlFor="giftMessage">Gift Message (Optional)</Label>
+                <Input
+                  id="giftMessage"
+                  value={giftMessage}
+                  onChange={(e) => setGiftMessage(e.target.value)}
+                  placeholder="Add a personal message for the recipient..."
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Notes */}
           <div>
             <Label htmlFor="notes">Order Notes (Optional)</Label>
@@ -299,15 +334,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </Button>
         </CardContent>
       </Card>
-      {showIsaPay && (
-        <IsaPayModal
-          open={showIsaPay}
-          onOpenChange={setShowIsaPay}
+      {showMyPlugPay && (
+        <MyPlugPayModal
+          open={showMyPlugPay}
+          onOpenChange={setShowMyPlugPay}
           userId={user.id}
           amount={totalAmount}
           currency={'KES'}
           orderId={orderNumber}
-          description={`ISA Order #${OrderService.formatOrderNumber(orderNumber)}`}
+          description={`MyPlug Order #${OrderService.formatOrderNumber(orderNumber)}`}
           onSuccess={() => {
             setOrderComplete(true);
             onOrderComplete();
