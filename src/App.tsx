@@ -26,7 +26,11 @@ import SharedContent from "./pages/SharedContent";
 
 const queryClient = new QueryClient();
 
-const AppContent = () => {
+interface AppContentProps {
+  splashDestination?: 'walkthrough' | 'dashboard' | null;
+}
+
+const AppContent = ({ splashDestination }: AppContentProps) => {
   const { user, loading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
@@ -96,7 +100,7 @@ const AppContent = () => {
   return (
     <div className="min-h-screen w-full overflow-x-hidden">
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<Index splashDestination={splashDestination} />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
         <Route path="/premium" element={<CustomerPremium />} />
         <Route path="/vendor-subscription" element={<VendorSubscription />} />
@@ -111,6 +115,7 @@ const AppContent = () => {
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
+  const [splashDestination, setSplashDestination] = useState<'walkthrough' | 'dashboard' | null>(null);
 
   useEffect(() => {
     initMixpanel();
@@ -131,8 +136,15 @@ function App() {
     initializeCache();
   }, []);
 
+  const handleSplashComplete = (destination: 'walkthrough' | 'dashboard') => {
+    setSplashDestination(destination);
+    setShowSplash(false);
+  };
+
   if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+    // Get user name from localStorage if available
+    const userName = localStorage.getItem('user_name') || localStorage.getItem('user_email') || 'there';
+    return <SplashScreen onComplete={handleSplashComplete} userName={userName} />;
   }
 
   return (
@@ -148,7 +160,7 @@ function App() {
               }}
             >
               <AuthWrapper>
-                <AppContent />
+                <AppContent splashDestination={splashDestination} />
               </AuthWrapper>
             </BrowserRouter>
           </TooltipProvider>

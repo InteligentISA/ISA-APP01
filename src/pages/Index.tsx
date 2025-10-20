@@ -28,7 +28,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { MpesaService } from "@/services/mpesaService";
 import { AirtelService } from "@/services/airtelService";
 
-const Index = () => {
+interface IndexProps {
+  splashDestination?: 'walkthrough' | 'dashboard' | null;
+}
+
+const Index = ({ splashDestination }: IndexProps) => {
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
@@ -158,6 +162,21 @@ const Index = () => {
       clearTimeout(timer);
     };
   }, [authLoading, authUser]);
+
+  // Handle splash screen destination
+  useEffect(() => {
+    if (splashDestination) {
+      if (splashDestination === 'walkthrough') {
+        setCurrentView('onboarding');
+      } else if (splashDestination === 'dashboard') {
+        if (authUser) {
+          setCurrentView('dashboard');
+        } else {
+          setCurrentView('welcome');
+        }
+      }
+    }
+  }, [splashDestination, authUser]);
 
   // Automatically prompt profile completion for any logged-in user with incomplete profile
   useEffect(() => {
