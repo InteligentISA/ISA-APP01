@@ -119,13 +119,35 @@ const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
   }, [blur, isFirstTime, userName, onComplete]);
 
   return (
-    <div className="splash-container">
+    <div 
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+      style={{ 
+        backgroundColor: '#ff7a00',
+        color: 'white',
+        fontFamily: 'Poppins, sans-serif',
+        textAlign: 'center',
+        transition: 'all 0.5s ease-in-out'
+      }}
+    >
       <img
         src={myPlugLogo}
         alt="MyPlug Logo"
-        className={`splash-logo ${blur ? 'blurred' : 'clear'}`}
+        className="w-32 h-32 object-contain mb-5"
+        style={{
+          filter: blur ? 'blur(10px)' : 'blur(0)',
+          opacity: blur ? 0.8 : 1,
+          transition: 'filter 1s ease-in-out, opacity 1s ease-in-out'
+        }}
       />
-      <h2 className={`splash-message ${show ? 'fade-in' : 'fade-out'}`}>{message}</h2>
+      <h2 
+        className="text-xl font-medium max-w-[90%] leading-relaxed"
+        style={{
+          opacity: show ? 1 : 0,
+          transition: 'opacity 0.5s ease-in-out'
+        }}
+      >
+        {message}
+      </h2>
     </div>
   );
 };
