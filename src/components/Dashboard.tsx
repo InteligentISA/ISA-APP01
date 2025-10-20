@@ -276,7 +276,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                 alt="ISA Logo" 
                 className="w-6 h-6 sm:w-8 sm:h-8"
               />
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">MyPlug Shop</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">ISA</h1>
             </div>
             
             {/* Search - Hidden on mobile, shown in mobile menu */}
