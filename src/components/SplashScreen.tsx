@@ -32,7 +32,7 @@ const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
 
       // A1. Initial Welcome
       setStep(2);
-      setMessage('Hello, welcome to MyPlug!');
+      setMessage('Jambo, welcome to MyPlug!');
       setMessageOpacity(1);
       await delay(1500); // Message displayed duration
       setMessageOpacity(0);
@@ -52,11 +52,11 @@ const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
       
     } else {
       // --- SCENARIO B: RETURNING USER ---
-      const name = userName || 'there';
+      const name = userName || 'mteja';
 
       // B1. Personalized Welcome
       setStep(4);
-      setMessage(`Hello ${name}, welcome back to MyPlug!`);
+      setMessage(`Jambo ${name}, welcome back to MyPlug!`);
       setMessageOpacity(1);
       await delay(1500); // Message displayed duration
       setMessageOpacity(0);
