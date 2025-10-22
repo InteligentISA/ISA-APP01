@@ -447,14 +447,19 @@ const Index = ({ splashDestination }: IndexProps) => {
 
   const handleProfileComplete = async (data: any) => {
     try {
-      // Update user profile
+      // Update user profile with hierarchical location data
       if (profileCompletionData && profileCompletionData.id) {
         await UserProfileService.updateUserProfile(profileCompletionData.id, {
           first_name: data.firstName,
           last_name: data.lastName,
-          location: `${data.constituency}, ${data.county}`,
+          location: `${data.constituency}, ${data.county}`, // Keep old format for compatibility
           gender: data.gender,
           phone_number: data.phoneNumber,
+          // New hierarchical location fields
+          county: data.county,
+          constituency: data.constituency,
+          ward: data.ward || null,
+          whatsapp_number: data.phoneNumber // Use phone number as WhatsApp number initially
         });
         // Fetch updated profile
         const updated = await UserProfileService.getUserProfileByEmail(profileCompletionData.email);
@@ -469,7 +474,12 @@ const Index = ({ splashDestination }: IndexProps) => {
           location: `${data.constituency}, ${data.county}`,
           gender: data.gender,
           phone_number: data.phoneNumber,
-          user_type: 'customer'
+          user_type: 'customer',
+          // New hierarchical location fields
+          county: data.county,
+          constituency: data.constituency,
+          ward: data.ward || null,
+          whatsapp_number: data.phoneNumber
         };
         setProfileCompletionOpen(false);
         handleAuthSuccess(newUser);

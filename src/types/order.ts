@@ -166,6 +166,7 @@ export interface CreateOrderRequest {
   customer_phone?: string;
   notes?: string;
   payment_method: PaymentMethod;
+  delivery_fee?: number; // Optional delivery fee for new cost system
 }
 
 export interface CreatePaymentRequest {

@@ -27,6 +27,11 @@ export interface Product {
   pickup_location?: string;
   pickup_phone_number?: string;
   
+  // Pickup location fields for delivery cost calculation
+  pickup_county?: string;
+  pickup_constituency?: string;
+  pickup_ward?: string;
+  
   // Product dimensions and weight
   weight_kg?: number;
   length_cm?: number;

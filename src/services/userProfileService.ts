@@ -15,6 +15,13 @@ export interface UserProfile {
   business_type?: string;
   status?: string;
   rejection_reason?: string;
+  
+  // New hierarchical location fields
+  county?: string;
+  constituency?: string;
+  ward?: string;
+  whatsapp_number?: string;
+  
   created_at: string;
   updated_at: string;
 }
@@ -34,6 +41,12 @@ export interface UpdateProfileData {
   status?: string;
   admin_notes?: string;
   rejection_reason?: string;
+  
+  // New hierarchical location fields
+  county?: string;
+  constituency?: string;
+  ward?: string;
+  whatsapp_number?: string;
 }
 
 export class UserProfileService {

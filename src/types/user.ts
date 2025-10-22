@@ -12,6 +12,12 @@ export interface UserProfile {
   location?: string;
   bio?: string;
   preferences?: Record<string, any>;
+  
+  // Location fields for delivery cost calculation
+  county?: string;
+  constituency?: string;
+  ward?: string;
+  whatsapp_number?: string;
   created_at: string;
   updated_at: string;
   // Vendor specific fields

@@ -4,6 +4,7 @@ import { ImageUploadService } from './imageUploadService';
 import { scrapeJumiaProducts } from './jumiaScraperService';
 import { DashboardProduct, DashboardVendorProduct, DashboardJumiaProduct } from '@/types/product';
 import { CommissionService } from './commissionService';
+import { DeliveryCostService, DeliveryLocation } from './deliveryCostService';
 
 export class ProductService {
   // Get all products with optional filters
@@ -624,6 +625,124 @@ export class ProductService {
       return { data: [], error: null };
     } catch (error) {
       return { data: null, error };
+    }
+  }
+
+  // Update product pickup location
+  static async updateProductPickupLocation(
+    productId: string, 
+    vendorId: string, 
+    pickupLocation: DeliveryLocation
+  ): Promise<{ data: Product | null; error: any }> {
+    try {
+      // Validate the pickup location
+      const validation = await DeliveryCostService.validateDeliveryLocation(pickupLocation);
+      if (!validation.isValid) {
+        return { data: null, error: { message: validation.message } };
+      }
+
+      const { data, error } = await supabase
+        .from('products')
+        .update({
+          pickup_county: pickupLocation.county,
+          pickup_constituency: pickupLocation.constituency || null,
+          pickup_ward: pickupLocation.ward || null
+        })
+        .eq('id', productId)
+        .eq('vendor_id', vendorId)
+        .select()
+        .single();
+
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Get product with delivery cost to customer location
+  static async getProductWithDeliveryCost(
+    productId: string, 
+    customerLocation: DeliveryLocation
+  ): Promise<{ data: Product | null; deliveryCost: number | null; error: any }> {
+    try {
+      // Get the product
+      const { data: product, error: productError } = await this.getProduct(productId);
+      if (productError || !product) {
+        return { data: null, deliveryCost: null, error: productError };
+      }
+
+      // Calculate delivery cost
+      const { data: deliveryCostData, error: deliveryError } = await DeliveryCostService.getProductDeliveryCost(
+        productId, 
+        customerLocation
+      );
+
+      return { 
+        data: product, 
+        deliveryCost: deliveryCostData?.totalCost || null, 
+        error: deliveryError 
+      };
+    } catch (error) {
+      return { data: null, deliveryCost: null, error };
+    }
+  }
+
+  // Get products with delivery costs for a customer location
+  static async getProductsWithDeliveryCosts(
+    params: ProductSearchParams = {},
+    customerLocation: DeliveryLocation
+  ): Promise<{ data: Array<Product & { deliveryCost: number | null }>; count: number; error: any }> {
+    try {
+      // Get products first
+      const { data: products, count, error } = await this.getProducts(params);
+      if (error) {
+        return { data: [], count: 0, error };
+      }
+
+      // Calculate delivery costs for each product
+      const productsWithCosts = await Promise.all(
+        products.map(async (product) => {
+          const { data: deliveryCostData } = await DeliveryCostService.getProductDeliveryCost(
+            product.id, 
+            customerLocation
+          );
+          
+          return {
+            ...product,
+            deliveryCost: deliveryCostData?.totalCost || null
+          };
+        })
+      );
+
+      return { data: productsWithCosts, count, error: null };
+    } catch (error) {
+      return { data: [], count: 0, error };
+    }
+  }
+
+  // Validate and set pickup location for vendor during product creation/update
+  static async validateAndSetPickupLocation(
+    productData: Partial<Product>,
+    vendorId: string
+  ): Promise<{ data: Partial<Product>; error: any }> {
+    try {
+      // If pickup location is provided, validate it
+      if (productData.pickup_county) {
+        const pickupLocation: DeliveryLocation = {
+          county: productData.pickup_county,
+          constituency: productData.pickup_constituency || undefined,
+          ward: productData.pickup_ward || undefined
+        };
+
+        const validation = await DeliveryCostService.validateDeliveryLocation(pickupLocation);
+        if (!validation.isValid) {
+          return { data: productData, error: { message: validation.message } };
+        }
+      }
+
+      return { data: productData, error: null };
+    } catch (error) {
+      return { data: productData, error };
     }
   }
 } 

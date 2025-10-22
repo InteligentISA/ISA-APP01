@@ -4,13 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
 import { X, CreditCard, Check, MapPin, Phone, Truck, Store, Download, Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { OrderService } from '@/services/orderService';
-import { DeliveryFeeService, DeliveryLocation } from '@/services/deliveryFeeService';
+import { DeliveryCostService, DeliveryLocation as NewDeliveryLocation } from '@/services/deliveryCostService';
+import { CheckoutDeliveryCosts } from './CheckoutDeliveryCosts';
+import { UserProfileService, UserProfile } from '@/services/userProfileService';
 import { MpesaService } from '@/services/mpesaService';
 import { useCurrency } from '@/hooks/useCurrency';
 import { CartItemWithProduct, Address, PaymentMethod, DeliveryMethod, DeliveryDetails } from '@/types/order';
@@ -49,7 +52,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   });
   const [contactInfo, setContactInfo] = useState({
     email: user?.email || '',
-    phone: ''
+    phone: user?.phone_number || ''
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('mpesa');
   const [mpesaNumber, setMpesaNumber] = useState('');
@@ -58,75 +61,92 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const [isCalculatingDeliveryFee, setIsCalculatingDeliveryFee] = useState(false);
   const [deliveryFeeDetails, setDeliveryFeeDetails] = useState<any>(null);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  
+  // New delivery location state
+  const [customerLocation, setCustomerLocation] = useState<NewDeliveryLocation | null>(null);
+  const [totalDeliveryCost, setTotalDeliveryCost] = useState(0);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   const { toast } = useToast();
 
   const handleCaptchaVerify = (token: string) => setCaptchaToken(token);
   const handleCaptchaError = () => setCaptchaToken(null);
 
-  // Recalculate delivery fee when delivery address changes
+  // Load user profile and pre-populate location
   useEffect(() => {
-    if (deliveryMethod === 'delivery' && deliveryAddress.street && deliveryAddress.city) {
-      calculateDeliveryFeeForAddress();
+    const loadUserProfile = async () => {
+      if (user?.id) {
+        try {
+          setIsLoadingProfile(true);
+          const profile = await UserProfileService.getUserProfile(user.id);
+          setUserProfile(profile);
+          
+          // Pre-populate customer location from profile
+          if (profile?.county) {
+            const location: NewDeliveryLocation = {
+              county: profile.county,
+              constituency: profile.constituency || undefined,
+              ward: profile.ward || undefined,
+              whatsapp_number: profile.whatsapp_number || profile.phone_number || undefined
+            };
+            setCustomerLocation(location);
+          }
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        } finally {
+          setIsLoadingProfile(false);
+        }
+      }
+    };
+
+    loadUserProfile();
+  }, [user?.id]);
+
+  // Recalculate delivery fee when customer location changes
+  useEffect(() => {
+    if (deliveryMethod === 'delivery' && customerLocation) {
+      calculateDeliveryCosts();
     }
-  }, [deliveryAddress.street, deliveryAddress.city, deliveryMethod]);
+  }, [customerLocation, deliveryMethod, cartItems]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const deliveryFee = deliveryMethod === 'delivery' ? calculatedDeliveryFee : 0;
+  const deliveryFee = deliveryMethod === 'delivery' ? totalDeliveryCost : 0;
   const totalAmount = subtotal + deliveryFee;
 
   const formatCheckoutPrice = (price: number) => {
     return formatPrice(price);
   };
 
-  const calculateDeliveryFeeForAddress = async () => {
-    if (deliveryMethod !== 'delivery' || !deliveryAddress.street || !deliveryAddress.city) {
-      setCalculatedDeliveryFee(0);
-      setDeliveryFeeDetails(null);
+  const calculateDeliveryCosts = async () => {
+    if (deliveryMethod !== 'delivery' || !customerLocation || cartItems.length === 0) {
+      setTotalDeliveryCost(0);
       return;
     }
 
     setIsCalculatingDeliveryFee(true);
     try {
-      // Create pickup location (assuming Nairobi as default pickup point)
-      const pickupLocation: DeliveryLocation = {
-        latitude: -1.2921,
-        longitude: 36.8219,
-        address: 'ISA Nairobi Hub',
-        city: 'Nairobi',
-        county: 'Nairobi'
-      };
+      const costs = await Promise.all(
+        cartItems.map(async (item) => {
+          const { data: cost, error } = await DeliveryCostService.calculateProductDeliveryCost(
+            item.product.id,
+            customerLocation
+          );
+          return cost;
+        })
+      );
 
-      // Create delivery location
-      const deliveryLocation: DeliveryLocation = {
-        latitude: 0, // Will be calculated by the service
-        longitude: 0, // Will be calculated by the service
-        address: deliveryAddress.street,
-        city: deliveryAddress.city,
-        county: deliveryAddress.state
-      };
-
-      // Calculate items for delivery fee
-      const deliveryItems = cartItems.map(item => ({
-        weight: 0.5, // Default weight per item in kg
-        quantity: item.quantity,
-        isFragile: false // You can add fragile flag to products later
-      }));
-
-      const feeResponse = await DeliveryFeeService.calculateDeliveryFee({
-        pickupLocation,
-        deliveryLocation,
-        items: deliveryItems,
-        deliveryType: 'standard'
-      });
-
-      setCalculatedDeliveryFee(feeResponse.totalFee);
-      setDeliveryFeeDetails(feeResponse);
+      const validCosts = costs.filter(cost => cost !== null);
+      const total = validCosts.reduce((sum, cost) => sum + cost.totalCost, 0);
+      setTotalDeliveryCost(total);
     } catch (error) {
-      console.error('Error calculating delivery fee:', error);
-      // Fallback to default fee
-      setCalculatedDeliveryFee(500);
-      setDeliveryFeeDetails(null);
+      console.error('Error calculating delivery costs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to calculate delivery costs. Please try again.",
+        variant: "destructive",
+      });
+      setTotalDeliveryCost(500); // Fallback to default fee
     } finally {
       setIsCalculatingDeliveryFee(false);
     }
@@ -135,19 +155,19 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const handleNextStep = () => {
     if (currentStep === 'delivery') {
       // Validate delivery information
-      if (!contactInfo.email || !contactInfo.phone) {
+      if (!userProfile) {
         toast({
-          title: "Missing Information",
-          description: "Please provide your email and phone number.",
+          title: "Profile Required",
+          description: "Please ensure you're logged in and your profile is complete.",
           variant: "destructive"
         });
         return;
       }
 
-      if (deliveryMethod === 'delivery' && (!deliveryAddress.street || !deliveryAddress.city)) {
+      if (deliveryMethod === 'delivery' && !customerLocation) {
         toast({
           title: "Missing Information",
-          description: "Please fill in your delivery address.",
+          description: "Please set your delivery location to calculate delivery costs.",
           variant: "destructive"
         });
         return;
@@ -189,18 +209,33 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
 
     setIsProcessing(true);
     try {
+      // Create shipping address from customer location
+      const shippingAddress: Address = {
+        street: deliveryAddress.street || 'Address to be confirmed',
+        city: customerLocation?.county || deliveryAddress.city || 'Nairobi',
+        state: customerLocation?.county || deliveryAddress.state || 'Nairobi',
+        zip: deliveryAddress.zip || '00100',
+        country: 'Kenya'
+      };
+
+      // Add location details to notes
+      const locationNotes = customerLocation 
+        ? `Delivery Location: ${customerLocation.county}${customerLocation.constituency ? `, ${customerLocation.constituency}` : ''}${customerLocation.ward ? `, ${customerLocation.ward}` : ''}${customerLocation.whatsapp_number ? ` | WhatsApp: ${customerLocation.whatsapp_number}` : ''}`
+        : '';
+
       // Create order first
       const order = await OrderService.createOrder(user.id, {
         items: cartItems.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity
         })),
-        shipping_address: deliveryAddress,
-        billing_address: deliveryAddress,
-        customer_email: contactInfo.email,
-        customer_phone: contactInfo.phone,
-        notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${notes}`,
-        payment_method: 'mpesa'
+        shipping_address: shippingAddress,
+        billing_address: shippingAddress,
+        customer_email: userProfile?.email || user?.email || '',
+        customer_phone: userProfile?.phone_number || user?.phone_number || '',
+        notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${locationNotes}\n${notes}`,
+        payment_method: 'mpesa',
+        delivery_fee: deliveryMethod === 'delivery' ? totalDeliveryCost : 0
       });
 
       // Process M-Pesa payment using the real M-Pesa API
@@ -249,17 +284,32 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const handlePlaceOrder = async () => {
     setIsProcessing(true);
     try {
+      // Create shipping address from customer location
+      const shippingAddress: Address = {
+        street: deliveryAddress.street || 'Address to be confirmed',
+        city: customerLocation?.county || deliveryAddress.city || 'Nairobi',
+        state: customerLocation?.county || deliveryAddress.state || 'Nairobi',
+        zip: deliveryAddress.zip || '00100',
+        country: 'Kenya'
+      };
+
+      // Add location details to notes
+      const locationNotes = customerLocation 
+        ? `Delivery Location: ${customerLocation.county}${customerLocation.constituency ? `, ${customerLocation.constituency}` : ''}${customerLocation.ward ? `, ${customerLocation.ward}` : ''}${customerLocation.whatsapp_number ? ` | WhatsApp: ${customerLocation.whatsapp_number}` : ''}`
+        : '';
+
       const order = await OrderService.createOrder(user.id, {
         items: cartItems.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity
         })),
-        shipping_address: deliveryAddress,
-        billing_address: deliveryAddress,
-        customer_email: contactInfo.email,
-        customer_phone: contactInfo.phone,
-        notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${notes}`,
-        payment_method: paymentMethod
+        shipping_address: shippingAddress,
+        billing_address: shippingAddress,
+        customer_email: userProfile?.email || user?.email || '',
+        customer_phone: userProfile?.phone_number || user?.phone_number || '',
+        notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${locationNotes}\n${notes}`,
+        payment_method: paymentMethod,
+        delivery_fee: deliveryMethod === 'delivery' ? totalDeliveryCost : 0
       });
 
       // Process payment based on method
@@ -421,143 +471,62 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
         <CardContent className="p-6 space-y-6">
           {currentStep === 'delivery' && (
             <>
-              {/* Delivery Method Selection - Only ISA Delivery */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Delivery Method</h3>
-                <div className="flex items-center space-x-3 p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
-                  <Truck className="w-5 h-5 text-green-600" />
-                  <div>
-                    <Label className="text-base font-medium">ISA Delivery</Label>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">We'll deliver to your address (KES 500 fee)</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Delivery Address */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                  <MapPin className="w-5 h-5 mr-2" />
-                  Delivery Address
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <Label htmlFor="street">Street Address</Label>
-                    <Input
-                      id="street"
-                      value={deliveryAddress.street}
-                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, street: e.target.value }))}
-                      placeholder="123 Main St"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      value={deliveryAddress.city}
-                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, city: e.target.value }))}
-                      placeholder="Nairobi"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="state">County</Label>
-                    <Input
-                      id="state"
-                      value={deliveryAddress.state}
-                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, state: e.target.value }))}
-                      placeholder="Nairobi"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="zip">Postal Code</Label>
-                    <Input
-                      id="zip"
-                      value={deliveryAddress.zip}
-                      onChange={(e) => setDeliveryAddress(prev => ({ ...prev, zip: e.target.value }))}
-                      placeholder="00100"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
-                  </div>
-                </div>
-                
-                {/* Delivery Fee Details */}
-                {deliveryMethod === 'delivery' && (
-                  <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Delivery Fee Details</h4>
-                    {isCalculatingDeliveryFee ? (
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                        <span className="text-sm text-gray-600 dark:text-gray-300">Calculating delivery fee...</span>
-                      </div>
-                    ) : deliveryFeeDetails ? (
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Base Fee:</span>
-                          <span className="text-gray-900 dark:text-white">{formatCheckoutPrice(deliveryFeeDetails.baseFee)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Distance Fee ({deliveryFeeDetails.distance}km):</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.distanceFee)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-300">Weight Fee:</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.weightFee)}</span>
-                        </div>
-                        {deliveryFeeDetails.fragileFee > 0 && (
-                          <div className="flex justify-between">
-                            <span className="text-gray-600 dark:text-gray-300">Fragile Items:</span>
-                            <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.fragileFee)}</span>
-                          </div>
-                        )}
-                        <Separator />
-                        <div className="flex justify-between font-semibold">
-                          <span className="text-gray-900 dark:text-white">Total Delivery Fee:</span>
-                          <span className="text-gray-900 dark:text-white">{formatPrice(deliveryFeeDetails.totalFee)}</span>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Estimated delivery: {deliveryFeeDetails.estimatedDeliveryTime}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-600 dark:text-gray-300">
-                        Enter your address to calculate delivery fee
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              {/* New Delivery Cost System */}
+              <CheckoutDeliveryCosts
+                cartItems={cartItems}
+                customerLocation={customerLocation}
+                onLocationUpdate={setCustomerLocation}
+                className="mb-6"
+              />
 
               <Separator />
 
-              {/* Contact Information */}
+              {/* Contact Information - Read Only */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={contactInfo.email}
-                      onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
-                      placeholder="your@email.com"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                  <Phone className="w-5 h-5 mr-2" />
+                  Contact Information
+                </h3>
+                {isLoadingProfile ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">Loading your information...</span>
                   </div>
+                ) : userProfile ? (
+                  <div className="bg-gray-50 dark:bg-slate-700 p-4 rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={contactInfo.phone}
-                      onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
-                      placeholder="+254700000000"
-                      className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
-                    />
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {userProfile.first_name} {userProfile.last_name}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                          {userProfile.email}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Check className="h-3 w-3" />
+                        Verified
+                      </Badge>
+                        </div>
+                    {userProfile.phone_number && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                          {userProfile.phone_number}
+                        </span>
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                      This information is from your profile. To update, please go to your account settings.
+                        </p>
+                      </div>
+                    ) : (
+                  <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      Unable to load your contact information. Please ensure you're logged in.
+                      </p>
                   </div>
-                </div>
+                )}
               </div>
             </>
           )}

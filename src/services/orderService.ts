@@ -180,7 +180,7 @@ export class OrderService {
     }, 0);
     // Determine delivery method and fees
     const isPickup = request.notes?.includes('Pickup from vendor');
-    const deliveryFee = isPickup ? 0 : 500; // 500 KES for ISA delivery
+    const deliveryFee = isPickup ? 0 : (request.delivery_fee || 500); // Use provided delivery fee or default to 500 KES
     const taxAmount = subtotal * 0.16; // 16% VAT for Kenya
     const totalAmount = subtotal + taxAmount + deliveryFee;
     // Validate required fields
