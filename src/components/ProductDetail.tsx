@@ -32,6 +32,7 @@ import { OrderService } from "@/services/orderService";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import ProductImageLoader from "./ProductImage";
+import ProductImageFallback from "./ProductImageFallback";
 import ShareButton from "./ShareButton";
 
 const ProductDetail = () => {
@@ -325,8 +326,12 @@ const ProductDetail = () => {
           <div className="space-y-4">
             <div className="relative aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
               <div onClick={() => setShowImageModal(true)} className="cursor-pointer">
-                <ProductImageLoader
-                  src={productImages[currentImageIndex]?.image_url || product.main_image || '/placeholder.svg'}
+                <ProductImageFallback
+                  images={[
+                    productImages[currentImageIndex]?.image_url,
+                    product.main_image,
+                    ...productImages.map(img => img.image_url)
+                  ].filter(Boolean)}
                   alt={productImages[currentImageIndex]?.image_description || product.name}
                   className="w-full h-full object-cover"
                 />
@@ -655,8 +660,12 @@ const ProductDetail = () => {
       <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
         <DialogContent className="max-w-4xl">
           <div className="relative">
-            <ProductImageLoader
-              src={productImages[currentImageIndex]?.image_url || product.main_image}
+            <ProductImageFallback
+              images={[
+                productImages[currentImageIndex]?.image_url,
+                product.main_image,
+                ...productImages.map(img => img.image_url)
+              ].filter(Boolean)}
               alt={productImages[currentImageIndex]?.image_description || product.name}
               className="w-full h-auto max-h-[80vh] object-contain"
             />

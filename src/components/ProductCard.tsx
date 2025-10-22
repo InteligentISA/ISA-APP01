@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProductService } from "@/services/productService";
 import { useCurrency } from "@/hooks/useCurrency";
 import ProductImageLoader from "@/components/ProductImage";
+import ProductImageFallback from "@/components/ProductImageFallback";
 import { soundService } from "@/services/soundService";
 import ShareButton from "@/components/ShareButton";
 
@@ -306,8 +307,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return (
       <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
         <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
-          <img
-            src={product.image || '/placeholder.svg'}
+          <ProductImageFallback
+            images={[product.image].filter(Boolean)}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -373,8 +374,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-slate-700">
-        <ProductImageLoader
-          src={product.main_image || '/placeholder.svg'}
+        <ProductImageFallback
+          images={productImages}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />

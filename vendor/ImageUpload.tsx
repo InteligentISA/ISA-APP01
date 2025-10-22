@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ImageUploadService } from "../src/services/imageUploadService";
 import { useToast } from "../src/hooks/use-toast";
+import ProductImageFallback from "../src/components/ProductImageFallback";
 
 interface ImageUploadProps {
   onImageUpload: (result: any) => void;
@@ -247,13 +248,10 @@ const ImageUpload = ({
               <Card key={image.url} className="relative group">
                 <CardContent className="p-0">
                   <div className="relative">
-                    <img
-                      src={image.url}
+                    <ProductImageFallback
+                      images={[image.url]}
                       alt={image.description}
                       className="w-full h-32 sm:h-40 md:h-48 object-cover rounded-t-lg"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg';
-                      }}
                     />
                     
                     {/* Image Actions */}

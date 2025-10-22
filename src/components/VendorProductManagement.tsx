@@ -28,6 +28,7 @@ import {
   Crown
 } from "lucide-react";
 import { Product } from "@/types/product";
+import ProductImageFallback from "@/components/ProductImageFallback";
 import { ProductService } from "@/services/productService";
 import { ImageUploadService } from "@/services/imageUploadService";
 import { CommissionService } from "@/services/commissionService";
@@ -801,8 +802,11 @@ const VendorProductManagement = ({ user, showAllApprovedProducts, onNavigateToSu
             <Card key={product.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-0">
                 <div className="relative">
-                  <img
-                    src={product.main_image || product.images?.[0] || '/placeholder.svg'}
+                  <ProductImageFallback
+                    images={[
+                      product.main_image,
+                      ...(product.images || [])
+                    ].filter(Boolean)}
                     alt={product.name}
                     className="w-full h-40 md:h-48 object-cover rounded-t-lg"
                   />

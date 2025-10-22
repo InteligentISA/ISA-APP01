@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useConfetti } from '@/contexts/ConfettiContext';
 import { supabase } from '@/integrations/supabase/client';
 import { HCaptchaComponent } from '@/components/ui/hcaptcha';
+import LocationSelector from '@/components/LocationSelector';
+import { hasWards } from '@/lib/locationData';
 import { 
   User, 
   Building, 
@@ -30,59 +32,6 @@ import {
   X
 } from 'lucide-react';
 
-const countyConstituencyData = {
-  "Nairobi County": ["Westlands", "Dagoretti North", "Dagoretti South", "Langata", "Kibra", "Roysambu", "Kasarani", "Ruaraka", "Embakasi South", "Embakasi North", "Embakasi Central", "Embakasi East", "Embakasi West", "Makadara", "Kamukunji", "Starehe", "Mathare"],
-  "Kiambu County": ["Gatundu South", "Gatundu North", "Juja", "Thika Town", "Ruiru", "Githunguri", "Kiambu", "Kiambaa", "Kabete", "Kikuyu", "Limuru", "Lari"],
-  "Nakuru County": ["Nakuru Town East", "Nakuru Town West", "Bahati", "Subukia", "Rongai", "Kuresoi North", "Kuresoi South", "Molo", "Njoro", "Gilgil", "Naivasha"],
-  "Kakamega County": ["Lugari", "Likuyani", "Malava", "Lurambi", "Navakholo", "Mumias East", "Mumias West", "Butere", "Khwisero", "Matungu", "Ikolomani", "Shinyalu"],
-  "Bungoma County": ["Mount Elgon", "Sirisia", "Kabuchai", "Webuye West", "Webuye East", "Bungoma", "Kanduyi", "Bumula", "Butula"],
-  "Meru County": ["Igembe South", "Igembe Central", "Igembe North", "Tigania West", "Tigania East", "North Imenti", "Buuri", "Central Imenti", "South Imenti"],
-  "Kilifi County": ["Kilifi North", "Kilifi South", "Kaloleni", "Rabai", "Ganze", "Malindi", "Magarini"],
-  "Machakos County": ["Masinga", "Yatta", "Kangundo", "Matungulu", "Kathiani", "Mavoko", "Machakos Town", "Mwala"],
-  "Kisii County": ["Bonchari", "South Mugirango", "Bomachoge Borabu", "Bomachoge Chache", "Bobasi", "Nyaribari Masaba", "Nyaribari Chache", "Kitutu Chache North", "Kitutu Chache South"],
-  "Mombasa County": ["Changamwe", "Jomvu", "Kisauni", "Nyali", "Likoni", "Mvita"],
-  "Narok County": ["Kilgoris", "Emurua Dikirr", "Loita", "Narok North", "Narok East", "Narok South", "Narok West"],
-  "Kajiado County": ["Kajiado North", "Kajiado East", "Kajiado South", "Kajiado Central", "Kajiado West"],
-  "Uasin Gishu County": ["Ainabkoi", "Kapseret", "Kesses", "Moiben", "Soy", "Turbo"],
-  "Kisumu County": ["Kisumu West", "Kisumu East", "Kisumu Central", "Seme", "Nyando", "Muhoroni", "Nyakach"],
-  "Migori County": ["Rongo", "Awendo", "Suna East", "Suna West", "Uriri", "Nyatike", "Kuria West", "Kuria East"],
-  "Homa Bay County": ["Kasipul", "Kabondo Kasipul", "Karachuonyo", "Rachuonyo North", "Rachuonyo East", "Homa Bay Town", "Rangwe", "Suba North", "Suba South"],
-  "Kitui County": ["Mwingi North", "Mwingi West", "Mwingi Central", "Kitui West", "Kitui Rural", "Kitui Central", "Kitui East", "Kitui South"],
-  "Murang'a County": ["Kangema", "Mathioya", "Kiharu", "Kigumo", "Maragwa", "Kandara", "Gatanga"],
-  "Trans-Nzoia County": ["Cherangany", "Endebess", "Kwanza", "Saboti", "Kiminini"],
-  "Siaya County": ["Ugenya", "Ugunja", "Alego Usonga", "Gem", "Bondo", "Rarieda"],
-  "Makueni County": ["Mbooni", "Kilome", "Kaiti", "Makueni", "Kibwezi West", "Kibwezi East"],
-  "Turkana County": ["Turkana North", "Turkana West", "Turkana Central", "Loima", "Turkana South", "Turkana East"],
-  "Busia County": ["Nambale", "Butula", "Funyula", "Samia", "Bunyala", "Budalang'i", "Teso North", "Teso South"],
-  "Mandera County": ["Mandera West", "Banissa", "Mandera North", "Mandera South", "Mandera East", "Lafey"],
-  "Kericho County": ["Kipkelion East", "Kipkelion West", "Ainamoi", "Bureti", "Belgut", "Sigowet/Soin"],
-  "Nandi County": ["Aldai", "Chesumei", "Emgwen", "Mosop", "Nandi Hills", "Tinderet"],
-  "Kwale County": ["Msambweni", "Lunga Lunga", "Matuga", "Kinango"],
-  "Bomet County": ["Sotik", "Chepalungu", "Bomet Central", "Bomet East", "Konoin"],
-  "Garissa County": ["Garissa Township", "Balambala", "Lagdera", "Dadaab", "Fafi", "Ijara"],
-  "Wajir County": ["Wajir North", "Wajir East", "Tarbaj", "Wajir West", "Eldas", "Wajir South"],
-  "Nyeri County": ["Tetu", "Kieni", "Mathira", "Othaya", "Mukurweini", "Nyeri Town"],
-  "Baringo County": ["Mogotio", "Eldama Ravine", "Baringo Central", "Baringo North", "Baringo South", "Tiaty"],
-  "Nyandarua County": ["Kinangop", "Kipipiri", "Ol Kalou", "Ol Jorok", "Ndaragwa"],
-  "West Pokot County": ["Kapenguria", "Sigor", "Kacheliba", "Pokot South"],
-  "Nyamira County": ["Kitutu Masaba", "North Mugirango", "West Mugirango", "Borabu"],
-  "Kirinyaga County": ["Mwea", "Gichugu", "Ndia", "Kirinyaga Central"],
-  "Embu County": ["Manyatta", "Runyenjes", "Mbeere South", "Mbeere North"],
-  "Vihiga County": ["Vihiga", "Emuhaya", "Luanda", "Hamisi", "Sabatia"],
-  "Laikipia County": ["Laikipia West", "Laikipia East", "Laikipia North"],
-  "Marsabit County": ["Moyale", "North Horr", "Saku", "Laisamis"],
-  "Elgeyo-Marakwet County": ["Keiyo North", "Keiyo South", "Marakwet East", "Marakwet West"],
-  "Tharaka-Nithi County": ["Maara", "Chuka/Igambang'ombe", "Tharaka"],
-  "Taita–Taveta County": ["Taveta", "Wundanyi", "Mwatate", "Voi"],
-  "Tana River County": ["Garsen", "Galole", "Bura"],
-  "Samburu County": ["Samburu West", "Samburu North", "Samburu East"],
-  "Isiolo County": ["Isiolo North", "Isiolo South"],
-  "Lamu County": ["Lamu East", "Lamu West"]
-};
-
-const getAvailableConstituencies = (county: string) => {
-  return countyConstituencyData[county as keyof typeof countyConstituencyData] || [];
-};
 
 interface VendorApplicationFormProps {
   userId: string;
@@ -102,7 +51,7 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
     otherBusinessType: '',
     description: '',
     websiteUrl: '',
-    location: { county: '', constituency: '' },
+    location: { county: '', constituency: '', ward: '' },
     heardAboutUs: '',
     otherHeardAboutUs: '',
     documents: {
@@ -143,6 +92,7 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
     formData.websiteUrl,
     formData.location.county,
     formData.location.constituency,
+    (!hasWards(formData.location.county) || formData.location.ward) ? formData.location.ward : true,
     formData.documents.idCard,
     formData.documents.businessLicense,
     formData.documents.bankName,
@@ -162,7 +112,7 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
       case 1:
         return formData.accountType && formData.businessName && formData.brandName && formData.heardAboutUs;
       case 2:
-        return formData.email && formData.phone && formData.location.county && formData.location.constituency;
+        return formData.email && formData.phone && formData.location.county && formData.location.constituency && (!hasWards(formData.location.county) || formData.location.ward);
       case 3:
         return formData.businessType && formData.description && formData.websiteUrl;
       case 4:
@@ -261,6 +211,9 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
           company: formData.businessName,
           business_type: formData.businessType,
           location: `${formData.location.county}, ${formData.location.constituency}`,
+          county: formData.location.county,
+          constituency: formData.location.constituency,
+          ward: formData.location.ward,
           heard_about_us: formData.heardAboutUs,
           brand_name: formData.brandName,
           website_url: formData.websiteUrl,
@@ -597,56 +550,24 @@ const VendorApplicationForm = ({ userId, onComplete, onProgressChange }: VendorA
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="county" className="text-sm font-medium text-gray-700">
-                    County *
-                  </Label>
-                  <Select
-                    value={formData.location.county}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
-                      location: { ...prev.location, county: value, constituency: '' }
-                    }))}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your county" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.keys(countyConstituencyData).map((county) => (
-                        <SelectItem key={county} value={county}>
-                          {county}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="constituency" className="text-sm font-medium text-gray-700">
-                    Constituency *
-                  </Label>
-                  <Select
-                    value={formData.location.constituency}
-                    onValueChange={(value) => setFormData(prev => ({ 
-                      ...prev, 
-                      location: { ...prev.location, constituency: value }
-                    }))}
-                    disabled={!formData.location.county}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select your constituency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableConstituencies(formData.location.county).map((constituency) => (
-                        <SelectItem key={constituency} value={constituency}>
-                          {constituency}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+              <LocationSelector
+                selectedCounty={formData.location.county}
+                selectedConstituency={formData.location.constituency}
+                selectedWard={formData.location.ward}
+                onCountyChange={(county) => setFormData(prev => ({ 
+                  ...prev, 
+                  location: { ...prev.location, county, constituency: '', ward: '' }
+                }))}
+                onConstituencyChange={(constituency) => setFormData(prev => ({ 
+                  ...prev, 
+                  location: { ...prev.location, constituency, ward: '' }
+                }))}
+                onWardChange={(ward) => setFormData(prev => ({ 
+                  ...prev, 
+                  location: { ...prev.location, ward }
+                }))}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              />
             </div>
           )}
 

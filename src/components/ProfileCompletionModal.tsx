@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import LocationSelector from "@/components/LocationSelector";
+import { hasWards } from "@/lib/locationData";
 
 interface ProfileCompletionModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface ProfileCompletionModalProps {
     email: string;
     county: string;
     constituency: string;
+    ward: string;
     gender: string;
     phoneNumber: string;
     dateOfBirth: string;
@@ -21,17 +24,6 @@ interface ProfileCompletionModalProps {
   onClose: () => void;
 }
 
-const counties = [
-  "Nairobi", "Mombasa", "Kisumu", "Kiambu", "Nakuru", "Machakos", "Kakamega", "Bungoma", "Uasin Gishu", "Nyeri"
-];
-
-const constituencies = {
-  Nairobi: ["Westlands", "Lang'ata", "Starehe", "Dagoretti North", "Dagoretti South", "Kasarani", "Embakasi North", "Embakasi South", "Embakasi Central", "Embakasi East", "Embakasi West", "Makadara", "Kamukunji", "Kibra", "Ruaraka", "Roysambu", "Kasarani", "Mathare"],
-  Mombasa: ["Kisauni", "Likoni", "Mvita", "Changamwe", "Jomvu", "Nyali"],
-  Kisumu: ["Kisumu Central", "Kisumu East", "Kisumu West", "Seme", "Nyando", "Muhoroni", "Nyakach"],
-  Kiambu: ["Kiambu", "Kiambaa", "Kabete", "Kikuyu", "Limuru", "Lari", "Gatundu North", "Gatundu South", "Juja", "Thika Town", "Ruiru", "Githunguri"],
-  Nakuru: ["Nakuru Town East", "Nakuru Town West", "Naivasha", "Gilgil", "Subukia", "Bahati", "Rongai", "Njoro", "Molo", "Kuresoi North", "Kuresoi South"]
-};
 
 export default function ProfileCompletionModal({ isOpen, initialData, onComplete, onClose }: ProfileCompletionModalProps) {
   const [form, setForm] = useState({
@@ -39,6 +31,7 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
     lastName: initialData?.lastName || "",
     county: initialData?.county || "",
     constituency: initialData?.constituency || "",
+    ward: initialData?.ward || "",
     gender: initialData?.gender || "",
     phoneNumber: initialData?.phoneNumber || "",
     dateOfBirth: initialData?.dateOfBirth || "",
@@ -54,6 +47,7 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
         lastName: initialData?.lastName || "",
         county: initialData?.county || "",
         constituency: initialData?.constituency || "",
+        ward: initialData?.ward || "",
         gender: initialData?.gender || "",
         phoneNumber: initialData?.phoneNumber || "",
         dateOfBirth: initialData?.dateOfBirth || "",
@@ -65,6 +59,7 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
         lastName: "",
         county: "",
         constituency: "",
+        ward: "",
         gender: "",
         phoneNumber: "",
         dateOfBirth: "",
@@ -73,14 +68,22 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
   }, [initialData]);
 
   const handleChange = (field: string, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (field === "county") setForm(prev => ({ ...prev, constituency: "" }));
+    setForm(prev => {
+      const newForm = { ...prev, [field]: value };
+      if (field === 'county') {
+        newForm.constituency = "";
+        newForm.ward = "";
+      } else if (field === 'constituency') {
+        newForm.ward = "";
+      }
+      return newForm;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate required fields
-    if (!form.firstName || !form.lastName || !form.county || !form.constituency || !form.gender || !form.phoneNumber || !form.dateOfBirth) {
+    if (!form.firstName || !form.lastName || !form.county || !form.constituency || !form.gender || !form.phoneNumber || !form.dateOfBirth || (hasWards(form.county) && !form.ward)) {
       toast({ title: "Missing Fields", description: "Please fill all required fields.", variant: "destructive" });
       return;
     }
@@ -112,20 +115,14 @@ export default function ProfileCompletionModal({ isOpen, initialData, onComplete
                 onChange={e => handleChange("lastName", e.target.value)}
                 required
               />
-              <Select value={form.county} onValueChange={v => handleChange("county", v)} required>
-                <SelectTrigger><SelectValue placeholder="Select County" /></SelectTrigger>
-                <SelectContent>
-                  {counties.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {form.county && (
-                <Select value={form.constituency} onValueChange={v => handleChange("constituency", v)} required>
-                  <SelectTrigger><SelectValue placeholder="Select Constituency" /></SelectTrigger>
-                  <SelectContent>
-                    {(constituencies[form.county as keyof typeof constituencies] || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              <LocationSelector
+                selectedCounty={form.county}
+                selectedConstituency={form.constituency}
+                selectedWard={form.ward}
+                onCountyChange={(county) => handleChange("county", county)}
+                onConstituencyChange={(constituency) => handleChange("constituency", constituency)}
+                onWardChange={(ward) => handleChange("ward", ward)}
+              />
               <Select value={form.gender} onValueChange={v => handleChange("gender", v)} required>
                 <SelectTrigger><SelectValue placeholder="Select Gender" /></SelectTrigger>
                 <SelectContent>
