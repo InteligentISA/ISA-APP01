@@ -9,7 +9,16 @@ interface HCaptchaComponentProps {
   theme?: 'light' | 'dark';
 }
 
-export const HCaptchaComponent = forwardRef<HCaptcha, HCaptchaComponentProps>(({ 
+interface HCaptchaRef {
+  execute: (opts?: { async?: boolean; rqdata?: string }) => any;
+  getResponse: () => string;
+  getRespKey: () => string;
+  isReady: () => boolean;
+  setData: (data: any) => void;
+  render: () => any;
+}
+
+export const HCaptchaComponent = forwardRef<HCaptchaRef, HCaptchaComponentProps>(({ 
   onVerify, 
   onError, 
   onExpire, 
@@ -31,22 +40,18 @@ export const HCaptchaComponent = forwardRef<HCaptcha, HCaptchaComponentProps>(({
 
   // Expose the execute method to parent components
   useImperativeHandle(ref, () => ({
-    execute: () => {
+    execute: (opts?: { async?: boolean; rqdata?: string }) => {
       console.log('hCaptcha execute called');
-      return internalRef.current?.execute();
+      if (internalRef.current) {
+        return internalRef.current.execute(opts as any);
+      }
+      return undefined;
     },
-    reset: () => internalRef.current?.reset(),
     getResponse: () => internalRef.current?.getResponse(),
     getRespKey: () => internalRef.current?.getRespKey(),
     isReady: () => internalRef.current?.isReady(),
     setData: (data: any) => internalRef.current?.setData(data),
     render: () => internalRef.current?.render(),
-    remove: () => internalRef.current?.remove(),
-    close: () => internalRef.current?.close(),
-    open: () => internalRef.current?.open(),
-    setTheme: (theme: string) => internalRef.current?.setTheme(theme),
-    submit: () => internalRef.current?.submit(),
-    getWidgetId: () => internalRef.current?.getWidgetId(),
   }));
 
   if (!isEnabled || !siteKey) {
