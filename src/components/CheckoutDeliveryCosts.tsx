@@ -14,6 +14,10 @@ interface CartItem {
   price: number;
   quantity: number;
   image?: string;
+  product?: {
+    id: string;
+    vendor_id?: string;
+  };
 }
 
 interface CheckoutDeliveryCostsProps {
@@ -47,21 +51,49 @@ export function CheckoutDeliveryCosts({
 
     try {
       setLoading(true);
-      const costs = await Promise.all(
-        cartItems.map(async (item) => {
-          const { data: cost, error } = await DeliveryCostService.calculateProductDeliveryCost(
-            item.id,
-            currentLocation
-          );
-          return cost;
-        })
+      
+      // Use the new vendor-grouped delivery cost calculation
+      const { data: deliveryData, error } = await DeliveryCostService.getCartItemsDeliveryCost(
+        cartItems.map(item => ({
+          product: {
+            id: item.product?.id || item.id,
+            vendor_id: item.product?.vendor_id
+          },
+          quantity: item.quantity
+        })),
+        currentLocation
       );
 
-      const validCosts = costs.filter(cost => cost !== null) as DeliveryCostCalculation[];
-      setDeliveryCosts(validCosts);
-      
-      const total = validCosts.reduce((sum, cost) => sum + cost.totalCost, 0);
-      setTotalDeliveryCost(total);
+      if (error || !deliveryData) {
+        throw new Error('Failed to calculate delivery costs');
+      }
+
+      // Create individual delivery costs for display (showing 0 for additional products from same vendor)
+      const individualCosts: DeliveryCostCalculation[] = [];
+      for (const item of cartItems) {
+        const productId = item.product?.id || item.id;
+        const breakdown = deliveryData.breakdown.find(b => b.productId === productId);
+        
+        if (breakdown) {
+          // Create a mock DeliveryCostCalculation for display
+          individualCosts.push({
+            baseCost: breakdown.cost > 0 ? 200 : 0, // Base cost only for first product of vendor
+            countyCost: 0,
+            constituencyCost: 0,
+            wardCost: 0,
+            totalCost: breakdown.cost,
+            breakdown: {
+              base: breakdown.cost > 0 ? 200 : 0,
+              county: 0,
+              constituency: 0,
+              ward: 0
+            }
+          });
+        }
+      }
+
+      setDeliveryCosts(individualCosts);
+      setTotalDeliveryCost(deliveryData.totalCost);
     } catch (error) {
       console.error('Error calculating delivery costs:', error);
       toast({
@@ -241,7 +273,8 @@ export function CheckoutDeliveryCosts({
             <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
               <p className="font-medium mb-1">Delivery Information:</p>
               <ul className="space-y-1">
-                <li>• Each item has its own delivery cost based on pickup and delivery locations</li>
+                <li>• Delivery cost is charged once per vendor, regardless of number of products</li>
+                <li>• Multiple products from the same vendor share a single delivery fee</li>
                 <li>• Estimated delivery time: 2-5 business days</li>
                 <li>• Delivery costs are calculated using county, constituency, and ward data</li>
                 <li>• Contact will be made via WhatsApp for door delivery coordination</li>

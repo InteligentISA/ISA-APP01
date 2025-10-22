@@ -448,7 +448,7 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                 </Button>
               </div>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Button 
                   variant="ghost" 
                   size="sm"
@@ -456,9 +456,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowProfile(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-gray-700 dark:text-gray-200"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <User className="w-4 h-4 mr-2" />
+                  <User className="w-4 h-4 mr-3 text-gray-500" />
                   My Profile
                 </Button>
                 <Button 
@@ -468,9 +468,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowSubscriptions(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-blue-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Crown className="w-4 h-4 mr-2" />
+                  <Crown className="w-4 h-4 mr-3 text-gray-500" />
                   Subscriptions
                 </Button>
                 <Button 
@@ -480,9 +480,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     window.location.href = '/premium';
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-purple-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Star className="w-4 h-4 mr-2" />
+                  <Star className="w-4 h-4 mr-3 text-gray-500" />
                   Premium Plans
                 </Button>
                 <Button 
@@ -492,9 +492,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowStyleQuiz(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-purple-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Palette className="w-4 h-4 mr-2" />
+                  <Palette className="w-4 h-4 mr-3 text-gray-500" />
                   Style Quiz
                 </Button>
                 <Button 
@@ -504,9 +504,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowWallet(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-orange-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Star className="w-4 h-4 mr-2" />
+                  <Star className="w-4 h-4 mr-3 text-gray-500" />
                   Points Wallet
                 </Button>
                 <Button 
@@ -516,9 +516,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowShipping(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-green-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Truck className="w-4 h-4 mr-2" />
+                  <Truck className="w-4 h-4 mr-3 text-gray-500" />
                   My Shipping
                 </Button>
                 <Button 
@@ -528,9 +528,9 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     navigate('/my-orders');
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-blue-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Package className="w-4 h-4 mr-2" />
+                  <Package className="w-4 h-4 mr-3 text-gray-500" />
                   My Orders
                 </Button>
                 <Button 
@@ -540,18 +540,18 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                     setShowSettings(true);
                     setShowMobileMenu(false);
                   }}
-                  className="w-full justify-start text-gray-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md px-3 py-2"
                 >
-                  <Settings className="w-4 h-4 mr-2" />
+                  <Settings className="w-4 h-4 mr-3 text-gray-500" />
                   Settings
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={onLogout}
-                  className="w-full justify-start text-red-600"
+                  className="w-full justify-start text-gray-700 dark:text-gray-200 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 rounded-md px-3 py-2"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4 mr-3 text-gray-500" />
                   Logout
                 </Button>
               </div>

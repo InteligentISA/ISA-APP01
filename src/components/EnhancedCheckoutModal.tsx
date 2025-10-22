@@ -126,19 +126,17 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
 
     setIsCalculatingDeliveryFee(true);
     try {
-      const costs = await Promise.all(
-        cartItems.map(async (item) => {
-          const { data: cost, error } = await DeliveryCostService.calculateProductDeliveryCost(
-            item.product.id,
-            customerLocation
-          );
-          return cost;
-        })
+      // Use the new vendor-grouped delivery cost calculation
+      const { data: deliveryData, error } = await DeliveryCostService.getCartItemsDeliveryCost(
+        cartItems,
+        customerLocation
       );
 
-      const validCosts = costs.filter(cost => cost !== null);
-      const total = validCosts.reduce((sum, cost) => sum + cost.totalCost, 0);
-      setTotalDeliveryCost(total);
+      if (error || !deliveryData) {
+        throw new Error('Failed to calculate delivery costs');
+      }
+
+      setTotalDeliveryCost(deliveryData.totalCost);
     } catch (error) {
       console.error('Error calculating delivery costs:', error);
       toast({

@@ -176,35 +176,132 @@ export class DeliveryCostService {
     return parts.join(' + ');
   }
 
-  // Get delivery cost for multiple products (for checkout)
+  // Get delivery cost for multiple products (for checkout) - grouped by vendor
   static async getCartDeliveryCost(
-    products: Array<{ id: string; quantity: number }>,
+    products: Array<{ id: string; quantity: number; vendor_id?: string }>,
     customerLocation: DeliveryLocation
-  ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number }> } | null; error: any }> {
+  ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number; vendor_id?: string }>; vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> } | null; error: any }> {
     try {
-      const breakdown: Array<{ productId: string; cost: number }> = [];
+      const breakdown: Array<{ productId: string; cost: number; vendor_id?: string }> = [];
+      const vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> = [];
       let totalCost = 0;
 
+      // Group products by vendor
+      const vendorGroups = new Map<string, Array<{ id: string; quantity: number; vendor_id?: string }>>();
+      
       for (const product of products) {
-        const { data: deliveryCost, error } = await this.calculateProductDeliveryCost(product.id, customerLocation);
+        const vendorId = product.vendor_id || 'default'; // Use 'default' for products without vendor
+        if (!vendorGroups.has(vendorId)) {
+          vendorGroups.set(vendorId, []);
+        }
+        vendorGroups.get(vendorId)!.push(product);
+      }
+
+      // Calculate delivery cost once per vendor
+      for (const [vendorId, vendorProducts] of vendorGroups) {
+        if (vendorProducts.length === 0) continue;
+
+        // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
+        const firstProduct = vendorProducts[0];
+        const { data: deliveryCost, error } = await this.calculateProductDeliveryCost(firstProduct.id, customerLocation);
         
         if (error || !deliveryCost) {
-          console.error(`Error calculating delivery cost for product ${product.id}:`, error);
+          console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);
           continue;
         }
 
-        const productTotalCost = deliveryCost.totalCost * product.quantity;
-        totalCost += productTotalCost;
-        
-        breakdown.push({
-          productId: product.id,
-          cost: productTotalCost
+        // Charge delivery cost only once per vendor, regardless of number of products
+        const vendorDeliveryCost = deliveryCost.totalCost;
+        totalCost += vendorDeliveryCost;
+
+        // Add to vendor breakdown
+        vendorBreakdown.push({
+          vendor_id: vendorId,
+          cost: vendorDeliveryCost,
+          productCount: vendorProducts.length
         });
+
+        // Add individual product breakdown (showing 0 cost for additional products from same vendor)
+        for (let i = 0; i < vendorProducts.length; i++) {
+          const product = vendorProducts[i];
+          const productCost = i === 0 ? vendorDeliveryCost : 0; // Only first product pays delivery cost
+          
+          breakdown.push({
+            productId: product.id,
+            cost: productCost,
+            vendor_id: product.vendor_id
+          });
+        }
       }
 
-      return { data: { totalCost, breakdown }, error: null };
+      return { data: { totalCost, breakdown, vendorBreakdown }, error: null };
     } catch (error) {
       console.error('Error calculating cart delivery cost:', error);
+      return { data: null, error };
+    }
+  }
+
+  // Get delivery cost for cart items (with product information) - grouped by vendor
+  static async getCartItemsDeliveryCost(
+    cartItems: Array<{ product: { id: string; vendor_id?: string }; quantity: number }>,
+    customerLocation: DeliveryLocation
+  ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number; vendor_id?: string }>; vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> } | null; error: any }> {
+    try {
+      const breakdown: Array<{ productId: string; cost: number; vendor_id?: string }> = [];
+      const vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> = [];
+      let totalCost = 0;
+
+      // Group cart items by vendor
+      const vendorGroups = new Map<string, Array<{ product: { id: string; vendor_id?: string }; quantity: number }>>();
+      
+      for (const cartItem of cartItems) {
+        const vendorId = cartItem.product.vendor_id || 'default'; // Use 'default' for products without vendor
+        if (!vendorGroups.has(vendorId)) {
+          vendorGroups.set(vendorId, []);
+        }
+        vendorGroups.get(vendorId)!.push(cartItem);
+      }
+
+      // Calculate delivery cost once per vendor
+      for (const [vendorId, vendorCartItems] of vendorGroups) {
+        if (vendorCartItems.length === 0) continue;
+
+        // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
+        const firstCartItem = vendorCartItems[0];
+        const { data: deliveryCost, error } = await this.calculateProductDeliveryCost(firstCartItem.product.id, customerLocation);
+        
+        if (error || !deliveryCost) {
+          console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);
+          continue;
+        }
+
+        // Charge delivery cost only once per vendor, regardless of number of products
+        const vendorDeliveryCost = deliveryCost.totalCost;
+        totalCost += vendorDeliveryCost;
+
+        // Add to vendor breakdown
+        vendorBreakdown.push({
+          vendor_id: vendorId,
+          cost: vendorDeliveryCost,
+          productCount: vendorCartItems.length
+        });
+
+        // Add individual product breakdown (showing 0 cost for additional products from same vendor)
+        for (let i = 0; i < vendorCartItems.length; i++) {
+          const cartItem = vendorCartItems[i];
+          const productCost = i === 0 ? vendorDeliveryCost : 0; // Only first product pays delivery cost
+          
+          breakdown.push({
+            productId: cartItem.product.id,
+            cost: productCost,
+            vendor_id: cartItem.product.vendor_id
+          });
+        }
+      }
+
+      return { data: { totalCost, breakdown, vendorBreakdown }, error: null };
+    } catch (error) {
+      console.error('Error calculating cart items delivery cost:', error);
       return { data: null, error };
     }
   }
