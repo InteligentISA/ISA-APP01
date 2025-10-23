@@ -5,8 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, AlertTriangle, Send } from "lucide-react";
+import { Upload, AlertTriangle, Send, Shield, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
+import { ModerationService } from "@/services/moderationService";
 
 interface OrderMessagingProps {
   orderId: string;
@@ -19,10 +20,12 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
   const [messageText, setMessageText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [isUserSuspended, setIsUserSuspended] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchMessages();
+    checkUserSuspension();
     
     // Subscribe to new messages
     const channel = supabase
@@ -44,7 +47,7 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [orderId]);
+  }, [orderId, userId]);
 
   const fetchMessages = async () => {
     const { data, error } = await supabase
@@ -55,6 +58,15 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
 
     if (!error && data) {
       setMessages(data);
+    }
+  };
+
+  const checkUserSuspension = async () => {
+    try {
+      const suspended = await ModerationService.isUserSuspended(userId);
+      setIsUserSuspended(suspended);
+    } catch (error) {
+      console.error('Error checking user suspension:', error);
     }
   };
 
@@ -120,6 +132,16 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
 
+    // Check if user is suspended
+    if (isUserSuspended) {
+      toast({
+        title: "Account Suspended",
+        description: "Your account has been suspended due to policy violations. Please contact support.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Vendors cannot send text messages
     if (userType === 'vendor') {
       toast({
@@ -130,21 +152,31 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
       return;
     }
 
-    // Check for contact information in message
-    const contactPatterns = [
-      /\b\d{10,}\b/, // Phone numbers
-      /\b[\w\.-]+@[\w\.-]+\.\w+\b/, // Email addresses
-      /\bwhatsapp\b/i,
-      /\bcall me\b/i,
-      /\bphone\b/i,
-      /\bemail\b/i,
-    ];
+    // Moderate the message
+    const moderationResult = ModerationService.moderateMessage(messageText, userId, orderId);
 
-    const hasContactInfo = contactPatterns.some(pattern => pattern.test(messageText));
-    if (hasContactInfo) {
+    // Log the moderation action
+    if (moderationResult.violations.length > 0) {
+      await ModerationService.logModerationAction(
+        userId,
+        orderId,
+        moderationResult.originalMessage,
+        moderationResult.moderatedMessage,
+        moderationResult.violations,
+        moderationResult.isBlocked ? 'blocked' : 'masked'
+      );
+
+      // Update user violations
+      for (const violation of moderationResult.violations) {
+        await ModerationService.updateUserViolations(userId, violation);
+      }
+    }
+
+    // If message is blocked, show warning and return
+    if (moderationResult.isBlocked) {
       toast({
-        title: "Warning",
-        description: "Please do not share personal contact information in messages",
+        title: "Message Blocked",
+        description: moderationResult.warningMessage || "This message contains restricted content and cannot be sent.",
         variant: "destructive"
       });
       return;
@@ -159,17 +191,26 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
           order_id: orderId,
           sender_id: userId,
           sender_type: userType,
-          message_text: messageText,
+          message_text: moderationResult.moderatedMessage,
           image_url: null
         });
 
       if (error) throw error;
 
       setMessageText("");
-      toast({
-        title: "Message Sent",
-        description: "Your message has been sent successfully",
-      });
+      
+      // Show different success messages based on moderation result
+      if (moderationResult.isMasked) {
+        toast({
+          title: "Message Sent (Modified)",
+          description: "Your message has been sent with sensitive information masked for security.",
+        });
+      } else {
+        toast({
+          title: "Message Sent",
+          description: "Your message has been sent successfully",
+        });
+      }
 
       fetchMessages();
     } catch (error) {
@@ -186,10 +227,20 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
 
   return (
     <div className="space-y-4">
+      {/* Suspension warning */}
+      {isUserSuspended && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Your account has been suspended due to policy violations. You cannot send messages. Please contact support for assistance.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Warning for vendors */}
-      {userType === 'vendor' && (
+      {userType === 'vendor' && !isUserSuspended && (
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <Shield className="h-4 w-4" />
           <AlertDescription>
             You can only send images. No text messages or file attachments allowed. Any attempt to exchange contact information will result in account suspension.
           </AlertDescription>
@@ -197,11 +248,11 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
       )}
 
       {/* Warning for customers */}
-      {userType === 'customer' && (
+      {userType === 'customer' && !isUserSuspended && (
         <Alert>
-          <AlertTriangle className="h-4 w-4" />
+          <Shield className="h-4 w-4" />
           <AlertDescription>
-            Please do not share personal contact information such as phone numbers or email addresses in messages.
+            Messages are automatically moderated for security. Personal contact information, URLs, and external platform mentions will be blocked or masked. All transactions are protected by our Guarantee.
           </AlertDescription>
         </Alert>
       )}
@@ -233,7 +284,7 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
 
       {/* Message Input */}
       <div className="flex gap-2">
-        {userType === 'customer' && (
+        {userType === 'customer' && !isUserSuspended && (
           <Textarea
             placeholder="Type your message here..."
             value={messageText}
@@ -246,7 +297,7 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
         <div className="flex flex-col gap-2">
           <Button
             onClick={() => document.getElementById('image-upload')?.click()}
-            disabled={uploading}
+            disabled={uploading || isUserSuspended}
             variant="outline"
           >
             <Upload className="h-4 w-4 mr-2" />
@@ -260,7 +311,7 @@ const OrderMessaging = ({ orderId, userType, userId }: OrderMessagingProps) => {
             className="hidden"
           />
           
-          {userType === 'customer' && (
+          {userType === 'customer' && !isUserSuspended && (
             <Button
               onClick={handleSendMessage}
               disabled={!messageText.trim() || sending}
