@@ -26,6 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { SubscriptionService } from "@/services/subscriptionService";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import DPOPayModal from "@/components/payments/DPOPayModal";
 
 interface CustomerSubscriptionPlan {
   id: string;
@@ -53,6 +54,7 @@ const CustomerPremium = () => {
     cardholderName: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDPOPay, setShowDPOPay] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -202,8 +204,12 @@ const CustomerPremium = () => {
       }
     }
 
-    setIsProcessing(true);
+    // Show DPO payment modal for actual payment processing
+    setShowDPOPay(true);
+  };
 
+  const handleDPOPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
+    setIsProcessing(true);
     try {
       // Cancel any existing active subscription
       await supabase
@@ -222,7 +228,7 @@ const CustomerPremium = () => {
           price_kes: selectedPlan.price,
           status: 'active',
           payment_method: paymentMethod,
-          transaction_id: `TXN${Date.now()}`,
+          transaction_id: tx.transaction_id,
           auto_renew: true
         } as any)
         .select()
@@ -256,6 +262,7 @@ const CustomerPremium = () => {
       });
 
       setShowPaymentModal(false);
+      setShowDPOPay(false);
       setSelectedPlan(null);
       loadSubscriptionData(); // Refresh data
     } catch (error) {
@@ -591,6 +598,18 @@ const CustomerPremium = () => {
             </div>
           </DialogContent>
         </Dialog>
+      )}
+      
+      {showDPOPay && selectedPlan && (
+        <DPOPayModal
+          open={showDPOPay}
+          onOpenChange={setShowDPOPay}
+          userId={user.id}
+          amount={selectedPlan.price}
+          currency={'KES'}
+          description={`${selectedPlan.name} Subscription`}
+          onSuccess={handleDPOPaymentSuccess}
+        />
       )}
     </div>
   );

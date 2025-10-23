@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star, ShoppingCart, Heart, Eye, Plus, Minus, ExternalLink } from "lucide-react";
+import { Star, ShoppingCart, Heart, Eye, Plus, Minus, ExternalLink, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Product, DashboardProduct } from "@/types/product";
 import { OrderService } from "@/services/orderService";
@@ -451,11 +451,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <ShareButton
               contentType="product"
               contentId={product.id}
-              contentData={product}
-              title={product.name}
-              description={`KES ${product.price} - ${product.description || ''}`}
-              image={product.main_image}
+              contentTitle={product.name}
+              contentImage={product.main_image}
+              variant="ghost"
               size="sm"
+              showText={false}
             />
           </div>
 

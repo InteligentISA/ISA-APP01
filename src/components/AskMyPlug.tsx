@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Plus, History, Menu, Home } from "lucide-react";
+import { Send, Plus, History, Menu, Home, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -185,14 +185,12 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
       const conversation = conversations.find(c => c.id === currentConversationId);
       if (!conversation) return;
 
-      const shareUrl = await SharingService.shareConversation(currentConversationId, conversation);
-      if (shareUrl) {
-        await SharingService.copyToClipboard(shareUrl);
-        toast({
-          title: 'Conversation shared!',
-          description: 'Share link copied to clipboard'
-        });
-      }
+      const result = await SharingService.shareConversation(user.id, currentConversationId);
+      await SharingService.copyToClipboard(result.share_url);
+      toast({
+        title: 'Conversation shared!',
+        description: 'Share link copied to clipboard'
+      });
     } catch (error) {
       console.error('Error sharing conversation:', error);
       toast({
@@ -482,27 +480,15 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">Product Results</h3>
                   <div className="flex space-x-2">
-                    <ShareButton
-                      contentType="conversation"
-                      contentId={currentConversationId || 'current'}
-                      contentData={{
-                        title: messages[0]?.content?.substring(0, 50) + '...',
-                        preview: messages.map(m => m.content).join(' | ').substring(0, 200),
-                        messages: messages
-                      }}
-                      title="Share this conversation"
-                      description="Check out this conversation with MyPlug AI"
-                      size="sm"
-                    />
                     {currentConversationId && (
-                      <Button
-                        size="sm"
+                      <ShareButton
+                        contentType="conversation"
+                        contentId={currentConversationId}
+                        contentTitle={messages[0]?.content?.substring(0, 50) + '...'}
                         variant="outline"
-                        onClick={shareConversation}
-                        className="text-xs"
-                      >
-                        Share Chat
-                      </Button>
+                        size="sm"
+                        showText={true}
+                      />
                     )}
                   </div>
                 </div>
@@ -532,11 +518,11 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                             <ShareButton
                               contentType="product"
                               contentId={prod.id}
-                              contentData={prod}
-                              title={prod.name}
-                              description={`KES ${prod.price} - ${prod.description || ''}`}
-                              image={prod.main_image}
+                              contentTitle={prod.name}
+                              contentImage={prod.main_image}
+                              variant="outline"
                               size="sm"
+                              showText={false}
                             />
                           </div>
                         </div>

@@ -60,18 +60,30 @@ const VendorReviews = ({ vendorId }: VendorReviewsProps) => {
         .eq('products.vendor_id', vendorId);
 
       if (reviewsData) {
-        const vendorReviews: Review[] = reviewsData.map(review => ({
-          id: review.id,
-          product_id: review.product_id,
-          product_name: review.products?.name || 'Unknown Product',
-          customer_name: review.customer_name || 'Anonymous',
-          customer_email: review.customer_email || '',
-          rating: review.rating || 0,
-          comment: review.comment || '',
-          created_at: review.created_at,
-          helpful_count: review.helpful_count || 0,
-          is_verified: review.is_verified || false
-        }));
+        // Fetch user profiles separately to avoid RLS issues
+        const userIds = reviewsData.map(review => review.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+
+        const vendorReviews: Review[] = reviewsData.map(review => {
+          const profile = profiles?.find(p => p.id === review.user_id);
+          return {
+            id: review.id,
+            product_id: review.product_id,
+            product_name: review.products?.name || 'Unknown Product',
+            customer_name: profile?.first_name && profile?.last_name 
+              ? `${profile.first_name} ${profile.last_name}`
+              : profile?.first_name || profile?.last_name || 'Anonymous',
+            customer_email: '', // Email is not available in profiles table
+            rating: review.rating || 0,
+            comment: review.comment || '',
+            created_at: review.created_at,
+            helpful_count: review.helpful_count || 0,
+            is_verified: review.is_verified || false
+          };
+        });
 
         setReviews(vendorReviews);
 

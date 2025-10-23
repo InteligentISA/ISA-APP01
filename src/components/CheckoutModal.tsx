@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import MyPlugPayModal from '@/components/payments/MyPlugPayModal';
+import DPOPayModal from '@/components/payments/DPOPayModal';
 import { Separator } from '@/components/ui/separator';
 import { X, Check, MapPin, Gift } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -41,10 +41,25 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     email: user?.email || '',
     phone: ''
   });
-  const [showMyPlugPay, setShowMyPlugPay] = useState(false);
+  const [showDPOPay, setShowDPOPay] = useState(false);
   const [notes, setNotes] = useState('');
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'airtel_money' | 'card' | 'bank'>('mpesa');
+  const [paymentDetails, setPaymentDetails] = useState({
+    phoneNumber: '',
+    cardDetails: {
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      cardholderName: ''
+    },
+    bankDetails: {
+      accountNumber: '',
+      bankName: '',
+      accountHolderName: ''
+    }
+  });
 
   const { toast } = useToast();
 
@@ -72,6 +87,41 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
       return;
     }
 
+    // Validate payment details based on method
+    if (paymentMethod === 'mpesa' || paymentMethod === 'airtel_money') {
+      if (!paymentDetails.phoneNumber) {
+        toast({
+          title: "Phone Number Required",
+          description: "Please enter your phone number for mobile payment.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (paymentMethod === 'card') {
+      if (!paymentDetails.cardDetails.cardNumber || !paymentDetails.cardDetails.expiryDate || !paymentDetails.cardDetails.cvv || !paymentDetails.cardDetails.cardholderName) {
+        toast({
+          title: "Card Details Required",
+          description: "Please fill in all card details.",
+          variant: "destructive"
+        });
+        return;
+      }
+    } else if (paymentMethod === 'bank') {
+      if (!paymentDetails.bankDetails.accountNumber || !paymentDetails.bankDetails.bankName || !paymentDetails.bankDetails.accountHolderName) {
+        toast({
+          title: "Bank Details Required",
+          description: "Please fill in all bank details.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    // Show payment modal first - order will be created only after successful payment
+    setShowDPOPay(true);
+  };
+
+  const handlePaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
     setIsProcessing(true);
     try {
       const order = await OrderService.createOrder(user.id, {
@@ -84,18 +134,31 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes: isGift ? `${notes}${notes ? ' | ' : ''}Gift: ${giftMessage || 'No message'}` : notes,
-        payment_method: 'myplug_pay',
+        payment_method: 'dpo_pay',
         is_gift: isGift,
         gift_message: giftMessage
       });
-      setOrderNumber(order.order_number);
-      setShowMyPlugPay(true);
 
+      // Update order with payment confirmation
+      await OrderService.updateOrderStatus(order.id, {
+        order_id: order.id,
+        status: 'confirmed',
+        notes: `Payment confirmed via ${tx.provider}. Transaction ID: ${tx.transaction_id}`
+      });
+
+      setOrderNumber(order.order_number);
+      setOrderComplete(true);
+      onOrderComplete();
+      toast({ 
+        title: 'Order Placed Successfully!', 
+        description: `Your order #${OrderService.formatOrderNumber(order.order_number)} has been confirmed. Payment processed via ${tx.provider}.` 
+      });
+      setTimeout(() => { onClose(); setOrderComplete(false); }, 3000);
     } catch (error) {
-      console.error('Checkout error:', error);
+      console.error('Order creation after payment error:', error);
       toast({
-        title: "Checkout Failed",
-        description: "There was an error processing your order. Please try again.",
+        title: "Order Creation Failed",
+        description: "Payment was successful but order creation failed. Please contact support.",
         variant: "destructive"
       });
     } finally {
@@ -243,7 +306,168 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
 
           <Separator />
 
-          {/* Payment selection happens in ISA Pay modal */}
+          {/* Payment Method Selection */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Method</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={paymentMethod === 'mpesa' ? 'default' : 'outline'}
+                onClick={() => setPaymentMethod('mpesa')}
+                className="flex items-center gap-2"
+              >
+                <div className="w-4 h-4 bg-green-600 rounded"></div>
+                M-Pesa
+              </Button>
+              <Button
+                variant={paymentMethod === 'airtel_money' ? 'default' : 'outline'}
+                onClick={() => setPaymentMethod('airtel_money')}
+                className="flex items-center gap-2"
+              >
+                <div className="w-4 h-4 bg-red-600 rounded"></div>
+                Airtel Money
+              </Button>
+              <Button
+                variant={paymentMethod === 'card' ? 'default' : 'outline'}
+                onClick={() => setPaymentMethod('card')}
+                className="flex items-center gap-2"
+              >
+                <div className="w-4 h-4 bg-blue-600 rounded"></div>
+                Card Payment
+              </Button>
+              <Button
+                variant={paymentMethod === 'bank' ? 'default' : 'outline'}
+                onClick={() => setPaymentMethod('bank')}
+                className="flex items-center gap-2"
+              >
+                <div className="w-4 h-4 bg-purple-600 rounded"></div>
+                Bank Transfer
+              </Button>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              All payments are processed securely by DPO Group
+            </p>
+          </div>
+
+          {/* Payment Details Collection */}
+          {(paymentMethod === 'mpesa' || paymentMethod === 'airtel_money') && (
+            <div>
+              <Label htmlFor="phone_number">Phone Number</Label>
+              <Input
+                id="phone_number"
+                type="tel"
+                value={paymentDetails.phoneNumber}
+                onChange={(e) => setPaymentDetails(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                placeholder="254700000000"
+                className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Enter your {paymentMethod === 'mpesa' ? 'M-Pesa' : 'Airtel Money'} registered phone number.
+              </p>
+            </div>
+          )}
+
+          {paymentMethod === 'card' && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="cardholder_name">Cardholder Name</Label>
+                <Input
+                  id="cardholder_name"
+                  value={paymentDetails.cardDetails.cardholderName}
+                  onChange={(e) => setPaymentDetails(prev => ({ 
+                    ...prev, 
+                    cardDetails: { ...prev.cardDetails, cardholderName: e.target.value }
+                  }))}
+                  placeholder="John Doe"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="card_number">Card Number</Label>
+                <Input
+                  id="card_number"
+                  value={paymentDetails.cardDetails.cardNumber}
+                  onChange={(e) => setPaymentDetails(prev => ({ 
+                    ...prev, 
+                    cardDetails: { ...prev.cardDetails, cardNumber: e.target.value }
+                  }))}
+                  placeholder="1234 5678 9012 3456"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="expiry_date">Expiry Date</Label>
+                  <Input
+                    id="expiry_date"
+                    value={paymentDetails.cardDetails.expiryDate}
+                    onChange={(e) => setPaymentDetails(prev => ({ 
+                      ...prev, 
+                      cardDetails: { ...prev.cardDetails, expiryDate: e.target.value }
+                    }))}
+                    placeholder="MM/YY"
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="cvv">CVV</Label>
+                  <Input
+                    id="cvv"
+                    value={paymentDetails.cardDetails.cvv}
+                    onChange={(e) => setPaymentDetails(prev => ({ 
+                      ...prev, 
+                      cardDetails: { ...prev.cardDetails, cvv: e.target.value }
+                    }))}
+                    placeholder="123"
+                    className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {paymentMethod === 'bank' && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="bank_name">Bank Name</Label>
+                <Input
+                  id="bank_name"
+                  value={paymentDetails.bankDetails.bankName}
+                  onChange={(e) => setPaymentDetails(prev => ({ 
+                    ...prev, 
+                    bankDetails: { ...prev.bankDetails, bankName: e.target.value }
+                  }))}
+                  placeholder="Equity Bank, KCB, etc."
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="account_number">Account Number</Label>
+                <Input
+                  id="account_number"
+                  value={paymentDetails.bankDetails.accountNumber}
+                  onChange={(e) => setPaymentDetails(prev => ({ 
+                    ...prev, 
+                    bankDetails: { ...prev.bankDetails, accountNumber: e.target.value }
+                  }))}
+                  placeholder="1234567890"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+              <div>
+                <Label htmlFor="account_holder">Account Holder Name</Label>
+                <Input
+                  id="account_holder"
+                  value={paymentDetails.bankDetails.accountHolderName}
+                  onChange={(e) => setPaymentDetails(prev => ({ 
+                    ...prev, 
+                    bankDetails: { ...prev.bankDetails, accountHolderName: e.target.value }
+                  }))}
+                  placeholder="John Doe"
+                  className="bg-white dark:bg-slate-700 border-gray-300 dark:border-slate-600"
+                />
+              </div>
+            </div>
+          )}
 
           <Separator />
 
@@ -334,21 +558,22 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </Button>
         </CardContent>
       </Card>
-      {showMyPlugPay && (
-        <MyPlugPayModal
-          open={showMyPlugPay}
-          onOpenChange={setShowMyPlugPay}
+      {showDPOPay && (
+        <DPOPayModal
+          open={showDPOPay}
+          onOpenChange={setShowDPOPay}
           userId={user.id}
           amount={totalAmount}
           currency={'KES'}
           orderId={orderNumber}
-          description={`MyPlug Order #${OrderService.formatOrderNumber(orderNumber)}`}
-          onSuccess={() => {
-            setOrderComplete(true);
-            onOrderComplete();
-            toast({ title: 'Order Placed Successfully!', description: `Your order #${OrderService.formatOrderNumber(orderNumber)} has been confirmed.` });
-            setTimeout(() => { onClose(); setOrderComplete(false); }, 3000);
+          description={`ISA Order #${OrderService.formatOrderNumber(orderNumber)}`}
+          paymentMethod={paymentMethod === 'airtel_money' ? 'airtel' : paymentMethod}
+          paymentDetails={{
+            phoneNumber: paymentDetails.phoneNumber,
+            cardDetails: paymentMethod === 'card' ? paymentDetails.cardDetails : undefined,
+            bankDetails: paymentMethod === 'bank' ? paymentDetails.bankDetails : undefined
           }}
+          onSuccess={handlePaymentSuccess}
         />
       )}
     </div>

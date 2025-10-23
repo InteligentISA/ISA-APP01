@@ -4,11 +4,12 @@ import LogoPreloader from '@/components/LogoPreloader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Smartphone } from 'lucide-react';
-import { SharingService, SharedContent } from '@/services/sharingService';
+import { ArrowLeft, ExternalLink, Smartphone, Share2, Package, Heart, ShoppingCart, MessageSquare } from 'lucide-react';
+import { SharingService } from '@/services/sharingService';
 import { ConversationService } from '@/services/conversationService';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { SharedContent } from '@/types/sharing';
 
 export default function SharedContentPage() {
   const { shareCode } = useParams<{ shareCode: string }>();
@@ -42,17 +43,23 @@ export default function SharedContentPage() {
       // Load actual content data based on type
       switch (content.content_type) {
         case 'product':
-          // Load product details
-          setContentData(content.metadata.product);
+          // Product data is already in metadata
+          setContentData(content.metadata);
           break;
         case 'wishlist':
         case 'cart':
-          setContentData(content.metadata.items);
+          // Items data is already in metadata
+          setContentData(content.metadata);
           break;
         case 'conversation':
           // Load conversation messages
-          const messages = await ConversationService.getConversationMessages(content.content_id);
-          setContentData({ ...content.metadata.conversation, messages });
+          try {
+            const messages = await ConversationService.getConversationMessages(content.content_id);
+            setContentData({ ...content.metadata, messages });
+          } catch (error) {
+            console.error('Error loading conversation messages:', error);
+            setContentData(content.metadata);
+          }
           break;
       }
     } catch (error) {
@@ -66,25 +73,45 @@ export default function SharedContentPage() {
   const handleLoginRedirect = () => {
     // Store the current URL to redirect back after login
     localStorage.setItem('redirectAfterLogin', window.location.href);
-    navigate('/auth');
+    navigate('/');
   };
 
   const handleViewInApp = () => {
-    // Redirect to app or show app download prompt
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    if (isMobile) {
-      // Try to open in app, fallback to web
-      window.location.href = `myplug://shared/${shareCode}`;
-      setTimeout(() => {
-        window.location.href = window.location.href;
-      }, 1000);
-    } else {
-      toast({
-        title: 'Download MyPlug App',
-        description: 'Get the MyPlug app for the best experience!',
-      });
+    if (!sharedContent) return;
+
+    // Navigate based on content type
+    switch (sharedContent.content_type) {
+      case 'product':
+        navigate(`/product/${sharedContent.content_id}`);
+        break;
+      case 'conversation':
+        navigate(`/askmyplug?conversation=${sharedContent.content_id}`);
+        break;
+      case 'wishlist':
+        navigate('/?tab=wishlist');
+        break;
+      case 'cart':
+        navigate('/?tab=cart');
+        break;
+      default:
+        navigate('/');
     }
+  };
+
+  const handleShare = () => {
+    // Copy current URL to clipboard
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast({
+        title: 'Link Copied!',
+        description: 'Share link copied to clipboard.',
+      });
+    }).catch(() => {
+      toast({
+        title: 'Copy Failed',
+        description: 'Failed to copy link to clipboard.',
+        variant: 'destructive'
+      });
+    });
   };
 
   if (loading) {
@@ -139,6 +166,14 @@ export default function SharedContentPage() {
           </div>
           
           <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Share
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -204,7 +239,10 @@ function ProductContentView({ product }: { product: any }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          {product.name}
+          <div className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-orange-600" />
+            {product.product_name}
+          </div>
           <Badge variant="secondary">Product</Badge>
         </CardTitle>
       </CardHeader>
@@ -212,25 +250,30 @@ function ProductContentView({ product }: { product: any }) {
         <div className="grid md:grid-cols-2 gap-6">
           <div>
             <img
-              src={product.image_url}
-              alt={product.name}
+              src={product.product_image}
+              alt={product.product_name}
               className="w-full h-64 object-cover rounded-lg"
             />
           </div>
           <div className="space-y-4">
             <div>
               <h3 className="text-2xl font-bold text-orange-600">
-                KES {product.price?.toLocaleString()}
+                KES {product.product_price?.toLocaleString()}
               </h3>
+              <p className="text-sm text-gray-500">{product.product_category}</p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-2">Description</h4>
-              <p className="text-gray-600">{product.description}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-2">Vendor</h4>
-              <p className="text-gray-600">{product.vendor_name}</p>
-            </div>
+            {product.product_description && (
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="text-gray-600">{product.product_description}</p>
+              </div>
+            )}
+            {product.vendor_name && (
+              <div>
+                <h4 className="font-semibold mb-2">Vendor</h4>
+                <p className="text-gray-600">{product.vendor_name}</p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -238,18 +281,22 @@ function ProductContentView({ product }: { product: any }) {
   );
 }
 
-function WishlistContentView({ items }: { items: any[] }) {
+function WishlistContentView({ items }: { items: any }) {
+  const itemList = items.items || [];
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Wishlist ({items.length} items)
+          <div className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-red-600" />
+            Wishlist ({items.items_count || itemList.length} items)
+          </div>
           <Badge variant="secondary">Wishlist</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item, index) => (
+          {itemList.slice(0, 6).map((item: any, index: number) => (
             <Card key={index} className="overflow-hidden">
               <img
                 src={item.image_url}
@@ -261,27 +308,39 @@ function WishlistContentView({ items }: { items: any[] }) {
                 <p className="text-orange-600 font-bold">
                   KES {item.price?.toLocaleString()}
                 </p>
+                {item.vendor_name && (
+                  <p className="text-sm text-gray-500">{item.vendor_name}</p>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
+        {itemList.length > 6 && (
+          <p className="text-center text-gray-500 mt-4">
+            And {itemList.length - 6} more items...
+          </p>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-function CartContentView({ items }: { items: any[] }) {
+function CartContentView({ items }: { items: any }) {
+  const itemList = items.items || [];
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Cart ({items.length} items)
+          <div className="flex items-center gap-2">
+            <ShoppingCart className="h-5 w-5 text-green-600" />
+            Cart ({items.items_count || itemList.length} items)
+          </div>
           <Badge variant="secondary">Cart</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {items.map((item, index) => (
+          {itemList.map((item: any, index: number) => (
             <div key={index} className="flex items-center space-x-4 p-4 border rounded-lg">
               <img
                 src={item.image_url}
@@ -291,6 +350,9 @@ function CartContentView({ items }: { items: any[] }) {
               <div className="flex-1">
                 <h3 className="font-semibold">{item.name}</h3>
                 <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                {item.vendor_name && (
+                  <p className="text-sm text-gray-500">{item.vendor_name}</p>
+                )}
               </div>
               <div className="text-right">
                 <p className="font-bold text-orange-600">
@@ -300,6 +362,16 @@ function CartContentView({ items }: { items: any[] }) {
             </div>
           ))}
         </div>
+        {items.total_amount && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-semibold">Total:</span>
+              <span className="text-xl font-bold text-orange-600">
+                KES {items.total_amount.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -310,16 +382,53 @@ function ConversationContentView({ conversation }: { conversation: any }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          {conversation.title}
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-blue-600" />
+            {conversation.conversation_title}
+          </div>
           <Badge variant="secondary">Conversation</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <p className="text-gray-600">{conversation.preview}</p>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-semibold mb-2">Continue this conversation</h4>
-            <p className="text-sm text-gray-600">
+          <p className="text-gray-600">{conversation.conversation_preview}</p>
+          
+          {conversation.messages && conversation.messages.length > 0 && (
+            <div className="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+              <h4 className="font-semibold mb-2">Conversation Preview</h4>
+              <div className="space-y-3">
+                {conversation.messages.slice(0, 3).map((message: any, index: number) => (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg ${
+                      message.role === 'user'
+                        ? 'bg-orange-100 ml-8'
+                        : 'bg-gray-100 mr-8'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      {message.role === 'myplug' && (
+                        <img src="/MyPlug.png" alt="MyPlug" className="h-4 w-4" />
+                      )}
+                      <span className="text-xs font-medium text-gray-600">
+                        {message.role === 'user' ? 'You' : 'MyPlug'}
+                      </span>
+                    </div>
+                    <p className="text-sm">{message.content}</p>
+                  </div>
+                ))}
+                {conversation.messages.length > 3 && (
+                  <p className="text-center text-gray-500 text-sm">
+                    And {conversation.messages.length - 3} more messages...
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <div className="bg-orange-50 p-4 rounded-lg">
+            <h4 className="font-semibold mb-2 text-orange-900">Continue this conversation</h4>
+            <p className="text-sm text-orange-700">
               Sign in to MyPlug to continue this conversation with our AI assistant.
             </p>
           </div>

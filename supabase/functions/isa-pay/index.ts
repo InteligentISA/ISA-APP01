@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { routeRequest } from "./utils.ts";
+import { initiateDPOPayment, verifyDPOPayment } from "./providers/dpo.ts";
 import { initiateCardPayment, verifyCardPayment } from "./providers/dpo.ts";
 import { initiateMpesaPayment, verifyMpesaPayment } from "./providers/mpesa.ts";
 import { initiateAirtelPayment, verifyAirtelPayment } from "./providers/airtel.ts";
@@ -22,13 +23,12 @@ async function handleInitiate(req: Request): Promise<Response> {
   if (!payload || !payload.user_id || !payload.amount || !payload.currency || !payload.method) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
-  const provider: ProviderName = payload.method === 'card_bank' ? 'DPO' : (payload.method === 'mpesa' ? 'M-Pesa' : (payload.method === 'airtel' ? 'Airtel' : 'PayPal'));
-
+  // All payments now go through DPO
+  const provider: ProviderName = 'DPO';
   let result: MyPlugPayResponse;
-  if (provider === 'DPO') result = await initiateCardPayment(payload);
-  else if (provider === 'M-Pesa') result = await initiateMpesaPayment(payload);
-  else if (provider === 'Airtel') result = await initiateAirtelPayment(payload);
-  else result = await initiatePaypalPayment(payload);
+  
+  // Use DPO for all payment methods
+  result = await initiateDPOPayment(payload);
 
   const { error } = await supabase.from('transactions').insert({
     id: result.transaction_id,
@@ -60,14 +60,14 @@ async function handleStatus(_req: Request, transactionId: string): Promise<Respo
 }
 
 async function handleWebhook(req: Request): Promise<Response> {
-  const providerHeader = req.headers.get('x-myplug-provider');
+  const providerHeader = req.headers.get('x-dpo-provider') || req.headers.get('x-myplug-provider');
   const provider = (providerHeader as ProviderName) || 'DPO';
   const body = await req.json();
   let verified: { status: 'success' | 'failed' | 'pending'; reference_id?: string; transaction_id?: string } | null = null;
-  if (provider === 'DPO') verified = await verifyCardPayment(req, body);
-  else if (provider === 'M-Pesa') verified = await verifyMpesaPayment(req, body);
-  else if (provider === 'Airtel') verified = await verifyAirtelPayment(req, body);
-  else verified = await verifyPaypalPayment(req, body);
+  
+  // All payments now go through DPO
+  verified = await verifyDPOPayment(req, body);
+  
   if (!verified) return Response.json({ error: 'Invalid signature' }, { status: 401 });
   const txId = verified.transaction_id ?? body.transaction_id;
   if (!txId) return Response.json({ error: 'Missing transaction id' }, { status: 400 });

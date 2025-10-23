@@ -41,7 +41,7 @@ const VendorReviews = ({ vendorId }: VendorReviewsProps) => {
 
   const fetchReviews = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: reviewsData, error } = await supabase
         .from('product_reviews')
         .select(`
           *,
@@ -50,10 +50,6 @@ const VendorReviews = ({ vendorId }: VendorReviewsProps) => {
             name,
             main_image,
             vendor_id
-          ),
-          profiles (
-            first_name,
-            last_name
           )
         `)
         .eq('products.vendor_id', vendorId)
@@ -64,20 +60,30 @@ const VendorReviews = ({ vendorId }: VendorReviewsProps) => {
         return;
       }
 
+      // Fetch user profiles separately to avoid RLS issues
+      const userIds = reviewsData?.map(review => review.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
       // Transform the data to match Review interface
-      const transformedReviews = (data || []).map(review => ({
-        id: review.id,
-        rating: review.rating,
-        title: review.title,
-        comment: review.comment,
-        created_at: review.created_at,
-        product: {
-          id: review.products.id,
-          name: review.products.name,
-          main_image: review.products.main_image
-        },
-        profiles: review.profiles
-      }));
+      const transformedReviews = (reviewsData || []).map(review => {
+        const profile = profiles?.find(p => p.id === review.user_id);
+        return {
+          id: review.id,
+          rating: review.rating,
+          title: review.title,
+          comment: review.comment,
+          created_at: review.created_at,
+          product: {
+            id: review.products.id,
+            name: review.products.name,
+            main_image: review.products.main_image
+          },
+          profiles: profile
+        };
+      });
 
       setReviews(transformedReviews);
       calculateStats(transformedReviews);

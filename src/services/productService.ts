@@ -454,11 +454,35 @@ export class ProductService {
         comment, 
         created_at, 
         user_id,
-        profiles!user_id(first_name, last_name)
+        is_verified_purchase
       `)
       .eq('product_id', productId)
       .order('created_at', { ascending: false });
-    return { data, error };
+    
+    if (error) {
+      console.error('Error fetching reviews:', error);
+      return { data: [], error };
+    }
+
+    // Fetch user profiles separately to avoid RLS issues
+    const userIds = data?.map(review => review.user_id) || [];
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .in('id', userIds);
+
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+    }
+
+    // Combine reviews with profile data
+    const reviewsWithProfiles = data?.map(review => ({
+      ...review,
+      profiles: profiles?.find(profile => profile.id === review.user_id) || null
+    })) || [];
+    
+    
+    return { data: reviewsWithProfiles, error: null };
   }
 
   // Get single product by ID

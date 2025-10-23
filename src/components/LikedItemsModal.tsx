@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, Heart, ShoppingCart, ExternalLink, Store, Globe } from "lucide-react";
+import { X, Heart, ShoppingCart, ExternalLink, Store, Globe, Share2 } from "lucide-react";
 import { JumiaInteractionService } from "@/services/jumiaInteractionService";
+import ShareButton from "./ShareButton";
 
 interface LikedItemsModalProps {
   isOpen: boolean;
@@ -77,10 +78,22 @@ const LikedItemsModal = ({
           >
             <X className="w-4 h-4" />
           </Button>
-          <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-            <Heart className="w-6 h-6 mr-2 text-red-500" />
-            Liked Items ({totalLikedItems})
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+              <Heart className="w-6 h-6 mr-2 text-red-500" />
+              Liked Items ({totalLikedItems})
+            </CardTitle>
+            {totalLikedItems > 0 && (
+              <ShareButton
+                contentType="wishlist"
+                contentId={userId || ''}
+                contentTitle={`My Wishlist (${totalLikedItems} items)`}
+                variant="outline"
+                size="sm"
+                showText={false}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6 p-6">
           {totalLikedItems === 0 ? (

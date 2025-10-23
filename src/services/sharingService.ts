@@ -1,51 +1,54 @@
 import { supabase } from '@/integrations/supabase/client';
-
-export interface SharedContent {
-  id: string;
-  user_id: string;
-  content_type: 'product' | 'wishlist' | 'cart' | 'conversation';
-  content_id: string;
-  share_code: string;
-  metadata: any;
-  view_count: number;
-  created_at: string;
-  expires_at?: string;
-}
+import { SharedContent, ShareResult, ProductShareMetadata, WishlistShareMetadata, CartShareMetadata, ConversationShareMetadata } from '@/types/sharing';
 
 export class SharingService {
-  static async createShareLink(
+  static async createShare(
+    userId: string,
     contentType: 'product' | 'wishlist' | 'cart' | 'conversation',
     contentId: string,
     metadata: any = {},
-    expiresInDays?: number
-  ): Promise<string | null> {
+    expiresInHours?: number
+  ): Promise<ShareResult> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const expiresAt = expiresInDays 
-        ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000).toISOString()
+      const expiresAt = expiresInHours 
+        ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()
         : null;
+
+      console.log('Creating share with data:', {
+        user_id: userId,
+        content_type: contentType,
+        content_id: contentId,
+        metadata,
+        expires_at: expiresAt
+      });
 
       const { data, error } = await supabase
         .from('shared_content')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           content_type: contentType,
           content_id: contentId,
           metadata,
           expires_at: expiresAt
         })
-        .select()
+        .select('share_code, expires_at')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
 
       const shareUrl = `${window.location.origin}/shared/${data.share_code}`;
-      return shareUrl;
+      
+      return {
+        share_code: data.share_code,
+        share_url: shareUrl,
+        expires_at: data.expires_at
+      };
     } catch (error) {
-      console.error('Error creating share link:', error);
-      return null;
+      console.error('Error creating share:', error);
+      throw error;
     }
   }
 
@@ -57,9 +60,14 @@ export class SharingService {
         .eq('share_code', shareCode)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null; // Not found
+        }
+        throw error;
+      }
 
-      // Check if content has expired
+      // Check if expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
         return null;
       }
@@ -72,105 +80,259 @@ export class SharingService {
 
       return data;
     } catch (error) {
-      console.error('Error fetching shared content:', error);
-      return null;
+      console.error('Error getting shared content:', error);
+      throw error;
     }
   }
 
-  static async getUserSharedContent(): Promise<SharedContent[]> {
+  static async getUserShares(userId: string): Promise<SharedContent[]> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
       const { data, error } = await supabase
         .from('shared_content')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching user shared content:', error);
-      return [];
+      console.error('Error getting user shares:', error);
+      throw error;
     }
   }
 
-  static async deleteSharedContent(shareId: string): Promise<boolean> {
+  static async deleteShare(shareId: string, userId: string): Promise<void> {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
       const { error } = await supabase
         .from('shared_content')
         .delete()
         .eq('id', shareId)
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (error) throw error;
-      return true;
     } catch (error) {
-      console.error('Error deleting shared content:', error);
-      return false;
+      console.error('Error deleting share:', error);
+      throw error;
     }
   }
 
-  static async shareProduct(productId: string, productData: any): Promise<string | null> {
-    return this.createShareLink('product', productId, {
-      product: productData,
-      title: productData.name,
-      description: productData.description,
-      image: productData.image_url
-    });
+  static async shareProduct(userId: string, productId: string): Promise<ShareResult> {
+    try {
+      // Get product details for metadata - try with basic fields first
+      let product = null;
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('name, price, main_image, category, description')
+          .eq('id', productId)
+          .single();
+        
+        if (error) {
+          console.warn('Error fetching product details:', error);
+        } else {
+          product = data;
+        }
+      } catch (fetchError) {
+        console.warn('Failed to fetch product details:', fetchError);
+      }
+
+      // Try to get vendor name separately if the above worked
+      let vendorName = null;
+      if (product) {
+        try {
+          const { data: vendorData } = await supabase
+            .from('products')
+            .select('vendor_name')
+            .eq('id', productId)
+            .single();
+          vendorName = vendorData?.vendor_name;
+        } catch (vendorError) {
+          console.warn('Failed to fetch vendor name:', vendorError);
+        }
+      }
+
+      const metadata: ProductShareMetadata = {
+        product_name: product?.name || 'Unknown Product',
+        product_price: product?.price || 0,
+        product_image: product?.main_image || '/placeholder.svg',
+        product_category: product?.category || 'General',
+        product_description: product?.description,
+        vendor_name: vendorName
+      };
+
+      return await this.createShare(userId, 'product', productId, metadata);
+    } catch (error) {
+      console.error('Error sharing product:', error);
+      throw error;
+    }
   }
 
-  static async shareWishlist(wishlistItems: any[]): Promise<string | null> {
-    return this.createShareLink('wishlist', 'wishlist', {
-      items: wishlistItems,
-      title: 'My Wishlist',
-      description: `${wishlistItems.length} items in my wishlist`
-    });
+  static async shareConversation(userId: string, conversationId: string): Promise<ShareResult> {
+    try {
+      // Get conversation details for metadata
+      const { data: conversation } = await supabase
+        .from('chat_conversations')
+        .select('title, preview, created_at')
+        .eq('id', conversationId)
+        .single();
+
+      // Get message count
+      const { count: messageCount } = await supabase
+        .from('chat_messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId);
+
+      const metadata: ConversationShareMetadata = {
+        conversation_title: conversation?.title || 'Shared Conversation',
+        conversation_preview: conversation?.preview || 'Check out this conversation',
+        message_count: messageCount || 0,
+        last_message_at: conversation?.created_at || new Date().toISOString()
+      };
+
+      return await this.createShare(userId, 'conversation', conversationId, metadata);
+    } catch (error) {
+      console.error('Error sharing conversation:', error);
+      throw error;
+    }
   }
 
-  static async shareCart(cartItems: any[]): Promise<string | null> {
-    return this.createShareLink('cart', 'cart', {
-      items: cartItems,
-      title: 'My Cart',
-      description: `${cartItems.length} items in my cart`
-    });
+  static async shareWishlist(userId: string): Promise<ShareResult> {
+    try {
+      // Get wishlist items for metadata - try different table names
+      let wishlistItems = [];
+      try {
+        const { data, error } = await supabase
+          .from('user_likes')
+          .select(`
+            id,
+            product:products(
+              id,
+              name,
+              price,
+              main_image
+            )
+          `)
+          .eq('user_id', userId);
+
+        if (error) {
+          console.warn('Error fetching wishlist from user_likes:', error);
+        } else {
+          wishlistItems = data || [];
+        }
+      } catch (error) {
+        console.warn('Failed to fetch wishlist items:', error);
+      }
+
+      const items = wishlistItems?.map(item => ({
+        id: item.product?.id || item.id,
+        name: item.product?.name || 'Unknown Product',
+        price: item.product?.price || 0,
+        image_url: item.product?.main_image || '/placeholder.svg',
+        vendor_name: null // Will be null for now
+      })) || [];
+
+      const metadata: WishlistShareMetadata = {
+        items_count: items.length,
+        items
+      };
+
+      return await this.createShare(userId, 'wishlist', userId, metadata);
+    } catch (error) {
+      console.error('Error sharing wishlist:', error);
+      throw error;
+    }
   }
 
-  static async shareConversation(conversationId: string, conversationData: any): Promise<string | null> {
-    return this.createShareLink('conversation', conversationId, {
-      conversation: conversationData,
-      title: conversationData.title,
-      description: conversationData.preview
-    });
-  }
+  static async shareCart(userId: string): Promise<ShareResult> {
+    try {
+      // Get cart items for metadata
+      let cartItems = [];
+      try {
+        const { data, error } = await supabase
+          .from('cart_items')
+          .select(`
+            id,
+            quantity,
+            product:products(
+              id,
+              name,
+              price,
+              main_image
+            )
+          `)
+          .eq('user_id', userId);
 
-  static async shareToSocial(shareUrl: string, title: string, description: string, image?: string) {
-    const text = `${title} - ${description}`;
-    const encodedUrl = encodeURIComponent(shareUrl);
-    const encodedText = encodeURIComponent(text);
-    
-    const socialLinks = {
-      twitter: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
-      whatsapp: `https://wa.me/?text=${encodedText}%20${encodedUrl}`,
-      telegram: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
-    };
+        if (error) {
+          console.warn('Error fetching cart items:', error);
+        } else {
+          cartItems = data || [];
+        }
+      } catch (error) {
+        console.warn('Failed to fetch cart items:', error);
+      }
 
-    return socialLinks;
+      const items = cartItems?.map(item => ({
+        id: item.product?.id || item.id,
+        name: item.product?.name || 'Unknown Product',
+        price: item.product?.price || 0,
+        quantity: item.quantity || 1,
+        image_url: item.product?.main_image || '/placeholder.svg',
+        vendor_name: null // Will be null for now
+      })) || [];
+
+      const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      const metadata: CartShareMetadata = {
+        items_count: items.length,
+        items,
+        total_amount: totalAmount
+      };
+
+      return await this.createShare(userId, 'cart', userId, metadata);
+    } catch (error) {
+      console.error('Error sharing cart:', error);
+      throw error;
+    }
   }
 
   static async copyToClipboard(text: string): Promise<boolean> {
     try {
+      if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
       return true;
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const result = document.execCommand('copy');
+        textArea.remove();
+        return result;
+      }
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       return false;
+    }
+  }
+
+  static generateSocialShareUrl(platform: 'facebook' | 'twitter' | 'whatsapp', url: string, title?: string): string {
+    const encodedUrl = encodeURIComponent(url);
+    const encodedTitle = encodeURIComponent(title || 'Check this out on MyPlug');
+    
+    switch (platform) {
+      case 'facebook':
+        return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+      case 'twitter':
+        return `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+      case 'whatsapp':
+        return `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+      default:
+        return url;
     }
   }
 }

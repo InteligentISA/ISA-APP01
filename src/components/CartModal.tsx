@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, Trash2, ShoppingCart, Heart, Eye } from "lucide-react";
+import { X, Trash2, ShoppingCart, Heart, Eye, Share2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { OrderService } from "@/services/orderService";
 import { CartItemWithProduct } from "@/types/order";
 import EnhancedCheckoutModal from "./EnhancedCheckoutModal";
 import { soundService } from "@/services/soundService";
 import ProductImageLoader from "@/components/ProductImage";
+import ShareButton from "./ShareButton";
 
 interface CartModalProps {
   isOpen: boolean;
@@ -126,10 +127,22 @@ const CartModal = ({ isOpen, onClose, user, onRemoveFromCart, onUpdateQuantity }
             >
               <X className="w-4 h-4" />
             </Button>
-            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-              <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-              Shopping Cart ({cartItems.length})
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
+                Shopping Cart ({cartItems.length})
+              </CardTitle>
+              {cartItems.length > 0 && (
+                <ShareButton
+                  contentType="cart"
+                  contentId={user?.id || ''}
+                  contentTitle={`My Cart (${cartItems.length} items)`}
+                  variant="outline"
+                  size="sm"
+                  showText={false}
+                />
+              )}
+            </div>
           </CardHeader>
           
           <CardContent className="p-3 sm:p-6">

@@ -10,6 +10,7 @@ import { Check, Crown, Zap, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import DPOPayModal from "@/components/payments/DPOPayModal";
 import { CommissionService } from "@/services/commissionService";
 import { LoyaltyService } from "@/services/loyaltyService";
 
@@ -37,6 +38,7 @@ const VendorSubscription = () => {
     cardholderName: ''
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showDPOPay, setShowDPOPay] = useState(false);
   const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -183,11 +185,15 @@ const VendorSubscription = () => {
       }
     }
 
-    setIsProcessing(true);
+    // Show DPO payment modal for actual payment processing
+    setShowDPOPay(true);
+  };
 
+  const handleDPOPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
+    setIsProcessing(true);
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const plan = subscriptionPlans.find(p => p.id === selectedPlan);
+      if (!plan) return;
 
       // Cancel any existing active subscription
       await supabase
@@ -206,7 +212,7 @@ const VendorSubscription = () => {
           price_kes: plan.price_kes,
           status: 'active',
           payment_method: paymentMethod,
-          transaction_id: `TXN${Date.now()}`,
+          transaction_id: tx.transaction_id,
           auto_renew: plan.billing_cycle !== 'one-time'
         } as any)
         .select()
@@ -234,6 +240,7 @@ const VendorSubscription = () => {
       });
 
       setShowUpgradeDialog(false);
+      setShowDPOPay(false);
       loadSubscriptionData();
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -490,6 +497,18 @@ const VendorSubscription = () => {
           </DialogContent>
         </Dialog>
       </div>
+      
+      {showDPOPay && selectedPlan && (
+        <DPOPayModal
+          open={showDPOPay}
+          onOpenChange={setShowDPOPay}
+          userId={user.id}
+          amount={subscriptionPlans.find(p => p.id === selectedPlan)?.price_kes || 0}
+          currency={'KES'}
+          description={`${subscriptionPlans.find(p => p.id === selectedPlan)?.name} Subscription`}
+          onSuccess={handleDPOPaymentSuccess}
+        />
+      )}
     </div>
   );
 };
