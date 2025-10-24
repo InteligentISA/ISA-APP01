@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Share2, Copy, Check, Facebook, Twitter, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SharingService } from '@/services/sharingService';
+import { MetaTagsService } from '@/services/metaTagsService';
 import { useAuth } from '@/hooks/useAuth';
 import { ShareButtonProps } from '@/types/sharing';
 
@@ -107,7 +108,8 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   };
 
   const handleSocialShare = (platform: 'facebook' | 'twitter' | 'whatsapp') => {
-    const url = SharingService.generateSocialShareUrl(platform, shareUrl, contentTitle);
+    const urlWithUTM = MetaTagsService.addUTMParameters(shareUrl, 'share', platform);
+    const url = SharingService.generateSocialShareUrl(platform, urlWithUTM, contentTitle);
     window.open(url, '_blank', 'width=600,height=400');
   };
 

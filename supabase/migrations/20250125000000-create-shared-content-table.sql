@@ -36,7 +36,7 @@ CREATE POLICY "Users can delete their own shared content" ON shared_content
 CREATE POLICY "Public can view shared content by share_code" ON shared_content
   FOR SELECT USING (true);
 
--- Function to generate unique share codes
+-- Function to generate unique share codes (URL-safe base64 without padding)
 CREATE OR REPLACE FUNCTION generate_share_code()
 RETURNS TEXT AS $$
 DECLARE
@@ -44,7 +44,8 @@ DECLARE
   code_exists BOOLEAN;
 BEGIN
   LOOP
-    new_code := replace(replace(encode(gen_random_bytes(16), 'base64'), '+', '-'), '/', '_');
+    -- Generate base64 and make it URL-safe by removing padding and replacing special chars
+    new_code := replace(replace(replace(encode(gen_random_bytes(16), 'base64'), '+', '-'), '/', '_'), '=', '');
     SELECT EXISTS(SELECT 1 FROM shared_content WHERE share_code = new_code) INTO code_exists;
     EXIT WHEN NOT code_exists;
   END LOOP;

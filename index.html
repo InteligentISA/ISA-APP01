@@ -8,14 +8,60 @@
     <meta name="author" content="Lovable" />
     <link rel="icon" type="image/png" href="/lovable-uploads/app-icon.png" />
 
+    <!-- Default meta tags for MyPlug -->
     <meta property="og:title" content="MyPlug - AI Shopping Assistant" />
     <meta property="og:description" content="MyPlug - Your AI-powered shopping assistant for discovering amazing products and deals" />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta property="og:image" content="/myplug-logo.png" />
+    <meta property="og:url" content="" />
+    <meta property="og:site_name" content="MyPlug" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="MyPlug - AI Shopping Assistant" />
+    <meta name="twitter:description" content="MyPlug - Your AI-powered shopping assistant for discovering amazing products and deals" />
+    <meta name="twitter:image" content="/myplug-logo.png" />
+    <meta name="twitter:site" content="@myplug" />
+    <meta name="twitter:creator" content="@myplug" />
+
+    <!-- Dynamic meta tags will be updated by JavaScript -->
+    <script>
+      // Function to update meta tags dynamically
+      function updateMetaTags(config) {
+        if (!config) return;
+        
+        // Update title
+        if (config.title) {
+          document.title = config.title;
+        }
+        
+        // Update description
+        const descMeta = document.querySelector('meta[name="description"]');
+        if (descMeta && config.description) {
+          descMeta.setAttribute('content', config.description);
+        }
+        
+        // Update Open Graph tags
+        const ogTags = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type'];
+        ogTags.forEach(tag => {
+          const meta = document.querySelector(`meta[property="${tag}"]`);
+          if (meta && config[tag.replace('og:', '')]) {
+            meta.setAttribute('content', config[tag.replace('og:', '')]);
+          }
+        });
+        
+        // Update Twitter Card tags
+        const twitterTags = ['twitter:title', 'twitter:description', 'twitter:image', 'twitter:url'];
+        twitterTags.forEach(tag => {
+          const meta = document.querySelector(`meta[name="${tag}"]`);
+          if (meta && config[tag.replace('twitter:', '')]) {
+            meta.setAttribute('content', config[tag.replace('twitter:', '')]);
+          }
+        });
+      }
+      
+      // Make function globally available
+      window.updateMetaTags = updateMetaTags;
+    </script>
   </head>
 
   <body>

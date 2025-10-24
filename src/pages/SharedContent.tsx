@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Smartphone, Share2, Package, Heart, ShoppingCart, MessageSquare } from 'lucide-react';
 import { SharingService } from '@/services/sharingService';
 import { ConversationService } from '@/services/conversationService';
+import { MetaTagsService } from '@/services/metaTagsService';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { SharedContent } from '@/types/sharing';
+import SharePreview from '@/components/SharePreview';
 
 export default function SharedContentPage() {
   const { shareCode } = useParams<{ shareCode: string }>();
@@ -62,11 +64,50 @@ export default function SharedContentPage() {
           }
           break;
       }
+
+      // Set meta tags for social media sharing
+      setMetaTags(content);
     } catch (error) {
       console.error('Error loading shared content:', error);
       setError('Failed to load shared content');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setMetaTags = (content: SharedContent) => {
+    const shareUrl = window.location.href;
+    
+    // Ensure image URLs are absolute for social media platforms
+    const makeImageUrlAbsolute = (imageUrl: string) => {
+      if (!imageUrl) return '/myplug-logo.png';
+      if (imageUrl.startsWith('http')) return imageUrl;
+      return `${window.location.origin}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+    };
+    
+    let metaConfig;
+    
+    switch (content.content_type) {
+      case 'product':
+        metaConfig = MetaTagsService.generateProductMetaTags(content.metadata, shareUrl);
+        metaConfig.image = makeImageUrlAbsolute(metaConfig.image);
+        MetaTagsService.setMetaTags(metaConfig);
+        break;
+      case 'cart':
+        metaConfig = MetaTagsService.generateCartMetaTags(content.metadata.items || [], shareUrl);
+        metaConfig.image = makeImageUrlAbsolute(metaConfig.image);
+        MetaTagsService.setMetaTags(metaConfig);
+        break;
+      case 'wishlist':
+        metaConfig = MetaTagsService.generateWishlistMetaTags(content.metadata.items || [], shareUrl);
+        metaConfig.image = makeImageUrlAbsolute(metaConfig.image);
+        MetaTagsService.setMetaTags(metaConfig);
+        break;
+      case 'conversation':
+        metaConfig = MetaTagsService.generateConversationMetaTags(content.metadata, shareUrl);
+        metaConfig.image = makeImageUrlAbsolute(metaConfig.image);
+        MetaTagsService.setMetaTags(metaConfig);
+        break;
     }
   };
 
@@ -194,41 +235,57 @@ export default function SharedContentPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {!user && (
-          <Card className="mb-6 border-orange-200 bg-orange-50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-orange-900">Want to interact with this content?</h3>
-                  <p className="text-sm text-orange-700">Sign in to MyPlug to add items to your cart or wishlist</p>
+        {/* Content */}
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          {!user && (
+            <Card className="mb-6 border-orange-200 bg-orange-50">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-orange-900">Want to interact with this content?</h3>
+                    <p className="text-sm text-orange-700">Sign in to MyPlug to add items to your cart or wishlist</p>
+                  </div>
+                  <Button onClick={handleLoginRedirect} className="bg-orange-600 hover:bg-orange-700">
+                    Sign In
+                  </Button>
                 </div>
-                <Button onClick={handleLoginRedirect} className="bg-orange-600 hover:bg-orange-700">
-                  Sign In
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Render content based on type */}
-        {sharedContent?.content_type === 'product' && contentData && (
-          <ProductContentView product={contentData} />
-        )}
-        
-        {sharedContent?.content_type === 'wishlist' && contentData && (
-          <WishlistContentView items={contentData} />
-        )}
-        
-        {sharedContent?.content_type === 'cart' && contentData && (
-          <CartContentView items={contentData} />
-        )}
-        
-        {sharedContent?.content_type === 'conversation' && contentData && (
-          <ConversationContentView conversation={contentData} />
-        )}
-      </div>
+          {/* Social Media Preview */}
+          {sharedContent && contentData && (
+            <div className="mb-8">
+              <div className="text-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">How this looks when shared</h2>
+                <p className="text-sm text-gray-600">This is how your shared content will appear on social media</p>
+              </div>
+              <SharePreview
+                contentType={sharedContent.content_type}
+                data={contentData}
+                shareUrl={window.location.href}
+                className="mx-auto"
+              />
+            </div>
+          )}
+
+          {/* Render content based on type */}
+          {sharedContent?.content_type === 'product' && contentData && (
+            <ProductContentView product={contentData} />
+          )}
+          
+          {sharedContent?.content_type === 'wishlist' && contentData && (
+            <WishlistContentView items={contentData} />
+          )}
+          
+          {sharedContent?.content_type === 'cart' && contentData && (
+            <CartContentView items={contentData} />
+          )}
+          
+          {sharedContent?.content_type === 'conversation' && contentData && (
+            <ConversationContentView conversation={contentData} />
+          )}
+        </div>
     </div>
   );
 }

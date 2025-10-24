@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SharedContent, ShareResult, ProductShareMetadata, WishlistShareMetadata, CartShareMetadata, ConversationShareMetadata } from '@/types/sharing';
+import { MetaTagsService } from './metaTagsService';
 
 export class SharingService {
   static async createShare(
@@ -39,7 +40,8 @@ export class SharingService {
         throw error;
       }
 
-      const shareUrl = `${window.location.origin}/shared/${data.share_code}`;
+      const baseUrl = `${window.location.origin}/shared/${data.share_code}`;
+      const shareUrl = MetaTagsService.addUTMParameters(baseUrl, 'share', 'app');
       
       return {
         share_code: data.share_code,
