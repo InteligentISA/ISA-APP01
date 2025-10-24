@@ -126,7 +126,7 @@ const ChatMessage = ({ message, onAddToCart, onToggleLike, likedItems, onProduct
       {!isUser && (
         <div className="order-2 ml-3">
           <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-            <span className="text-white text-sm font-bold">ISA</span>
+            <span className="text-white text-sm font-bold">MyPlug</span>
           </div>
         </div>
       )}

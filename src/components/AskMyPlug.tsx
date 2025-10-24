@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Send, Plus, History, Menu, Home, Share2 } from "lucide-react";
+import { Send, Plus, History, Menu, Home, Share2, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -67,6 +67,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
   const [jumiaResults, setJumiaResults] = useState<JumiaProduct[]>([]);
   const [chatCount, setChatCount] = useState(user?.chat_count || 0);
   const [showTierModal, setShowTierModal] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Load chat history from localStorage on mount
   useEffect(() => {
@@ -91,6 +92,23 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
   useEffect(() => {
     loadConversations();
   }, []);
+
+  // Load dark mode preference from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('myplug_dark_mode');
+    if (savedDarkMode) {
+      setIsDarkMode(JSON.parse(savedDarkMode));
+    }
+  }, []);
+
+  // Save dark mode preference to localStorage
+  useEffect(() => {
+    localStorage.setItem('myplug_dark_mode', JSON.stringify(isDarkMode));
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const loadConversations = async () => {
     try {
@@ -322,17 +340,27 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
 
   return (
     <SidebarProvider>
-      {/* Force white background regardless of dark mode */}
-      <div className="min-h-screen flex w-full bg-white">
-        <Sidebar className="border-r border-gray-200 bg-white">
-          <SidebarHeader className="p-4 border-b border-gray-200 bg-white">
-            <div className="flex items-center space-x-2">
-              <img src="/lovable-uploads/myplug-logo.png" alt="MyPlug App Icon" className="h-6 w-6" />
-              <span className="font-semibold text-gray-800">MyPlug Chat</span>
+      {/* Dynamic background based on dark mode */}
+      <div className={`min-h-screen flex w-full transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <Sidebar className={`border-r md:w-80 w-full transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <SidebarHeader className={`p-3 sm:p-4 border-b transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <img src="/lovable-uploads/myplug-logo.png" alt="MyPlug App Icon" className="h-5 w-5 sm:h-6 sm:w-6" />
+                <span className={`font-semibold text-sm sm:text-base transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>MyPlug Chat</span>
+              </div>
+              <Button
+                onClick={toggleDarkMode}
+                variant="ghost"
+                size="sm"
+                className={`transition-colors duration-300 ${isDarkMode ? 'text-gray-300 hover:text-white hover:bg-gray-700' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
+              >
+                {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
             </div>
             <Button 
               onClick={startNewChat}
-              className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white"
+              className="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white text-sm"
               size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -340,11 +368,11 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
             </Button>
           </SidebarHeader>
           
-          <SidebarContent className="bg-white">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <History className="h-4 w-4" />
+          <SidebarContent className={`transition-colors duration-300 ${isDarkMode ? 'bg-gray-800' : 'bg-white'}`}>
+            <div className="p-3 sm:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+                <div className={`flex items-center space-x-2 text-xs sm:text-sm transition-colors duration-300 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <History className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span>Saved Conversations</span>
                 </div>
                 {messages.length > 0 && (
@@ -353,7 +381,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                     variant="outline"
                     onClick={saveConversation}
                     disabled={isLoading}
-                    className="text-xs"
+                    className={`text-xs w-full sm:w-auto transition-colors duration-300 ${isDarkMode ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}
                   >
                     {isLoading ? 'Saving...' : 'Save Chat'}
                   </Button>
@@ -362,22 +390,22 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
               
               <SidebarMenu>
                 {conversations.length === 0 ? (
-                  <div className="text-xs text-gray-400 px-3 py-6 text-center">No saved conversations</div>
+                  <div className={`text-xs px-3 py-6 text-center transition-colors duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>No saved conversations</div>
                 ) : (
                   conversations.map((conversation) => (
                     <SidebarMenuItem key={conversation.id}>
                       <SidebarMenuButton 
                         onClick={() => loadConversation(conversation.id)}
-                        className="w-full text-left p-3 hover:bg-gray-100 rounded-lg"
+                        className={`w-full text-left p-2 sm:p-3 rounded-lg transition-colors duration-300 ${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
                       >
                         <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm text-gray-800 truncate">
+                          <div className={`font-medium text-xs sm:text-sm truncate transition-colors duration-300 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                             {conversation.title}
                           </div>
-                          <div className="text-xs text-gray-500 truncate mt-1">
+                          <div className={`text-xs truncate mt-1 transition-colors duration-300 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {conversation.preview}
                           </div>
-                          <div className="text-xs text-gray-400 mt-1">
+                          <div className={`text-xs mt-1 transition-colors duration-300 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                             {new Date(conversation.updated_at).toLocaleDateString()}
                           </div>
                         </div>
@@ -390,81 +418,61 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
           </SidebarContent>
         </Sidebar>
 
-        <SidebarInset className="flex-1 bg-white">
-          <div className="flex flex-col h-screen bg-white">
+        <SidebarInset className={`flex-1 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
+          <div className={`flex flex-col h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center space-x-3">
-                <SidebarTrigger />
-                <div className="flex items-center space-x-2">
-                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-6 w-6" />
-                  <h1 className="text-xl font-semibold text-gray-800">Ask MyPlug</h1>
+            <div className={`flex items-center justify-between p-3 sm:p-4 border-b transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex items-center space-x-1 sm:space-x-2">
+                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <h1 className={`text-lg sm:text-xl font-semibold transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>MyPlug</h1>
                 </div>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="text-sm text-gray-500">
-                  Your AI Shopping Assistant
-                </div>
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 hover:scale-105 transition-transform flex items-center" onClick={onBack}>
-                  <Home className="h-4 w-4 mr-2" />
-                  Back Home
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4 py-2 hover:scale-105 transition-transform flex items-center text-sm" onClick={onBack}>
+                  <Home className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Home</span>
                 </Button>
               </div>
             </div>
 
             {/* Chat Messages */}
-            <ScrollArea className="flex-1 p-4 bg-white">
+            <ScrollArea className={`flex-1 p-3 sm:p-4 transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
               {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-16 w-16 mb-4" />
-                  <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+                <div className="flex flex-col items-center justify-center h-full text-center px-4">
+                  <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-12 w-12 sm:h-16 sm:w-16 mb-3 sm:mb-4" />
+                  <h2 className={`text-xl sm:text-2xl font-semibold mb-2 transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
                     Hi! MyPlug here👋
                   </h2>
-                  <p className="text-gray-600 mb-6 max-w-md">
-                    Your Shopping Assistant is here to help you discover amazing products, 
-                    compare prices, and find exactly what you're looking for!
+                  <p className={`text-sm sm:text-base mb-6 max-w-md leading-relaxed transition-colors duration-300 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  Tell me what you want - I'll ask about your budget and preferences - I'll instantly display the best products curated just for you - you can then proceed to checkout.
                   </p>
-                  {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
-                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">Find Products</h3>
-                      <p className="text-sm text-gray-600">Search for items across multiple stores and platforms</p>
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">Compare Prices</h3>
-                      <p className="text-sm text-gray-600">Get the best deals and price comparisons</p>
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">Get Recommendations</h3>
-                      <p className="text-sm text-gray-600">Personalized suggestions based on your preferences</p>
-                    </div>
-                    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-orange-200 cursor-pointer transition-colors">
-                      <h3 className="font-medium text-gray-800 mb-2">Suggest gifts for loved one</h3>
-                      <p className="text-sm text-gray-600">Get thoughtful gift ideas for special occasions</p>
-                    </div>
-                  </div> */}
                 </div>
               ) : (
-                <div className="space-y-4 max-w-4xl mx-auto">
+                <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto px-2">
                   {messages.map((message) => (
                     <div
                       key={message.id}
                       className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                        className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-3 sm:px-4 py-2 sm:py-3 rounded-2xl transition-colors duration-300 ${
                           message.type === 'user'
                             ? 'bg-orange-500 text-white'
-                            : 'bg-white border border-gray-200 text-gray-800'
+                            : isDarkMode 
+                              ? 'bg-gray-800 border border-gray-600 text-gray-100'
+                              : 'bg-white border border-gray-200 text-gray-800'
                         }`}
                       >
                         {message.type === 'myplug' && (
-                          <div className="flex items-center space-x-2 mb-2">
-                            <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-4 w-4" />
-                            <span className="text-xs font-medium text-orange-600">MyPlug</span>
+                          <div className="flex items-center space-x-2 mb-1 sm:mb-2">
+                            <img src="/lovable-uploads/myplug-logo.png" alt="Ask MyPlug Logo" className="h-3 w-3 sm:h-4 sm:w-4" />
+                            <span className="text-xs font-medium text-orange-500">MyPlug</span>
                           </div>
                         )}
-                        <p className="text-sm leading-relaxed">{message.content}</p>
-                        <div className="text-xs opacity-70 mt-2">
+                        <p className="text-xs sm:text-sm leading-relaxed">{message.content}</p>
+                        <div className="text-xs opacity-70 mt-1 sm:mt-2">
                           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
@@ -476,9 +484,9 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
 
             {/* Product Results */}
             {productResults.length > 0 && (
-              <div className="mt-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Product Results</h3>
+              <div className="mt-4 sm:mt-8 px-3 sm:px-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 sm:mb-4 gap-2">
+                  <h3 className={`text-base sm:text-lg font-semibold transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>Product Results</h3>
                   <div className="flex space-x-2">
                     {currentConversationId && (
                       <ShareButton
@@ -492,7 +500,7 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {productResults.map((prod, idx) => (
                     prod.link ? (
                       // Jumia product card
@@ -501,19 +509,31 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                         href={prod.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block border border-orange-200 rounded-lg p-4 bg-white hover:shadow-lg transition"
+                        className={`block border rounded-lg p-3 sm:p-4 hover:shadow-lg transition-colors duration-300 ${
+                          isDarkMode 
+                            ? 'border-gray-600 bg-gray-800 hover:bg-gray-700' 
+                            : 'border-orange-200 bg-white hover:bg-gray-50'
+                        }`}
                       >
-                        <img src={prod.image} alt={prod.name} className="h-32 w-full object-contain mb-2" />
-                        <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
-                        <div className="text-orange-600 font-bold mb-1">{prod.price}</div>
-                        <div className="text-xs text-gray-500 mb-2">{prod.rating}</div>
-                        <span className="inline-block text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">External • Jumia</span>
+                        <img src={prod.image} alt={prod.name} className="h-24 sm:h-32 w-full object-contain mb-2" />
+                        <div className={`font-medium mb-1 text-sm sm:text-base transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{prod.name}</div>
+                        <div className="text-orange-500 font-bold mb-1 text-sm sm:text-base">{prod.price}</div>
+                        <div className={`text-xs mb-2 transition-colors duration-300 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{prod.rating}</div>
+                        <span className={`inline-block text-xs px-2 py-1 rounded transition-colors duration-300 ${
+                          isDarkMode 
+                            ? 'bg-orange-900 text-orange-300' 
+                            : 'bg-orange-100 text-orange-700'
+                        }`}>External • Jumia</span>
                       </a>
                     ) : (
                       // Own product card
-                      <div key={prod.id || idx} className="block border border-gray-200 rounded-lg p-4 bg-white hover:shadow-lg transition">
+                      <div key={prod.id || idx} className={`block border rounded-lg p-3 sm:p-4 hover:shadow-lg transition-colors duration-300 ${
+                        isDarkMode 
+                          ? 'border-gray-600 bg-gray-800 hover:bg-gray-700' 
+                          : 'border-gray-200 bg-white hover:bg-gray-50'
+                      }`}>
                         <div className="relative">
-                          <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-32 w-full object-contain mb-2" />
+                          <img src={prod.main_image || '/placeholder.svg'} alt={prod.name} className="h-24 sm:h-32 w-full object-contain mb-2" />
                           <div className="absolute top-2 right-2">
                             <ShareButton
                               contentType="product"
@@ -526,9 +546,9 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                             />
                           </div>
                         </div>
-                        <div className="font-medium text-gray-800 mb-1">{prod.name}</div>
-                        <div className="text-orange-600 font-bold mb-1">KES {prod.price}</div>
-                        <div className="text-xs text-gray-500 mb-2">{prod.rating || 'No rating'}</div>
+                        <div className={`font-medium mb-1 text-sm sm:text-base transition-colors duration-300 ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>{prod.name}</div>
+                        <div className="text-orange-500 font-bold mb-1 text-sm sm:text-base">KES {prod.price}</div>
+                        <div className={`text-xs mb-2 transition-colors duration-300 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{prod.rating || 'No rating'}</div>
                       </div>
                     )
                   ))}
@@ -537,25 +557,29 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
             )}
 
             {/* Input Area */}
-            <div className="p-4 border-t border-gray-200 bg-white">
+            <div className={`p-3 sm:p-4 border-t transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
               <div className="max-w-4xl mx-auto">
-                <div className="flex space-x-3">
+                <div className="flex space-x-2 sm:space-x-3">
                   <Input
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Ask MyPlug about products, prices, recommendations..."
-                    className="flex-1 rounded-full border-gray-300 focus:border-orange-500 focus:ring-orange-500"
+                    className={`flex-1 rounded-full text-sm sm:text-base transition-colors duration-300 ${
+                      isDarkMode 
+                        ? 'border-gray-600 bg-gray-700 text-gray-100 placeholder-gray-400 focus:border-orange-500 focus:ring-orange-500' 
+                        : 'border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus:border-orange-500 focus:ring-orange-500'
+                    }`}
                   />
                   <Button
                     onClick={handleSendMessage}
                     disabled={!currentMessage.trim()}
-                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-4"
+                    className="rounded-full bg-orange-500 hover:bg-orange-600 text-white px-3 sm:px-4"
                   >
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2 text-center">
+                <p className={`text-xs mt-2 text-center transition-colors duration-300 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   MyPlug can make mistakes. Please verify important information.
                 </p>
               </div>
