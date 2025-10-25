@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, Menu, Bell, MessageCircle, X } from "lucide-react";
+import { AlertTriangle, Menu, Bell, MessageCircle, X, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,18 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpData, setHelpData] = useState({ phone: '', message: '' });
   const [submittingHelp, setSubmittingHelp] = useState(false);
+  
+  // Guard clause: don't render content if user is null
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading vendor dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   const PLAN_LIMITS: Record<string, number> = {
     freemium: 5,
@@ -322,7 +334,6 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
             setActiveSection(section);
             setSidebarOpen(false); // Close sidebar on mobile when section changes
           }}
-          onLogout={onLogout}
           userName={user.name}
           sidebarOpen={sidebarOpen}
           onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -351,13 +362,14 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
               <p className="text-sm text-gray-600">{user.name}</p>
             </div>
           </div>
-          <div className="relative">
-            <button onClick={handleShowNotifications} className="h-10 w-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors relative">
-              <Bell className="h-5 w-5" />
-              {notifications.some(n => !n.read) && (
-                <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500"></span>
-              )}
-            </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button onClick={handleShowNotifications} className="h-10 w-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors relative">
+                <Bell className="h-5 w-5" />
+                {notifications.some(n => !n.read) && (
+                  <span className="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500"></span>
+                )}
+              </button>
             {showNotifications && (
               <div className="absolute right-0 mt-2 z-50 w-80 bg-white border rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto">
                 <div className="flex items-center justify-between mb-2">
@@ -385,6 +397,14 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
                 )}
               </div>
             )}
+            </div>
+            <button 
+              onClick={onLogout} 
+              className="h-10 w-10 flex items-center justify-center rounded hover:bg-red-50 transition-colors text-red-600"
+              title="Logout"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
         

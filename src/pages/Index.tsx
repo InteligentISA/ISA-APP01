@@ -33,7 +33,20 @@ interface IndexProps {
 }
 
 const Index = ({ splashDestination }: IndexProps) => {
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>('preloader');
+  // Load last view from localStorage or use default
+  const getInitialView = () => {
+    const savedView = localStorage.getItem('myplug_current_view');
+    if (savedView) {
+      try {
+        return savedView;
+      } catch {
+        return 'preloader';
+      }
+    }
+    return 'preloader';
+  };
+
+  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>(getInitialView());
   const [user, setUser] = useState<any>(null);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -86,6 +99,13 @@ const Index = ({ splashDestination }: IndexProps) => {
     }
   };
 
+  // Save current view to localStorage whenever it changes
+  useEffect(() => {
+    if (currentView !== 'preloader') {
+      localStorage.setItem('myplug_current_view', currentView);
+    }
+  }, [currentView]);
+
   useEffect(() => {
     console.log('Index useEffect - currentView:', currentView, 'authLoading:', authLoading, 'authUser:', authUser);
     console.log('Auth user details:', {
@@ -111,57 +131,122 @@ const Index = ({ splashDestination }: IndexProps) => {
     // Clear timeout since auth is no longer loading
     clearTimeout(timeoutFallback);
 
-    // If user is already authenticated, go to dashboard
+    // If user is already authenticated, check if we need to redirect or maintain current view
     if (authUser) {
       console.log('User is authenticated, checking role for redirection');
-      setUser(authUser);
-      // Fetch user profile to check role and approval
+      
+      // First, fetch user profile to determine user type before setting views
       UserProfileService.getUserProfile(authUser.id).then(profile => {
-        if (profile) {
-          if ((profile as any).role === 'admin' || (profile as any).user_type === 'admin') {
+        if (!profile) {
+          console.log('No profile found, setting default dashboard');
+          setCurrentView('dashboard');
+          setUser(authUser);
+          return;
+        }
+
+        // Format user data
+        const formattedUser = {
+          ...authUser,
+          ...profile,
+          name: profile.first_name && profile.last_name 
+            ? `${profile.first_name} ${profile.last_name}`
+            : authUser.email?.split('@')[0] || 'User',
+          avatar: profile.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${authUser.email || 'user'}`,
+          userType: profile.user_type || 'customer',
+          status: profile.status || 'approved'
+        };
+        setUser(formattedUser);
+
+        // Check if user is admin
+        if ((profile as any).role === 'admin' || (profile as any).user_type === 'admin') {
+          if (currentView !== 'admin-redirect') {
             setCurrentView('admin-redirect');
-            return;
           }
-          if (profile.user_type === 'vendor') {
-            // Check vendor approval status
+          return;
+        }
+
+        // Check if user is vendor
+        if (profile.user_type === 'vendor') {
+          // Prevent vendors from accessing customer views
+          if (['dashboard', 'askmyplug', 'gifts', 'my-shipping'].includes(currentView)) {
+            // Vendor trying to access customer views - redirect to vendor dashboard
             if (profile.status === 'approved') {
               setCurrentView('vendor-dashboard');
               return;
             } else if (profile.status === 'rejected') {
-              // Vendor rejected, show rejection page
               setRejectionReason(profile.rejection_reason || '');
               setCurrentView('rejected-application');
               return;
             } else {
-              // Vendor not approved, check if they've completed application and training
               checkVendorApplicationProgress(authUser.id);
               return;
             }
           }
+          
+          // Vendor is on vendor-specific view, validate status
+          if (profile.status === 'approved' && currentView !== 'vendor-dashboard') {
+            setCurrentView('vendor-dashboard');
+            return;
+          } else if (profile.status === 'rejected' && currentView !== 'rejected-application') {
+            setRejectionReason(profile.rejection_reason || '');
+            setCurrentView('rejected-application');
+            return;
+          } else if (profile.status !== 'approved' && profile.status !== 'rejected' && !['pending-approval', 'vendor-application', 'vendor-training'].includes(currentView)) {
+            checkVendorApplicationProgress(authUser.id);
+            return;
+          }
+          
+          // Vendor is on correct view
+          return;
         }
-        setCurrentView('dashboard');
+
+        // User is customer - prevent access to vendor views
+        if (['vendor-dashboard', 'vendor-application', 'vendor-training', 'pending-approval', 'rejected-application'].includes(currentView)) {
+          setCurrentView('dashboard');
+          return;
+        }
+
+        // Customer on non-dashboard views - maintain or redirect
+        if (['askmyplug', 'gifts', 'my-shipping'].includes(currentView)) {
+          console.log('Maintaining current view for customer:', currentView);
+          return;
+        }
+        
+        // If on preloader/onboarding, redirect to dashboard
+        if (['preloader', 'onboarding', 'welcome', 'auth-welcome', 'auth-signup', 'auth-signin'].includes(currentView)) {
+          setCurrentView('dashboard');
+          return;
+        }
+
+        // Default to dashboard for customers
+        if (currentView !== 'dashboard') {
+          setCurrentView('dashboard');
+        }
       });
+      
       return;
     }
 
-    // Simulate preloader only if not authenticated
-    console.log('Starting preloader timer - no authenticated user found');
-    const timer = setTimeout(() => {
-      console.log('Preloader timer completed, checking onboarding status');
-      // Check if user has completed onboarding
-      const hasCompletedOnboarding = localStorage.getItem("myplug_onboarding_completed");
-      if (hasCompletedOnboarding === "true") {
-        setCurrentView('welcome');
-      } else {
-        setCurrentView('onboarding');
-      }
-    }, 3000);
-    
-    return () => {
-      console.log('Clearing preloader timer');
-      clearTimeout(timer);
-    };
-  }, [authLoading, authUser]);
+    // Not authenticated - only run preloader logic if we're on preloader
+    if (currentView === 'preloader') {
+      console.log('Starting preloader timer - no authenticated user found');
+      const timer = setTimeout(() => {
+        console.log('Preloader timer completed, checking onboarding status');
+        // Check if user has completed onboarding
+        const hasCompletedOnboarding = localStorage.getItem("myplug_onboarding_completed");
+        if (hasCompletedOnboarding === "true") {
+          setCurrentView('welcome');
+        } else {
+          setCurrentView('onboarding');
+        }
+      }, 3000);
+      
+      return () => {
+        console.log('Clearing preloader timer');
+        clearTimeout(timer);
+      };
+    }
+  }, [authLoading, authUser, currentView]);
 
   // Handle splash screen destination
   useEffect(() => {
@@ -230,6 +315,8 @@ const Index = ({ splashDestination }: IndexProps) => {
 
   const handleLogout = () => {
     setUser(null);
+    // Clear saved view on logout to start fresh next time
+    localStorage.removeItem('myplug_current_view');
     setCurrentView('welcome');
   };
 
@@ -597,10 +684,19 @@ const Index = ({ splashDestination }: IndexProps) => {
         />
       )}
       {currentView === 'vendor-dashboard' && (
-        <VendorDashboard 
-          user={user} 
-          onLogout={handleLogout}
-        />
+        user ? (
+          <VendorDashboard 
+            user={user} 
+            onLogout={handleLogout}
+          />
+        ) : (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading vendor dashboard...</p>
+            </div>
+          </div>
+        )
       )}
       {currentView === 'vendor-application' && (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">

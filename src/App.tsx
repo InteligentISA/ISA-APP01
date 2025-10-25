@@ -134,6 +134,18 @@ function App() {
     };
     
     initializeCache();
+
+    // Check if user is logged in and skip splash if needed
+    const checkAuthAndSkipSplash = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('User is already logged in, skipping splash screen');
+        setSplashDestination('dashboard');
+        setShowSplash(false);
+      }
+    };
+
+    checkAuthAndSkipSplash();
   }, []);
 
   const handleSplashComplete = (destination: 'walkthrough' | 'dashboard') => {

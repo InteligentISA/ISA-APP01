@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import myPlugLogo from '@/assets/myplug-logo.png'; 
+import myPlugLogo from '@/assets/myplug-logo.png';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SplashScreenProps {
   userName?: string | null; 
@@ -78,14 +79,29 @@ const SplashScreen = ({ onComplete, userName }: SplashScreenProps) => {
 
   // --- Initialization Effect (The Setup) ---
   useEffect(() => {
-    // Check local storage for the flag
-    const hasCompleted = localStorage.getItem('has_completed_onboarding');
-    const firstTime = !hasCompleted;
-    setIsFirstTime(firstTime);
+    const checkUserAndStart = async () => {
+      // First, check if user is logged in
+      const { data: { session } } = await supabase.auth.getSession();
+      const isLoggedIn = !!session;
+      
+      if (isLoggedIn) {
+        // User is logged in - skip splash and go directly to dashboard
+        console.log('User is logged in, skipping splash screen');
+        onComplete('dashboard');
+        return;
+      }
+      
+      // User is not logged in - proceed with normal splash screen logic
+      const hasCompleted = localStorage.getItem('has_completed_onboarding');
+      const firstTime = !hasCompleted;
+      setIsFirstTime(firstTime);
 
-    // Start the sequence immediately after component mounts
-    startSequence(firstTime);
-  }, [startSequence]);
+      // Start the sequence
+      startSequence(firstTime);
+    };
+
+    checkUserAndStart();
+  }, [startSequence, onComplete]);
 
 
   return (

@@ -11,7 +11,6 @@ import {
   User,
   Receipt,
   ChevronRight,
-  LogOut,
   X,
   Menu,
   ChevronDown,
@@ -25,7 +24,6 @@ import { cn } from "@/lib/utils";
 interface VendorSidebarProps {
   activeSection: string;
   onSectionChange: (section: string) => void;
-  onLogout: () => void;
   userName: string;
   sidebarOpen?: boolean;
   onSidebarToggle?: () => void;
@@ -36,7 +34,6 @@ interface VendorSidebarProps {
 const VendorSidebar = ({ 
   activeSection, 
   onSectionChange, 
-  onLogout, 
   userName, 
   sidebarOpen = true,
   onSidebarToggle,
@@ -199,25 +196,7 @@ const VendorSidebar = ({
           })}
         </nav>
 
-        {/* Desktop Logout */}
-        <div className="p-4 border-t border-gray-200">
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start h-12 px-3 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200",
-              isCollapsed && "px-2 justify-center h-12 w-12 mx-auto",
-              "lg:h-10 lg:text-sm"
-            )}
-            onClick={onLogout}
-            title={isCollapsed ? "Logout" : undefined}
-          >
-            <LogOut className={cn(
-              "h-5 w-5 lg:h-4 lg:w-4 transition-all duration-200", 
-              !isCollapsed && "mr-3"
-            )} />
-            {!isCollapsed && <span className="truncate">Logout</span>}
-          </Button>
-        </div>
+
       </div>
 
       {/* Mobile Sidebar Content */}
@@ -282,15 +261,6 @@ const VendorSidebar = ({
               );
             })}
             
-            {/* Mobile Logout */}
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-12 px-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg border border-red-200 transition-all duration-200"
-              onClick={onLogout}
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              <span>Logout</span>
-            </Button>
           </div>
         </div>
 
@@ -318,17 +288,7 @@ const VendorSidebar = ({
           })}
         </nav>
 
-        {/* Mobile Logout */}
-        <div className="p-4 border-t border-gray-200">
-          <Button
-            variant="ghost"
-            className="w-full justify-start h-12 px-4 text-base text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all duration-200"
-            onClick={onLogout}
-          >
-            <LogOut className="h-5 w-5 mr-3" />
-            <span>Logout</span>
-          </Button>
-        </div>
+
       </div>
     </>
   );
