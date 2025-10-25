@@ -313,11 +313,34 @@ const Index = ({ splashDestination }: IndexProps) => {
     }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    // Clear saved view on logout to start fresh next time
-    localStorage.removeItem('myplug_current_view');
-    setCurrentView('welcome');
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase to clear the session
+      await supabase.auth.signOut();
+      
+      // Clear all local state
+      setUser(null);
+      
+      // Clear all localStorage data
+      localStorage.clear();
+      
+      // Clear all sessionStorage data
+      sessionStorage.clear();
+      
+      // Reset to welcome screen
+      setCurrentView('welcome');
+      
+      // Force a hard reload to clear all cached data and reload the auth state
+      window.location.reload();
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Even if there's an error, try to clear local state and reload
+      setUser(null);
+      localStorage.clear();
+      sessionStorage.clear();
+      setCurrentView('welcome');
+      window.location.reload();
+    }
   };
 
   const handleNavigateToAskMyPlug = () => {
