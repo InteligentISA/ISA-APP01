@@ -45,6 +45,11 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
 
     try {
       const vendorOrders = await OrderService.getVendorOrders(vendorId);
+      console.log('VendorOrders: Fetched orders with user data:', vendorOrders.map(o => ({
+        order_number: o.order_number,
+        user: (o as any).user,
+        customer_email: o.customer_email
+      })));
       setOrders(vendorOrders);
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -138,7 +143,7 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Order Number</TableHead>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>Customer Name</TableHead>
                   <TableHead>Items</TableHead>
                   <TableHead>Total</TableHead>
                   <TableHead>Status</TableHead>
@@ -147,11 +152,18 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {orders.map((order) => {
+                  // Extract customer name from user object or fallback to email
+                  const orderAny = order as any;
+                  const customerName = orderAny.user
+                    ? `${orderAny.user.first_name || ''} ${orderAny.user.last_name || ''}`.trim()
+                    : order.customer_email?.split('@')[0] || 'Customer';
+                  
+                  return (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.order_number}</TableCell>
-                    <TableCell>{order.customer_email}</TableCell>
-                    <TableCell>{order.order_items?.length || 0} items</TableCell>
+                    <TableCell>{customerName || order.customer_email || 'Customer'}</TableCell>
+                    <TableCell>{order.order_items?.length || orderAny.items?.length || 0} items</TableCell>
                     <TableCell>{order.currency} {order.total_amount}</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
@@ -185,7 +197,8 @@ const VendorOrders = ({ vendorId }: VendorOrdersProps) => {
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

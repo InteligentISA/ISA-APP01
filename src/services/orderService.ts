@@ -640,7 +640,11 @@ export class OrderService {
           *,
           items:order_items(*),
           payment:payments(*),
-          status_history:order_status_history(*)
+          status_history:order_status_history(*),
+          user:profiles!orders_user_id_fkey(
+            first_name,
+            last_name
+          )
         `)
         .order('created_at', { ascending: false });
 

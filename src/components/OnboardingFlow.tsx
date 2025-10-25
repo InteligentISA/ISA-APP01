@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 import onboardingChat from "@/assets/onboarding-chat.png";
@@ -12,6 +12,7 @@ interface OnboardingFlowProps {
 
 const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
 
   const steps = [
     {
@@ -36,6 +37,31 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   ];
 
+  // Preload all images before displaying the onboarding flow
+  useEffect(() => {
+    const preloadImages = async () => {
+      const imagePromises = steps.map((step) => {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = step.image;
+        });
+      });
+
+      try {
+        await Promise.all(imagePromises);
+        setImagesLoaded(true);
+      } catch (error) {
+        console.error('Error preloading images:', error);
+        // Even if preloading fails, show the onboarding flow
+        setImagesLoaded(true);
+      }
+    };
+
+    preloadImages();
+  }, []); // Empty dependency array means this runs once on mount
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -50,6 +76,18 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     localStorage.setItem("myplug_onboarding_completed", "true");
     onComplete();
   };
+
+  // Show loading state while images are being preloaded
+  if (!imagesLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading onboarding...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
