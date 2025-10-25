@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { OrderService } from "@/services/orderService";
 import { OrderWithDetails } from "@/types/order";
 import { format } from "date-fns";
-import { ArrowLeft, Package, MapPin, Phone, Mail, FileText, MessageCircle } from "lucide-react";
+import { ArrowLeft, Package, MapPin, FileText, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import OrderMessaging from "./OrderMessaging";
 
@@ -30,7 +30,7 @@ const VendorOrderDetail = ({ orderId, vendorId, onBack }: VendorOrderDetailProps
 
   const fetchOrderDetails = async () => {
     try {
-      const orderDetails = await OrderService.getOrderDetails(orderId);
+      const orderDetails = await OrderService.getOrderById(orderId);
       setOrder(orderDetails);
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -180,91 +180,102 @@ const VendorOrderDetail = ({ orderId, vendorId, onBack }: VendorOrderDetailProps
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
-              <Mail className="h-4 w-4 text-gray-500" />
-              <span>{order.customer_email}</span>
+              <Package className="h-4 w-4 text-gray-500" />
+              <span className="font-medium">Customer</span>
             </div>
-            {order.customer_phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-500" />
-                <span>{order.customer_phone}</span>
-              </div>
-            )}
             {order.shipping_address && (
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 text-gray-500 mt-1" />
                 <div>
-                  <p className="font-medium">Shipping Address:</p>
+                  <p className="font-medium">Delivery Address:</p>
                   <p className="text-sm text-gray-600">
                     {typeof order.shipping_address === 'string' 
                       ? order.shipping_address 
-                      : JSON.stringify(order.shipping_address)}
+                      : `${order.shipping_address.street}, ${order.shipping_address.city}, ${order.shipping_address.country}`}
                   </p>
+                </div>
+              </div>
+            )}
+            {order.notes && (
+              <div className="flex items-start gap-2">
+                <FileText className="h-4 w-4 text-gray-500 mt-1" />
+                <div>
+                  <p className="font-medium">Order Notes:</p>
+                  <p className="text-sm text-gray-600">{order.notes}</p>
                 </div>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Packaging Guidelines */}
+        {/* Order Details */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Packaging Guidelines & Special Requests
+              Order Details & Notes
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {order.packaging_guidelines && (
+            {order.notes && (
               <div className="mb-4">
-                <p className="font-medium text-sm mb-2">Packaging Guidelines:</p>
+                <p className="font-medium text-sm mb-2">Order Notes:</p>
                 <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded">
-                  {order.packaging_guidelines}
+                  {order.notes}
                 </p>
               </div>
             )}
-            {order.customer_additional_requests && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="font-medium text-sm mb-2">Additional Requests:</p>
-                <p className="text-sm text-gray-700 bg-blue-50 p-3 rounded">
-                  {order.customer_additional_requests}
-                </p>
+                <p className="font-medium text-gray-600">Order Status:</p>
+                <p className="capitalize">{order.status}</p>
               </div>
-            )}
-            {!order.packaging_guidelines && !order.customer_additional_requests && (
-              <p className="text-sm text-gray-500">No special packaging guidelines or requests.</p>
+              <div>
+                <p className="font-medium text-gray-600">Fulfillment Method:</p>
+                <p className="capitalize">delivery</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-600">Order Date:</p>
+                <p>{order.created_at ? format(new Date(order.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium text-gray-600">Estimated Delivery:</p>
+                <p>{order.estimated_delivery_date ? format(new Date(order.estimated_delivery_date), 'MMM dd, yyyy') : 'TBD'}</p>
+              </div>
+            </div>
+            {!order.notes && (
+              <p className="text-sm text-gray-500 mt-4">No additional notes for this order.</p>
             )}
           </CardContent>
         </Card>
 
         {/* Messaging */}
-        {order.payment_status === 'completed' && (
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5" />
-                Customer Communication
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => setShowMessaging(!showMessaging)}
-                variant="outline"
-                className="w-full"
-              >
-                {showMessaging ? "Hide Messages" : "View/Send Messages"}
-              </Button>
-              {showMessaging && (
-                <div className="mt-4">
-                  <OrderMessaging 
-                    orderId={orderId} 
-                    userType="vendor"
-                    userId={vendorId}
-                  />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Customer Communication
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => setShowMessaging(!showMessaging)}
+              variant="outline"
+              className="w-full"
+            >
+              {showMessaging ? "Hide Messages" : "View/Send Messages"}
+            </Button>
+            {showMessaging && (
+              <div className="mt-4">
+                <OrderMessaging 
+                  orderId={orderId} 
+                  userType="vendor"
+                  userId={vendorId}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
