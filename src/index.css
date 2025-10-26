@@ -252,6 +252,14 @@
   .mobile-input {
     @apply min-h-[44px] px-3 py-2 text-base;
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* Custom animations */

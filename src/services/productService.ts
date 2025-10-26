@@ -494,7 +494,9 @@ export class ProductService {
           *,
           vendor:profiles!products_vendor_id_fkey(
             first_name,
-            last_name
+            last_name,
+            company,
+            brand_name
           )
         `)
         .eq('id', productId)
@@ -767,6 +769,56 @@ export class ProductService {
       return { data: productData, error: null };
     } catch (error) {
       return { data: productData, error };
+    }
+  }
+
+  // Get similar products by subcategory
+  static async getSimilarProducts(productId: string): Promise<{ data: Product[]; error: any }> {
+    try {
+      // First get the current product to get its subcategory
+      const { data: currentProduct, error: productError } = await supabase
+        .from('products')
+        .select('subcategory, category')
+        .eq('id', productId)
+        .single();
+
+      if (productError || !currentProduct) {
+        console.error('Error fetching current product:', productError);
+        return { data: [], error: productError };
+      }
+
+      // Fetch products with same subcategory (if available) or same category
+      let query = supabase
+        .from('products')
+        .select('*')
+        .neq('id', productId)
+        .eq('status', 'approved')
+        .eq('is_active', true)
+        .limit(20);
+
+      if (currentProduct.subcategory) {
+        query = query.eq('subcategory', currentProduct.subcategory);
+      } else {
+        query = query.eq('category', currentProduct.category);
+      }
+
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching similar products:', error);
+        return { data: [], error };
+      }
+
+      // Shuffle the results
+      const shuffled = data || [];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      
+      return { data: shuffled, error: null };
+    } catch (error) {
+      return { data: [], error };
     }
   }
 } 

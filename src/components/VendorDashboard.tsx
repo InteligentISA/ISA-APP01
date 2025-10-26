@@ -148,9 +148,8 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       const enabled = await LoyaltyService.isVendorSubscriptionEnabled();
       
       if (enabled) {
-        setActiveSection('subscription');
-        setUpgradeFromBanner(true);
-        setSidebarOpen(false); // Close sidebar on mobile
+        // Navigate to subscription page using window.location.href
+        window.location.href = '/vendor-subscription';
       } else {
         toast({
           title: "Upgrade Feature Coming Soon",

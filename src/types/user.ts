@@ -36,6 +36,8 @@ export interface UserProfile {
   status?: 'pending' | 'approved' | 'rejected' | 'suspended';
   rejection_reason?: string;
   admin_notes?: string;
+  company?: string;
+  brand_name?: string;
 }
 
 export interface VendorApplication {

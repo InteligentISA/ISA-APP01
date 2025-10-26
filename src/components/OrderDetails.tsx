@@ -19,6 +19,7 @@ import {
 import { OrderWithDetails } from "@/types/order";
 import { useCurrency } from "@/hooks/useCurrency";
 import { RatingDialog } from "./RatingDialog";
+import { TrackingCodeDisplay } from "./TrackingCodeDisplay";
 
 interface OrderDetailsProps {
   order: OrderWithDetails;
@@ -80,6 +81,9 @@ export const OrderDetails = ({ order, onReturnRequest, canReturn }: OrderDetails
 
   return (
     <div className="space-y-6">
+      {/* Tracking Code Display */}
+      <TrackingCodeDisplay orderId={order.id} />
+      
       {/* Order Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -127,10 +131,7 @@ export const OrderDetails = ({ order, onReturnRequest, canReturn }: OrderDetails
                     <p className="text-sm text-gray-600">SKU: {item.product_sku}</p>
                   )}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-sm text-gray-600">Qty: {item.quantity}</span>
-                    <span className="font-medium text-gray-900">
-                      {formatPrice(item.total_price)}
-                    </span>
+                    <span className="text-sm text-gray-600">Qty: {item.quantity} × {formatPrice(item.unit_price)}</span>
                   </div>
                   
                   {/* Return Policy Info */}

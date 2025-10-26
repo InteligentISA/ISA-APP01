@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ const ProductDetail = () => {
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
   const [productReviews, setProductReviews] = useState<ProductReviewWithProfiles[]>([]);
-  const [vendorInfo, setVendorInfo] = useState<{ first_name?: string; last_name?: string } | null>(null);
+  const [vendorInfo, setVendorInfo] = useState<{ first_name?: string; last_name?: string; company?: string; brand_name?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showImageModal, setShowImageModal] = useState(false);
@@ -55,6 +55,12 @@ const ProductDetail = () => {
   const [userReview, setUserReview] = useState<ProductReview | null>(null);
   const [isInCart, setIsInCart] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [similarProductsLiked, setSimilarProductsLiked] = useState<Set<string>>(new Set());
+  const [similarProductsInCart, setSimilarProductsInCart] = useState<Set<string>>(new Set());
+  const similarProductsScrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (productId) {
@@ -64,6 +70,49 @@ const ProductDetail = () => {
       }
     }
   }, [productId, user]);
+
+  useEffect(() => {
+    if (product) {
+      loadSimilarProducts();
+    }
+  }, [product]);
+
+  // Auto-scroll for similar products
+  useEffect(() => {
+    if (similarProducts.length > 0 && similarProductsScrollRef.current && !isPaused) {
+      const scrollContainer = similarProductsScrollRef.current;
+      let scrollPosition = 0;
+      
+      const scrollInterval = setInterval(() => {
+        if (!isPaused && scrollContainer) {
+          scrollPosition += 1;
+          if (scrollPosition >= scrollContainer.scrollWidth - scrollContainer.clientWidth) {
+            scrollPosition = 0; // Reset to start
+          }
+          scrollContainer.scrollTo({
+            left: scrollPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 50); // Adjust speed here (lower = faster)
+
+      return () => clearInterval(scrollInterval);
+    }
+  }, [similarProducts, isPaused]);
+
+  const scrollSimilarProducts = (direction: 'left' | 'right', fast: boolean = false) => {
+    if (similarProductsScrollRef.current) {
+      const scrollAmount = fast ? 400 : 200;
+      const newScrollPosition = direction === 'left' 
+        ? similarProductsScrollRef.current.scrollLeft - scrollAmount
+        : similarProductsScrollRef.current.scrollLeft + scrollAmount;
+      
+      similarProductsScrollRef.current.scrollTo({
+        left: newScrollPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const loadProductDetails = async () => {
     setLoading(true);
@@ -132,6 +181,36 @@ const ProductDetail = () => {
     }
   };
 
+  const loadSimilarProducts = async () => {
+    if (!productId) return;
+    try {
+      const result = await ProductService.getSimilarProducts(productId);
+      setSimilarProducts(result.data);
+      
+      if (user) {
+        checkSimilarProductsInteractions(result.data);
+      }
+    } catch (error) {
+      console.error("Error loading similar products:", error);
+    }
+  };
+
+  const checkSimilarProductsInteractions = async (products: Product[]) => {
+    if (!user) return;
+    try {
+      const cartItems = await OrderService.getCartItems(user.id);
+      const wishlistItems = await OrderService.getWishlistItems(user.id);
+      
+      const cartProductIds = new Set(cartItems.map((item: any) => item.product_id));
+      const wishlistProductIds = new Set(wishlistItems.map((item: any) => item.product_id));
+      
+      setSimilarProductsInCart(cartProductIds);
+      setSimilarProductsLiked(wishlistProductIds);
+    } catch (error) {
+      console.error("Error checking similar products interactions:", error);
+    }
+  };
+
   const handleAddToCart = async () => {
     if (!user) {
       toast({
@@ -191,6 +270,73 @@ const ProductDetail = () => {
       toast({
         title: "Error",
         description: "Failed to update wishlist",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSimilarProductLike = async (similarProduct: Product) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to sign in to like products",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const isLiked = similarProductsLiked.has(similarProduct.id);
+      if (isLiked) {
+        await OrderService.removeFromWishlist(user.id, similarProduct.id);
+        setSimilarProductsLiked(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(similarProduct.id);
+          return newSet;
+        });
+        toast({ title: "Removed from wishlist" });
+      } else {
+        await OrderService.addToWishlist(user.id, {
+          product_id: similarProduct.id,
+          product_name: similarProduct.name,
+          product_category: similarProduct.category
+        });
+        setSimilarProductsLiked(prev => new Set(prev).add(similarProduct.id));
+        toast({ title: "Added to wishlist" });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update wishlist",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSimilarProductAddToCart = async (similarProduct: Product) => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to sign in to add items to cart",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      await OrderService.addToCart(user.id, {
+        product_id: similarProduct.id,
+        product_name: similarProduct.name,
+        product_category: similarProduct.category,
+        quantity: 1,
+        price: similarProduct.price
+      });
+      setSimilarProductsInCart(prev => new Set(prev).add(similarProduct.id));
+      toast({ title: "Product added to cart" });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add product to cart",
         variant: "destructive"
       });
     }
@@ -527,18 +673,22 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Pickup Information */}
+            {/* Supplier Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Pickup Information</CardTitle>
+                <CardTitle className="text-lg">Supplier Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div>
-                  <span className="text-sm font-medium text-gray-600">Vendor:</span>
+                  <span className="text-sm font-medium text-gray-600">Supplier:</span>
                   <p className="text-sm">
-                    {vendorInfo 
-                      ? `${vendorInfo.first_name || ''} ${vendorInfo.last_name || ''}`.trim() || 'Unknown Vendor'
-                      : 'Fullfilled by ISA'
+                    {vendorInfo?.brand_name 
+                      ? vendorInfo.brand_name
+                      : vendorInfo?.company 
+                        ? vendorInfo.company
+                        : vendorInfo 
+                          ? `${vendorInfo.first_name || ''} ${vendorInfo.last_name || ''}`.trim() || 'Unknown Supplier'
+                          : 'Unknown Supplier'
                     }
                   </p>
                 </div>
@@ -572,7 +722,7 @@ const ProductDetail = () => {
 
               {productReviews.length > 0 ? (
                 <div className="space-y-4">
-                  {productReviews.map((review) => (
+                  {(showAllReviews ? productReviews : productReviews.slice(0, 5)).map((review) => (
                     <Card key={review.id}>
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
@@ -610,6 +760,16 @@ const ProductDetail = () => {
                       </CardContent>
                     </Card>
                   ))}
+                  {productReviews.length > 5 && (
+                    <div className="text-center py-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowAllReviews(!showAllReviews)}
+                      >
+                        {showAllReviews ? 'Show Less' : `View All Reviews (${productReviews.length})`}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
@@ -654,6 +814,106 @@ const ProductDetail = () => {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Similar Products Section */}
+        {similarProducts.length > 0 && (
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Similar Products</h2>
+            </div>
+            <div className="relative group">
+              {/* Left Scroll Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg"
+                onClick={() => scrollSimilarProducts('left')}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </Button>
+              
+              {/* Right Scroll Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg"
+                onClick={() => scrollSimilarProducts('right')}
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                <ChevronRight className="w-6 h-6" />
+              </Button>
+
+              <div 
+                ref={similarProductsScrollRef}
+                className="overflow-x-auto scrollbar-hide"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                <div className="flex gap-4 pb-4" style={{ display: 'flex', gap: '1rem' }}>
+                  {similarProducts.map((similarProduct) => (
+                    <Card key={similarProduct.id} className="w-64 flex-shrink-0">
+                      <div className="relative">
+                        <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
+                          <ProductImageFallback
+                            images={[similarProduct.main_image]}
+                            alt={similarProduct.name}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => navigate(`/product/${similarProduct.id}`)}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                          onClick={() => handleSimilarProductLike(similarProduct)}
+                        >
+                          <Heart 
+                            className={`w-4 h-4 ${similarProductsLiked.has(similarProduct.id) ? "fill-current text-red-500" : ""}`} 
+                          />
+                        </Button>
+                      </div>
+                      <CardContent className="p-4 space-y-3">
+                        <h3 
+                          className="font-semibold text-sm cursor-pointer hover:text-blue-600 line-clamp-2"
+                          onClick={() => navigate(`/product/${similarProduct.id}`)}
+                        >
+                          {similarProduct.name}
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatPrice(similarProduct.price)}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant={similarProductsInCart.has(similarProduct.id) ? "outline" : "default"}
+                            className="flex-1"
+                            disabled={similarProductsInCart.has(similarProduct.id)}
+                            onClick={() => handleSimilarProductAddToCart(similarProduct)}
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-1" />
+                            {similarProductsInCart.has(similarProduct.id) ? "In Cart" : "Add"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/product/${similarProduct.id}`)}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Image Modal */}

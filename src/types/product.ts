@@ -91,6 +91,8 @@ export interface Product {
   vendor?: {
     first_name?: string;
     last_name?: string;
+    company?: string;
+    brand_name?: string;
   };
   // Approval workflow fields
   status?: 'pending' | 'approved' | 'rejected';
