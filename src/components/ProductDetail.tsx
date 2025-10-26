@@ -56,6 +56,7 @@ const ProductDetail = () => {
   const [isInCart, setIsInCart] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [similarProductsImages, setSimilarProductsImages] = useState<Record<string, ProductImage[]>>({});
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [similarProductsLiked, setSimilarProductsLiked] = useState<Set<string>>(new Set());
   const [similarProductsInCart, setSimilarProductsInCart] = useState<Set<string>>(new Set());
@@ -76,6 +77,13 @@ const ProductDetail = () => {
       loadSimilarProducts();
     }
   }, [product]);
+
+  // Reset currentImageIndex when productImages changes
+  useEffect(() => {
+    if (productImages.length > 0 && currentImageIndex >= productImages.length) {
+      setCurrentImageIndex(0);
+    }
+  }, [productImages.length, currentImageIndex]);
 
   // Auto-scroll for similar products
   useEffect(() => {
@@ -186,6 +194,32 @@ const ProductDetail = () => {
     try {
       const result = await ProductService.getSimilarProducts(productId);
       setSimilarProducts(result.data);
+      
+      // Load images for each similar product
+      const imagesMap: Record<string, ProductImage[]> = {};
+      for (const product of result.data) {
+        try {
+          const imagesResult = await ProductService.getProductImages(product.id);
+          imagesMap[product.id] = imagesResult.data as unknown as ProductImage[];
+          
+          // If no images in database but product has main_image, add it
+          if (imagesResult.data.length === 0 && product.main_image) {
+            imagesMap[product.id] = [{
+              id: 'main',
+              product_id: product.id,
+              image_url: product.main_image,
+              image_description: 'Main Product Image',
+              display_order: 0,
+              is_main_image: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }];
+          }
+        } catch (err) {
+          console.error(`Error loading images for product ${product.id}:`, err);
+        }
+      }
+      setSimilarProductsImages(imagesMap);
       
       if (user) {
         checkSimilarProductsInteractions(result.data);
@@ -473,11 +507,15 @@ const ProductDetail = () => {
             <div className="relative aspect-square bg-white rounded-lg overflow-hidden shadow-lg">
               <div onClick={() => setShowImageModal(true)} className="cursor-pointer">
                 <ProductImageFallback
-                  images={[
-                    productImages[currentImageIndex]?.image_url,
-                    product.main_image,
-                    ...productImages.map(img => img.image_url)
-                  ].filter(Boolean)}
+                  key={`main-${currentImageIndex}`}
+                  images={productImages.length > 0
+                    ? [
+                        productImages[currentImageIndex]?.image_url,
+                        ...productImages.map(img => img.image_url),
+                        product.main_image
+                      ].filter(Boolean)
+                    : [product.main_image].filter(Boolean)
+                  }
                   alt={productImages[currentImageIndex]?.image_description || product.name}
                   className="w-full h-full object-cover"
                 />
@@ -853,28 +891,35 @@ const ProductDetail = () => {
                 onMouseLeave={() => setIsPaused(false)}
               >
                 <div className="flex gap-4 pb-4" style={{ display: 'flex', gap: '1rem' }}>
-                  {similarProducts.map((similarProduct) => (
-                    <Card key={similarProduct.id} className="w-64 flex-shrink-0">
-                      <div className="relative">
-                        <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
-                          <ProductImageFallback
-                            images={[similarProduct.main_image]}
-                            alt={similarProduct.name}
-                            className="w-full h-full object-cover cursor-pointer"
-                            onClick={() => navigate(`/product/${similarProduct.id}`)}
-                          />
+                  {similarProducts.map((similarProduct) => {
+                    // Get all images for this product
+                    const productImages = similarProductsImages[similarProduct.id] || [];
+                    const imageUrls = productImages.length > 0 
+                      ? productImages.map(img => img.image_url)
+                      : [similarProduct.main_image].filter(Boolean);
+                    
+                    return (
+                      <Card key={similarProduct.id} className="w-64 flex-shrink-0">
+                        <div className="relative">
+                          <div className="aspect-square bg-gray-100 rounded-t-lg overflow-hidden">
+                            <ProductImageFallback
+                              images={imageUrls}
+                              alt={similarProduct.name}
+                              className="w-full h-full object-cover cursor-pointer"
+                              onClick={() => navigate(`/product/${similarProduct.id}`)}
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
+                            onClick={() => handleSimilarProductLike(similarProduct)}
+                          >
+                            <Heart 
+                              className={`w-4 h-4 ${similarProductsLiked.has(similarProduct.id) ? "fill-current text-red-500" : ""}`} 
+                            />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                          onClick={() => handleSimilarProductLike(similarProduct)}
-                        >
-                          <Heart 
-                            className={`w-4 h-4 ${similarProductsLiked.has(similarProduct.id) ? "fill-current text-red-500" : ""}`} 
-                          />
-                        </Button>
-                      </div>
                       <CardContent className="p-4 space-y-3">
                         <h3 
                           className="font-semibold text-sm cursor-pointer hover:text-blue-600 line-clamp-2"
@@ -907,8 +952,9 @@ const ProductDetail = () => {
                           </Button>
                         </div>
                       </CardContent>
-                    </Card>
-                  ))}
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -921,11 +967,15 @@ const ProductDetail = () => {
         <DialogContent className="max-w-4xl">
           <div className="relative">
             <ProductImageFallback
-              images={[
-                productImages[currentImageIndex]?.image_url,
-                product.main_image,
-                ...productImages.map(img => img.image_url)
-              ].filter(Boolean)}
+              key={`modal-${currentImageIndex}`}
+              images={productImages.length > 0
+                ? [
+                    productImages[currentImageIndex]?.image_url,
+                    ...productImages.map(img => img.image_url),
+                    product.main_image
+                  ].filter(Boolean)
+                : [product.main_image].filter(Boolean)
+              }
               alt={productImages[currentImageIndex]?.image_description || product.name}
               className="w-full h-auto max-h-[80vh] object-contain"
             />

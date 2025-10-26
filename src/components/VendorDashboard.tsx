@@ -24,7 +24,17 @@ interface VendorDashboardProps {
 
 const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
   const { toast } = useToast();
-  const [activeSection, setActiveSection] = useState("home");
+  
+  // Load last active section from localStorage or use default
+  const getInitialSection = () => {
+    const savedSection = localStorage.getItem('myplug_vendor_active_section');
+    if (savedSection) {
+      return savedSection;
+    }
+    return "home";
+  };
+
+  const [activeSection, setActiveSection] = useState(getInitialSection());
   const [plan, setPlan] = useState('freemium');
   const [planExpiry, setPlanExpiry] = useState<string | null>(null);
   const [productCount, setProductCount] = useState(0);
@@ -79,6 +89,13 @@ const VendorDashboard = ({ user, onLogout }: VendorDashboardProps) => {
       checkVendorSubscriptionStatus();
     }
   }, [user?.id]);
+
+  // Save activeSection to localStorage whenever it changes
+  useEffect(() => {
+    if (activeSection && user?.id) {
+      localStorage.setItem('myplug_vendor_active_section', activeSection);
+    }
+  }, [activeSection, user?.id]);
 
   const fetchPlanAndProducts = async () => {
     if (!user?.id) {

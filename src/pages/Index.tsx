@@ -48,6 +48,21 @@ const Index = ({ splashDestination }: IndexProps) => {
 
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>(getInitialView());
   const [user, setUser] = useState<any>(null);
+
+  // Save currentView to localStorage whenever it changes (except for initial views)
+  useEffect(() => {
+    // Don't save temporary/transitional views
+    const viewsToPersist = ['dashboard', 'gifts', 'askmyplug', 'my-shipping', 'vendor-dashboard'];
+    if (viewsToPersist.includes(currentView) && user) {
+      localStorage.setItem('myplug_current_view', currentView);
+      // Also save for vendor dashboard if applicable
+      if (user.user_type === 'vendor' && currentView === 'vendor-dashboard') {
+        localStorage.setItem('myplug_is_vendor', 'true');
+      } else if (user.user_type !== 'vendor') {
+        localStorage.removeItem('myplug_is_vendor');
+      }
+    }
+  }, [currentView, user]);
   const [likedItems, setLikedItems] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [profileCompletionOpen, setProfileCompletionOpen] = useState(false);
@@ -167,11 +182,19 @@ const Index = ({ splashDestination }: IndexProps) => {
 
         // Check if user is vendor
         if (profile.user_type === 'vendor') {
+          // Check for saved view in localStorage
+          const savedView = localStorage.getItem('myplug_current_view');
+          
           // Prevent vendors from accessing customer views
           if (['dashboard', 'askmyplug', 'gifts', 'my-shipping'].includes(currentView)) {
             // Vendor trying to access customer views - redirect to vendor dashboard
             if (profile.status === 'approved') {
-              setCurrentView('vendor-dashboard');
+              // If there's a saved vendor-dashboard view, use it
+              if (savedView === 'vendor-dashboard') {
+                setCurrentView('vendor-dashboard');
+              } else {
+                setCurrentView('vendor-dashboard');
+              }
               return;
             } else if (profile.status === 'rejected') {
               setRejectionReason(profile.rejection_reason || '');
@@ -184,19 +207,20 @@ const Index = ({ splashDestination }: IndexProps) => {
           }
           
           // Vendor is on vendor-specific view, validate status
-          if (profile.status === 'approved' && currentView !== 'vendor-dashboard') {
+          // Only redirect if status changed, not on refresh
+          if (profile.status === 'approved' && currentView !== 'vendor-dashboard' && !['pending-approval', 'vendor-application', 'vendor-training'].includes(currentView)) {
             setCurrentView('vendor-dashboard');
             return;
-          } else if (profile.status === 'rejected' && currentView !== 'rejected-application') {
+          } else if (profile.status === 'rejected' && currentView !== 'rejected-application' && !['pending-approval', 'vendor-application', 'vendor-training'].includes(currentView)) {
             setRejectionReason(profile.rejection_reason || '');
             setCurrentView('rejected-application');
             return;
-          } else if (profile.status !== 'approved' && profile.status !== 'rejected' && !['pending-approval', 'vendor-application', 'vendor-training'].includes(currentView)) {
+          } else if (profile.status !== 'approved' && profile.status !== 'rejected' && !['pending-approval', 'vendor-application', 'vendor-training', 'rejected-application'].includes(currentView)) {
             checkVendorApplicationProgress(authUser.id);
             return;
           }
           
-          // Vendor is on correct view
+          // Vendor is on correct view - maintain it (preserves section on vendor dashboard)
           return;
         }
 
