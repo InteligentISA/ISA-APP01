@@ -13,6 +13,8 @@ interface OnboardingFlowProps {
 const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [showLoader, setShowLoader] = useState(true);
+  const [isFading, setIsFading] = useState(false);
 
   const steps = [
     {
@@ -62,6 +64,14 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     preloadImages();
   }, []); // Empty dependency array means this runs once on mount
 
+  // Smoothly fade out the loader overlay when images finish preloading
+  useEffect(() => {
+    if (!imagesLoaded) return;
+    setIsFading(true);
+    const timeoutId = setTimeout(() => setShowLoader(false), 400);
+    return () => clearTimeout(timeoutId);
+  }, [imagesLoaded]);
+
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -77,26 +87,57 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     onComplete();
   };
 
-  // Show loading state while images are being preloaded
-if (!imagesLoaded) {
   return (
-    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
-      
-      {/* Light orange waves background */}
-      <div className="absolute inset-0 bg-[url('/waves-orange.svg')] bg-cover bg-center animate-pulse" />
-
-      <div className="relative z-10 text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Please wait...</p>
-      </div>
-    </div>
-  );
-}
-
-
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 relative flex items-center justify-center p-4">
+      {/* Loading overlay with subtle orange animated waves */}
+      {showLoader && (
+        <div
+          className={`absolute inset-0 z-50 flex items-center justify-center overflow-hidden bg-orange-50 transition-opacity duration-500 ${
+            isFading ? "opacity-0" : "opacity-100"
+          }`}
+        >
+          {/* Animated SVG waves background */}
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 1440 900"
+            preserveAspectRatio="none"
+            className="absolute inset-0"
+          >
+            <defs>
+              <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#FFEDD5" />
+                <stop offset="100%" stopColor="#FED7AA" />
+              </linearGradient>
+            </defs>
+            <rect x="0" y="0" width="1440" height="900" fill="url(#grad)" />
+            <g opacity="0.6">
+              <path fill="#FDBA74">
+                <animate
+                  attributeName="d"
+                  dur="6s"
+                  repeatCount="indefinite"
+                  values="M0,700 C300,650 450,750 720,700 C980,650 1150,750 1440,700 L1440,900 L0,900 Z; M0,720 C300,770 450,670 720,720 C980,770 1150,670 1440,720 L1440,900 L0,900 Z; M0,700 C300,650 450,750 720,700 C980,650 1150,750 1440,700 L1440,900 L0,900 Z"
+                />
+              </path>
+            </g>
+            <g opacity="0.4">
+              <path fill="#FB923C">
+                <animate
+                  attributeName="d"
+                  dur="8s"
+                  repeatCount="indefinite"
+                  values="M0,760 C260,740 500,820 720,780 C980,740 1180,820 1440,780 L1440,900 L0,900 Z; M0,780 C260,820 500,740 720,800 C980,860 1180,740 1440,800 L1440,900 L0,900 Z; M0,760 C260,740 500,820 720,780 C980,740 1180,820 1440,780 L1440,900 L0,900 Z"
+                />
+              </path>
+            </g>
+          </svg>
+          <div className="relative z-10 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-2 border-orange-300 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-orange-700 font-medium">Please wait...</p>
+          </div>
+        </div>
+      )}
       <div className="w-full max-w-lg mx-auto">
         {/* Progress indicators */}
         <div className="flex justify-center mb-12 space-x-3">
