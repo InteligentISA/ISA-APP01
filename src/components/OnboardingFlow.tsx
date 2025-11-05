@@ -78,16 +78,22 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   // Show loading state while images are being preloaded
-  if (!imagesLoaded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading onboarding...</p>
-        </div>
+if (!imagesLoaded) {
+  return (
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
+      
+      {/* Light orange waves background */}
+      <div className="absolute inset-0 bg-[url('/waves-orange.svg')] bg-cover bg-center animate-pulse" />
+
+      <div className="relative z-10 text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Please wait...</p>
       </div>
-    );
-  }
+    </div>
+  );
+}
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-primary/5 flex items-center justify-center p-4">
