@@ -22,18 +22,18 @@ const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     },
     {
       image: onboardingPayment,
-      title: "Secured payments and Cashbacks",
+      title: "Secured payments, Escrow services and Cashbacks",
       description: "Processed by MyPlug Pay"
     },
     {
       image: onboardingDelivery,
       title: "Reliable door delivery",
-      description: "Get reliable door delivery for items you ordered, same day deliveries are done by Fikisha"
+      description: "Get reliable door delivery for items you ordered, same day deliveries are powered by Fikisha"
     },
     {
       image: onboardingGifts,
       title: "Buy gifts for friends and family",
-      description: "Get suggestions and let MyPlug organize surprise delivery for you"
+      description: "Get suggestions and let MyPlug organize surprise delivery to your loved one"
     }
   ];
 
