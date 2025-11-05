@@ -9,8 +9,8 @@ import { initiatePaypalPayment, verifyPaypalPayment } from "./providers/paypal.t
 import type { InitiateRequestBody, ProviderName, MyPlugPayResponse } from "./types.ts";
 import { rateLimit } from "./middleware.ts";
 
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_URL = globalThis.Deno?.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = globalThis.Deno?.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 async function handleInitiate(req: Request): Promise<Response> {

@@ -34,7 +34,7 @@ export async function initiateDPOPayment(params: {
   };
 }) {
   const headers = await getHeaders();
-  const res = await fetch(`${supabaseUrl}/functions/v1/isa-pay/initiate`, { 
+  const res = await fetch(`${supabaseUrl}/functions/v1/myplug-pay/initiate`, { 
     method: 'POST', 
     headers, 
     body: JSON.stringify(params) 
@@ -48,7 +48,7 @@ export async function initiateDPOPayment(params: {
 
 export async function getDPOPaymentStatus(transactionId: string) {
   const headers = await getHeaders();
-  const res = await fetch(`${supabaseUrl}/functions/v1/isa-pay/status/${transactionId}`, { 
+  const res = await fetch(`${supabaseUrl}/functions/v1/myplug-pay/status/${transactionId}`, { 
     headers 
   });
   if (!res.ok) {
@@ -60,7 +60,7 @@ export async function getDPOPaymentStatus(transactionId: string) {
 
 export async function retryDPOPayment(transactionId: string) {
   const headers = await getHeaders();
-  const res = await fetch(`${supabaseUrl}/functions/v1/isa-pay/retry/${transactionId}`, { 
+  const res = await fetch(`${supabaseUrl}/functions/v1/myplug-pay/retry/${transactionId}`, { 
     method: 'POST',
     headers 
   });

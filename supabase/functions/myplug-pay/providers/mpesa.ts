@@ -2,11 +2,11 @@
 import type { InitiateRequestBody, MyPlugPayResponse } from "../types.ts";
 import { generateMyPlugTransactionId, hmacSha256Hex } from "../utils.ts";
 
-const MPESA_BASE_URL = Deno.env.get('MPESA_BASE_URL') ?? 'https://sandbox.safaricom.co.ke';
-const MPESA_CONSUMER_KEY = Deno.env.get('MPESA_CONSUMER_KEY') ?? '';
-const MPESA_CONSUMER_SECRET = Deno.env.get('MPESA_CONSUMER_SECRET') ?? '';
-const MPESA_SHORTCODE = Deno.env.get('MPESA_SHORTCODE') ?? '';
-const MPESA_PASSKEY = Deno.env.get('MPESA_PASSKEY') ?? '';
+const MPESA_BASE_URL = globalThis.Deno?.env.get('MPESA_BASE_URL') ?? 'https://sandbox.safaricom.co.ke';
+const MPESA_CONSUMER_KEY = globalThis.Deno?.env.get('MPESA_CONSUMER_KEY') ?? '';
+const MPESA_CONSUMER_SECRET = globalThis.Deno?.env.get('MPESA_CONSUMER_SECRET') ?? '';
+const MPESA_SHORTCODE = globalThis.Deno?.env.get('MPESA_SHORTCODE') ?? '';
+const MPESA_PASSKEY = globalThis.Deno?.env.get('MPESA_PASSKEY') ?? '';
 
 export async function initiateMpesaPayment(payload: InitiateRequestBody): Promise<MyPlugPayResponse> {
   const myplugId = generateMyPlugTransactionId();
@@ -15,7 +15,7 @@ export async function initiateMpesaPayment(payload: InitiateRequestBody): Promis
 }
 
 export async function verifyMpesaPayment(req: Request, body: any) {
-  const secret = Deno.env.get('MPESA_WEBHOOK_SECRET') ?? '';
+  const secret = globalThis.Deno?.env.get('MPESA_WEBHOOK_SECRET') ?? '';
   if (secret) {
     const signature = req.headers.get('x-myplug-signature') ?? '';
     const payloadStr = JSON.stringify(body);

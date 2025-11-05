@@ -2,9 +2,9 @@
 import type { InitiateRequestBody, MyPlugPayResponse } from "../types.ts";
 import { generateMyPlugTransactionId, hmacSha256Hex } from "../utils.ts";
 
-const AIRTEL_BASE_URL = Deno.env.get('AIRTEL_BASE_URL') ?? 'https://openapi.airtel.africa';
-const AIRTEL_CLIENT_ID = Deno.env.get('AIRTEL_CLIENT_ID') ?? '';
-const AIRTEL_CLIENT_SECRET = Deno.env.get('AIRTEL_CLIENT_SECRET') ?? '';
+const AIRTEL_BASE_URL = globalThis.Deno?.env.get('AIRTEL_BASE_URL') ?? 'https://openapi.airtel.africa';
+const AIRTEL_CLIENT_ID = globalThis.Deno?.env.get('AIRTEL_CLIENT_ID') ?? '';
+const AIRTEL_CLIENT_SECRET = globalThis.Deno?.env.get('AIRTEL_CLIENT_SECRET') ?? '';
 
 export async function initiateAirtelPayment(payload: InitiateRequestBody): Promise<MyPlugPayResponse> {
   const myplugId = generateMyPlugTransactionId();
@@ -13,7 +13,7 @@ export async function initiateAirtelPayment(payload: InitiateRequestBody): Promi
 }
 
 export async function verifyAirtelPayment(req: Request, body: any) {
-  const secret = Deno.env.get('AIRTEL_WEBHOOK_SECRET') ?? '';
+  const secret = globalThis.Deno?.env.get('AIRTEL_WEBHOOK_SECRET') ?? '';
   if (secret) {
     const signature = req.headers.get('x-myplug-signature') ?? '';
     const payloadStr = JSON.stringify(body);

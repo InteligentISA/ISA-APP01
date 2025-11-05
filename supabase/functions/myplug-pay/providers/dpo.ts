@@ -2,9 +2,9 @@
 import type { InitiateRequestBody, MyPlugPayResponse } from "../types.ts";
 import { generateMyPlugTransactionId } from "../utils.ts";
 
-const DPO_BASE_URL = Deno.env.get('DPO_BASE_URL') ?? 'https://secure.3gdirectpay.com/API/v6/';
-const DPO_COMPANY_TOKEN = Deno.env.get('DPO_COMPANY_TOKEN') ?? '';
-const DPO_SERVICE_TYPE = Deno.env.get('DPO_SERVICE_TYPE') ?? '';
+const DPO_BASE_URL = globalThis.Deno?.env.get('DPO_BASE_URL') ?? 'https://secure.3gdirectpay.com/API/v6/';
+const DPO_COMPANY_TOKEN = globalThis.Deno?.env.get('DPO_COMPANY_TOKEN') ?? '';
+const DPO_SERVICE_TYPE = globalThis.Deno?.env.get('DPO_SERVICE_TYPE') ?? '';
 
 export async function initiateCardPayment(payload: InitiateRequestBody): Promise<MyPlugPayResponse> {
   const myplugId = generateMyPlugTransactionId();

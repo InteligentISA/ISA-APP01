@@ -2,10 +2,10 @@
 import type { InitiateRequestBody, MyPlugPayResponse } from "../types.ts";
 import { generateMyPlugTransactionId } from "../utils.ts";
 
-const PAYPAL_BASE_URL = Deno.env.get('PAYPAL_BASE_URL') ?? 'https://api-m.sandbox.paypal.com';
-const PAYPAL_CLIENT_ID = Deno.env.get('PAYPAL_CLIENT_ID') ?? '';
-const PAYPAL_CLIENT_SECRET = Deno.env.get('PAYPAL_CLIENT_SECRET') ?? '';
-const PAYPAL_WEBHOOK_ID = Deno.env.get('PAYPAL_WEBHOOK_ID') ?? '';
+const PAYPAL_BASE_URL = globalThis.Deno?.env.get('PAYPAL_BASE_URL') ?? 'https://api-m.sandbox.paypal.com';
+const PAYPAL_CLIENT_ID = globalThis.Deno?.env.get('PAYPAL_CLIENT_ID') ?? '';
+const PAYPAL_CLIENT_SECRET = globalThis.Deno?.env.get('PAYPAL_CLIENT_SECRET') ?? '';
+const PAYPAL_WEBHOOK_ID = globalThis.Deno?.env.get('PAYPAL_WEBHOOK_ID') ?? '';
 
 async function getPaypalAccessToken(): Promise<string> {
   const auth = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`);
