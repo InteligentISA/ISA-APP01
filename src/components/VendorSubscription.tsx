@@ -189,7 +189,7 @@ const VendorSubscription = () => {
     setShowDPOPay(true);
   };
 
-  const handleDPOPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
+  const handlePesapalPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
     setIsProcessing(true);
     try {
       const plan = subscriptionPlans.find(p => p.id === selectedPlan);
@@ -203,7 +203,7 @@ const VendorSubscription = () => {
         .eq('status', 'active');
 
       // Create new subscription
-      const { data, error } = await supabase
+      const { data: subscriptionData, error } = await supabase
         .from('vendor_subscriptions' as any)
         .insert({
           vendor_id: user.id,
@@ -211,7 +211,7 @@ const VendorSubscription = () => {
           billing_cycle: plan.billing_cycle,
           price_kes: plan.price_kes,
           status: 'active',
-          payment_method: paymentMethod,
+          payment_method: 'pesapal',
           transaction_id: tx.transaction_id,
           auto_renew: plan.billing_cycle !== 'one-time'
         } as any)
@@ -223,12 +223,13 @@ const VendorSubscription = () => {
       }
 
       // Update user preferences
+      const expiresAt = subscriptionData ? (subscriptionData as any).expires_at : null;
       await supabase
         .from('profiles')
         .update({
           preferences: {
             plan: plan.plan_type,
-            plan_expiry: data?.expires_at || null
+            plan_expiry: expiresAt
           }
         })
         .eq('id', user.id);
@@ -245,13 +246,22 @@ const VendorSubscription = () => {
     } catch (error) {
       console.error('Error processing payment:', error);
       toast({
-        title: 'Payment Failed',
-        description: 'There was an error processing your payment. Please try again.',
+        title: 'Subscription Failed',
+        description: 'Payment was successful but subscription creation failed. Please contact support.',
         variant: 'destructive'
       });
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePesapalPaymentFailure = () => {
+    toast({
+      title: 'Payment Failed',
+      description: 'Your payment could not be processed. Please try again or use a different payment method.',
+      variant: 'destructive'
+    });
+    setShowDPOPay(false);
   };
 
   const getCurrentPlan = () => {
@@ -506,7 +516,8 @@ const VendorSubscription = () => {
           amount={subscriptionPlans.find(p => p.id === selectedPlan)?.price_kes || 0}
           currency={'KES'}
           description={`${subscriptionPlans.find(p => p.id === selectedPlan)?.name} Subscription`}
-          onSuccess={handleDPOPaymentSuccess}
+          onSuccess={handlePesapalPaymentSuccess}
+          onFailure={handlePesapalPaymentFailure}
         />
       )}
     </div>

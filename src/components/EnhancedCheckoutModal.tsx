@@ -395,7 +395,7 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         customer_email: userProfile?.email || user?.email || '',
         customer_phone: userProfile?.phone_number || user?.phone_number || '',
         notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'ISA Delivery'}\n${locationNotes}\n${notes}`,
-        payment_method: paymentMethod,
+        payment_method: 'pesapal',
         delivery_fee: deliveryMethod === 'delivery' ? totalDeliveryCost : 0
       });
 
@@ -425,6 +425,15 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePaymentFailure = () => {
+    toast({
+      title: "Payment Failed",
+      description: "Your payment could not be processed. Please try again or use a different payment method.",
+      variant: "destructive"
+    });
+    setShowDPOPay(false);
   };
 
   const downloadReceipt = () => {
@@ -900,6 +909,7 @@ Payment Method: ${paymentMethod === 'mpesa' ? 'M-Pesa' : paymentMethod}
             bankDetails: paymentMethod === 'bank' ? bankDetails : undefined
           }}
           onSuccess={handlePaymentSuccess}
+          onFailure={handlePaymentFailure}
         />
       )}
     </div>

@@ -208,7 +208,7 @@ const CustomerPremium = () => {
     setShowDPOPay(true);
   };
 
-  const handleDPOPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
+  const handlePesapalPaymentSuccess = async (tx: { transaction_id: string; provider: string }) => {
     setIsProcessing(true);
     try {
       // Cancel any existing active subscription
@@ -227,7 +227,7 @@ const CustomerPremium = () => {
           billing_cycle: selectedPlan.billing_cycle,
           price_kes: selectedPlan.price,
           status: 'active',
-          payment_method: paymentMethod,
+          payment_method: 'pesapal',
           transaction_id: tx.transaction_id,
           auto_renew: true
         } as any)
@@ -238,7 +238,7 @@ const CustomerPremium = () => {
         console.error('Error creating subscription:', error);
         toast({
           title: "Subscription Failed",
-          description: "Failed to create subscription. Please try again.",
+          description: "Payment was successful but subscription creation failed. Please contact support.",
           variant: "destructive"
         });
         return;
@@ -268,13 +268,22 @@ const CustomerPremium = () => {
     } catch (error) {
       console.error('Error processing payment:', error);
       toast({
-        title: "Payment Failed",
-        description: "Please try again or contact support.",
+        title: "Subscription Failed",
+        description: "Payment was successful but subscription creation failed. Please contact support.",
         variant: "destructive"
       });
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePesapalPaymentFailure = () => {
+    toast({
+      title: "Payment Failed",
+      description: "Your payment could not be processed. Please try again or use a different payment method.",
+      variant: "destructive"
+    });
+    setShowDPOPay(false);
   };
 
   const getDaysUntilExpiry = () => {
@@ -608,7 +617,8 @@ const CustomerPremium = () => {
           amount={selectedPlan.price}
           currency={'KES'}
           description={`${selectedPlan.name} Subscription`}
-          onSuccess={handleDPOPaymentSuccess}
+          onSuccess={handlePesapalPaymentSuccess}
+          onFailure={handlePesapalPaymentFailure}
         />
       )}
     </div>

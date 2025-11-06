@@ -1,8 +1,11 @@
 // deno-lint-ignore-file no-explicit-any
+// @deno-types="https://deno.land/x/types/index.d.ts"
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+// @ts-ignore
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { routeRequest } from "./utils.ts";
-import { initiateCardPayment, verifyCardPayment } from "./providers/dpo.ts";
+import { initiateCardPayment, verifyCardPayment } from "./providers/pesapal.ts";
 import { initiateMpesaPayment, verifyMpesaPayment } from "./providers/mpesa.ts";
 import { initiateAirtelPayment, verifyAirtelPayment } from "./providers/airtel.ts";
 import { initiatePaypalPayment, verifyPaypalPayment } from "./providers/paypal.ts";
@@ -22,10 +25,10 @@ async function handleInitiate(req: Request): Promise<Response> {
   if (!payload || !payload.user_id || !payload.amount || !payload.currency || !payload.method) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
-  const provider: ProviderName = payload.method === 'card_bank' ? 'DPO' : (payload.method === 'mpesa' ? 'M-Pesa' : (payload.method === 'airtel' ? 'Airtel' : 'PayPal'));
+  const provider: ProviderName = payload.method === 'card_bank' ? 'Pesapal' : (payload.method === 'mpesa' ? 'M-Pesa' : (payload.method === 'airtel' ? 'Airtel' : 'PayPal'));
 
   let result: MyPlugPayResponse;
-  if (provider === 'DPO') result = await initiateCardPayment(payload);
+  if (provider === 'Pesapal') result = await initiateCardPayment(payload);
   else if (provider === 'M-Pesa') result = await initiateMpesaPayment(payload);
   else if (provider === 'Airtel') result = await initiateAirtelPayment(payload);
   else result = await initiatePaypalPayment(payload);
@@ -61,10 +64,10 @@ async function handleStatus(_req: Request, transactionId: string): Promise<Respo
 
 async function handleWebhook(req: Request): Promise<Response> {
   const providerHeader = req.headers.get('x-myplug-provider');
-  const provider = (providerHeader as ProviderName) || 'DPO';
+  const provider = (providerHeader as ProviderName) || 'Pesapal';
   const body = await req.json();
   let verified: { status: 'success' | 'failed' | 'pending'; reference_id?: string; transaction_id?: string } | null = null;
-  if (provider === 'DPO') verified = await verifyCardPayment(req, body);
+  if (provider === 'Pesapal') verified = await verifyCardPayment(req, body);
   else if (provider === 'M-Pesa') verified = await verifyMpesaPayment(req, body);
   else if (provider === 'Airtel') verified = await verifyAirtelPayment(req, body);
   else verified = await verifyPaypalPayment(req, body);

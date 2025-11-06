@@ -134,7 +134,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customer_email: contactInfo.email,
         customer_phone: contactInfo.phone,
         notes: isGift ? `${notes}${notes ? ' | ' : ''}Gift: ${giftMessage || 'No message'}` : notes,
-        payment_method: 'dpo_pay',
+        payment_method: 'pesapal',
         is_gift: isGift,
         gift_message: giftMessage
       });
@@ -164,6 +164,15 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePaymentFailure = () => {
+    toast({
+      title: "Payment Failed",
+      description: "Your payment could not be processed. Please try again or use a different payment method.",
+      variant: "destructive"
+    });
+    setShowDPOPay(false);
   };
 
   const formatPrice = (price: number) => {
@@ -574,6 +583,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             bankDetails: paymentMethod === 'bank' ? paymentDetails.bankDetails : undefined
           }}
           onSuccess={handlePaymentSuccess}
+          onFailure={handlePaymentFailure}
         />
       )}
     </div>

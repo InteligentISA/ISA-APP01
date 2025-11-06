@@ -1,5 +1,9 @@
 {
   "lock": false,
+  "compilerOptions": {
+    "lib": ["deno.window"],
+    "strict": false
+  },
   "deploy": {
     "permissions": {
       "env": true,
@@ -8,7 +12,8 @@
         "sandbox.safaricom.co.ke",
         "openapi.airtel.africa",
         "api-m.sandbox.paypal.com",
-        "api-m.paypal.com"
+        "api-m.paypal.com",
+        "pay.pesapal.com"
       ]
     }
   }

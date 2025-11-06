@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { initiateDPOPayment, getDPOPaymentStatus, DPOPayMethod } from "@/services/dpoPayService";
+import { initiatePesapalPayment, getPesapalPaymentStatus, PesapalPayMethod } from "@/services/pesapalPayService";
 import DPOPayTerms from "./DPOPayTerms";
 
-interface DPOPayModalProps {
+interface PesapalPayModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   userId: string;
@@ -29,10 +29,11 @@ interface DPOPayModalProps {
     };
   };
   onSuccess?: (tx: { transaction_id: string; provider: string }) => void;
+  onFailure?: () => void;
 }
 
-export default function DPOPayModal({ open, onOpenChange, userId, amount, currency = 'KES', orderId, description, paymentMethod, paymentDetails, onSuccess }: DPOPayModalProps) {
-  const [loading, setLoading] = useState<DPOPayMethod | null>(null);
+export default function PesapalPayModal({ open, onOpenChange, userId, amount, currency = 'KES', orderId, description, paymentMethod, paymentDetails, onSuccess, onFailure }: PesapalPayModalProps) {
+  const [loading, setLoading] = useState<PesapalPayMethod | null>(null);
   const [transactionId, setTransactionId] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
@@ -41,7 +42,7 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
   const pollStartRef = useRef<number | null>(null);
   const { toast } = useToast();
 
-  async function handlePay(method: DPOPayMethod) {
+  async function handlePay(method: PesapalPayMethod) {
     try {
       setLoading(method);
       setRetryCount(0);
@@ -65,12 +66,13 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
         paymentParams.bank_details = paymentDetails?.bankDetails;
       }
 
-      const resp = await initiateDPOPayment(paymentParams);
+      const resp = await initiatePesapalPayment(paymentParams);
       setTransactionId(resp.transaction_id);
       setStatus('pending');
-      setStatusMessage('Processing payment with DPO...');
+      setStatusMessage('Processing payment with Pesapal...');
       
       if (resp.redirect_url) {
+        // Redirect to Pesapal payment page
         window.location.href = resp.redirect_url;
       } else {
         startPolling(resp.transaction_id);
@@ -83,6 +85,7 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
         description: e?.message ?? 'Failed to initiate payment. Please try again.',
         variant: 'destructive'
       });
+      if (onFailure) onFailure();
     } finally {
       setLoading(null);
     }
@@ -108,17 +111,20 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
     
     pollRef.current = window.setInterval(async () => {
       try {
-        const res = await getDPOPaymentStatus(id);
+        const res = await getPesapalPaymentStatus(id);
         if (res.status === 'success') {
           setStatus('success');
           setStatusMessage('Payment confirmed! Processing your order...');
-          if (onSuccess) onSuccess({ transaction_id: id, provider: res.provider });
+          if (onSuccess) {
+            onSuccess({ transaction_id: id, provider: res.provider || 'Pesapal' });
+          }
           stopPolling();
           setTimeout(() => onOpenChange(false), 2000);
         } else if (res.status === 'failed') {
           setStatus('failed');
-          setStatusMessage('Payment failed. You can try again or use a different payment method.');
+          setStatusMessage('Payment failed. Please try again or use a different payment method.');
           stopPolling();
+          if (onFailure) onFailure();
         } else {
           setStatus('pending');
           setStatusMessage('Payment is being processed. Please wait...');
@@ -132,6 +138,7 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
         setStatus('failed');
         setStatusMessage('Payment is taking longer than expected. Please check your payment method or try again.');
         stopPolling();
+        if (onFailure) onFailure();
       }
     }, 4000);
   }
@@ -154,7 +161,7 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
     return () => { stopPolling(); };
   }, [open]);
 
-  const getPaymentMethodLabel = (method: DPOPayMethod) => {
+  const getPaymentMethodLabel = (method: PesapalPayMethod) => {
     switch (method) {
       case 'mpesa': return 'M-Pesa';
       case 'airtel': return 'Airtel Money';
@@ -169,13 +176,13 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
       <DialogContent className="w-[95vw] max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <div className="h-6 w-6 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-sm">
-              DPO
+            <div className="h-6 w-6 bg-green-600 rounded flex items-center justify-center text-white font-bold text-sm">
+              P
             </div>
-            <span>Secure Payment with DPO</span>
+            <span>Secure Payment with Pesapal</span>
           </DialogTitle>
           <DialogDescription>
-            All payments are processed securely by DPO Group. Your payment information is encrypted and protected.
+            All payments are processed securely by Pesapal. Your payment information is encrypted and protected.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -265,7 +272,7 @@ export default function DPOPayModal({ open, onOpenChange, userId, amount, curren
           )}
           
           <div className="text-xs text-muted-foreground text-center">
-            Secured by DPO Group™ • All payments processed by DPO
+            Secured by Pesapal™ • All payments processed by Pesapal
           </div>
           
           <details className="text-[10px] text-muted-foreground">

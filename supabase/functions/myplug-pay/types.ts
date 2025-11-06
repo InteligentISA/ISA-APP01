@@ -1,4 +1,4 @@
-export type ProviderName = 'DPO' | 'M-Pesa' | 'Airtel' | 'PayPal';
+export type ProviderName = 'Pesapal' | 'M-Pesa' | 'Airtel' | 'PayPal';
 export type InitiateMethod = 'card_bank' | 'mpesa' | 'airtel' | 'paypal';
 export interface InitiateRequestBody {
   user_id: string;
