@@ -10,7 +10,7 @@ import { Check, Crown, Zap, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import DPOPayModal from "@/components/payments/DPOPayModal";
+import PesapalPayModal from "@/components/payments/PesapalPayModal";
 import { CommissionService } from "@/services/commissionService";
 import { LoyaltyService } from "@/services/loyaltyService";
 
@@ -509,7 +509,7 @@ const VendorSubscription = () => {
       </div>
       
       {showDPOPay && selectedPlan && (
-        <DPOPayModal
+        <PesapalPayModal
           open={showDPOPay}
           onOpenChange={setShowDPOPay}
           userId={user.id}

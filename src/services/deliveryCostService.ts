@@ -128,7 +128,7 @@ export class DeliveryCostService {
    * Calculate delivery cost for a product to a customer location
    * Uses a default pickup location (Nairobi) for simplicity
    */
-  static async calculateProductDeliveryCost(
+  static async getProductDeliveryCost(
     productId: string,
     customerLocation: DeliveryLocation
   ): Promise<{ data: DeliveryCostCalculation | null; error: any }> {
@@ -203,7 +203,7 @@ export class DeliveryCostService {
 
         // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
         const firstProduct = vendorProducts[0];
-        const { data: deliveryCost, error } = await this.calculateProductDeliveryCost(firstProduct.id, customerLocation);
+        const { data: deliveryCost, error } = await this.getProductDeliveryCost(firstProduct.id, customerLocation);
         
         if (error || !deliveryCost) {
           console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);
@@ -268,7 +268,7 @@ export class DeliveryCostService {
 
         // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
         const firstCartItem = vendorCartItems[0];
-        const { data: deliveryCost, error } = await this.calculateProductDeliveryCost(firstCartItem.product.id, customerLocation);
+        const { data: deliveryCost, error } = await this.getProductDeliveryCost(firstCartItem.product.id, customerLocation);
         
         if (error || !deliveryCost) {
           console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);

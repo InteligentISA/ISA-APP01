@@ -129,12 +129,7 @@ export type OrderStatus =
   | 'refunded';
 
 export type PaymentMethod = 
-  | 'mpesa'
-  | 'airtel_money'
-  | 'card'
-  | 'bank'
-  | 'dpo_pay'
-  | 'myplug_pay'
+  | 'pesapal'
   | 'cash_on_delivery'
   | 'cash_on_pickup';
 
