@@ -6,6 +6,9 @@ export interface UserProfile {
   email?: string;
   phone?: string;
   phone_number?: string;
+  age?: number;
+  preferred_language?: string;
+  style_preferences?: any;
   avatar_url?: string;
   date_of_birth?: string;
   gender?: string;

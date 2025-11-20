@@ -76,6 +76,8 @@ export interface CartItem {
   user_id: string;
   product_id: string;
   quantity: number;
+  name?: string;
+  price?: number;
   created_at: string;
   updated_at: string;
   // Joined with product data
