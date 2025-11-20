@@ -1,3 +1,21 @@
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'assistant' | 'myplug' | 'system';
+  content: string;
+  timestamp: Date;
+  products?: any[];
+  productResults?: any[];
+  suggestions?: any;
+  analysis?: QueryAnalysis;
+}
+
+export interface ChatSession {
+  id: string;
+  messages: ChatMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface QueryAnalysis {
   category?: string;
   subcategory?: string;

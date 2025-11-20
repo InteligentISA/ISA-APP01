@@ -122,8 +122,8 @@ export class ConversationService {
         type: msg.role === 'myplug' ? 'myplug' : msg.role === 'user' ? 'user' : 'system',
         content: msg.content,
         timestamp: new Date(msg.created_at),
-        productResults: msg.metadata?.productResults || null,
-        suggestions: msg.metadata?.suggestions || null
+        productResults: (msg.metadata as any)?.productResults || null,
+        suggestions: (msg.metadata as any)?.suggestions || null
       }));
     } catch (error) {
       console.error('Error fetching conversation messages:', error);

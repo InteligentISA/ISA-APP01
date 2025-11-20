@@ -25,8 +25,6 @@ import { Input } from "@/components/ui/input";
 import { isPremiumUser } from "@/lib/utils";
 import TierUpgradeModal from "@/components/TierUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
-import { MpesaService } from "@/services/mpesaService";
-import { AirtelService } from "@/services/airtelService";
 
 interface IndexProps {
   splashDestination?: 'walkthrough' | 'dashboard' | null;
@@ -48,6 +46,8 @@ const Index = ({ splashDestination }: IndexProps) => {
 
   const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>(getInitialView());
   const [user, setUser] = useState<any>(null);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [showProductDetail, setShowProductDetail] = useState(false);
 
   // Save currentView to localStorage whenever it changes (except for initial views)
   useEffect(() => {
@@ -638,55 +638,14 @@ const Index = ({ splashDestination }: IndexProps) => {
     phoneNumber: string
   ) => {
     setUpgradeLoading(true);
-    let paymentResponse;
-    try {
-      if (paymentMethod === "mpesa") {
-        paymentResponse = await MpesaService.initiatePayment({
-          phoneNumber,
-          amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
-          orderId: user.id + "-" + Date.now(),
-          description: `MyPlug Premium ${plan} plan`
-        });
-      } else {
-        paymentResponse = await AirtelService.initiatePayment({
-          phoneNumber,
-          amount: plan === "weekly" ? 99 : plan === "monthly" ? 499 : 4500,
-          orderId: user.id + "-" + Date.now(),
-          description: `MyPlug Premium ${plan} plan`
-        });
-      }
-      if (paymentResponse.success) {
-        let expiry = new Date();
-        if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
-        if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
-        if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
-        await supabase
-          .from('profiles')
-          .update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) } as any)
-          .eq('id', user.id);
-        setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
-        setShowTierModal(false);
-        toast({
-          title: "Upgrade Successful!",
-          description: "You are now a premium user. Enjoy all features!",
-        });
-        setCurrentView('gifts');
-      } else {
-        toast({
-          title: "Payment Failed",
-          description: paymentResponse.message,
-          variant: "destructive"
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Payment Error",
-        description: err.message || "An error occurred during payment.",
-        variant: "destructive"
-      });
-    } finally {
-      setUpgradeLoading(false);
-    }
+    // TODO: Integrate with PesaPal for premium upgrades
+    toast({
+      title: "Payment Integration Required",
+      description: "Premium upgrades now use PesaPal. Please contact support.",
+      variant: "destructive"
+    });
+    setUpgradeLoading(false);
+    setShowTierModal(false);
   };
 
   return (

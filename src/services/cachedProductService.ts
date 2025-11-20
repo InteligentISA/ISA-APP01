@@ -185,7 +185,7 @@ export class CachedProductService {
 
       // If not in cache, fetch from API
       console.log(`Fetching product ${id} from API`);
-      const result = await ProductService.getProductById(id);
+      const result = await ProductService.getProduct(id);
       
       if (!result.error && result.data) {
         // Cache the result

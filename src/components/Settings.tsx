@@ -71,7 +71,7 @@ const Settings = ({ user, onProfileUpdate }: SettingsProps) => {
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
           email: profile.email || '',
-          phone: profile.phone || profile.phone_number || '',
+          phone: profile.phone_number || '',
           date_of_birth: profile.date_of_birth || '',
           location: profile.location || '',
           gender: profile.gender || ''
