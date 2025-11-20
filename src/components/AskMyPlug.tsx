@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: number;
-  type: 'user' | 'myplug';
+  type: 'user' | 'myplug' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
 }
