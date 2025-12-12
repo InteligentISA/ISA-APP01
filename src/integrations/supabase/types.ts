@@ -2061,6 +2061,44 @@ export type Database = {
           },
         ]
       }
+      shopping_experience_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string | null
+          rating: number
+          review_comment: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating: number
+          review_comment?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating?: number
+          review_comment?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_experience_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       style_quiz_questions: {
         Row: {
           created_at: string
@@ -3421,13 +3459,14 @@ export type Database = {
       }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       is_admin:
-        | { Args: { user_id: string }; Returns: boolean }
         | { Args: never; Returns: boolean }
+        | { Args: { user_id: string }; Returns: boolean }
       is_admin_active: { Args: { _user_id?: string }; Returns: boolean }
       is_admin_user: { Args: { _user_id?: string }; Returns: boolean }
       is_main_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_user_suspended: { Args: { user_uuid: string }; Returns: boolean }
       is_vendor_order:
+        | { Args: { order_id: number }; Returns: boolean }
         | {
             Args: {
               order_row: Database["public"]["Tables"]["orders"]["Row"]
@@ -3435,7 +3474,6 @@ export type Database = {
             }
             Returns: boolean
           }
-        | { Args: { order_id: number }; Returns: boolean }
       log_security_event: {
         Args: {
           p_action: string

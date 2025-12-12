@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   RotateCcw,
@@ -76,24 +75,20 @@ export const ReturnRequestForm = ({ order, onSuccess }: ReturnRequestFormProps) 
       // Get the first item for return (in a real app, you might want to let users select which items)
       const firstItem = order.items[0];
       
-      const returnRequest: CreateReturnRequestRequest = {
-        order_id: order.id,
-        product_id: firstItem.product_id,
-        reason: selectedReason,
-        message: message.trim() || undefined,
-        return_type: returnType as 'replacement' | 'exchange' | 'refund'
-      };
-
+      // Insert into order_returns table instead of return_requests
       const { error } = await supabase
-        .from('return_requests')
+        .from('order_returns')
         .insert({
-          ...returnRequest,
-          user_id: order.user_id,
-          vendor_id: firstItem.vendor_id || order.user_id // Fallback to order user if no vendor_id
+          order_id: order.id,
+          customer_id: order.user_id,
+          reason: selectedReason,
+          description: message.trim() || undefined,
+          status: 'pending'
         });
 
       if (error) throw error;
 
+      setStep(4); // Success step
       onSuccess();
     } catch (error) {
       console.error('Error creating return request:', error);

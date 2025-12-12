@@ -5,7 +5,6 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { AdminService, PaymentData, PaymentStats } from '@/services/adminService';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -14,13 +13,9 @@ import {
   TrendingUp, 
   Users, 
   Search, 
-  Filter,
   Download,
-  Eye,
-  Calendar,
   Phone,
-  Mail,
-  ShoppingBag
+  Mail
 } from 'lucide-react';
 
 const PaymentSection: React.FC = () => {
@@ -39,11 +34,11 @@ const PaymentSection: React.FC = () => {
   const fetchPaymentData = async () => {
     try {
       setLoading(true);
-      const [paymentsData, statsData] = await Promise.all([
+      const [paymentsResult, statsData] = await Promise.all([
         AdminService.getSuccessfulPayments(),
         AdminService.getPaymentStats()
       ]);
-      setPayments(paymentsData);
+      setPayments(paymentsResult.data || []);
       setStats(statsData);
     } catch (error) {
       console.error('Error fetching payment data:', error);
@@ -374,4 +369,4 @@ const PaymentSection: React.FC = () => {
   );
 };
 
-export default PaymentSection; 
+export default PaymentSection;
