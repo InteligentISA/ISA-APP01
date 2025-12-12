@@ -1,8 +1,11 @@
+import { supabase } from "@/integrations/supabase/client";
+
 export interface DeliveryLocation {
   county: string;
   constituency?: string;
   ward?: string;
   whatsapp_number?: string;
+  apartment_landmark?: string;
 }
 
 export interface DeliveryCostCalculation {
@@ -20,306 +23,216 @@ export interface DeliveryCostCalculation {
 }
 
 export class DeliveryCostService {
-  // Static delivery cost configuration
   private static readonly BASE_COST = 200;
-  private static readonly COUNTY_COST_MULTIPLIER = 100;
-  private static readonly CONSTITUENCY_COST_MULTIPLIER = 50;
-  private static readonly WARD_COST_MULTIPLIER = 25;
 
-  // Major counties that typically have higher delivery costs
-  private static readonly MAJOR_COUNTIES = [
-    'Nairobi County',
-    'Mombasa County',
-    'Kisumu County',
-    'Nakuru County'
-  ];
-
-  // Counties with ward data (hotspot counties)
+  // Hotspot counties with ward-level delivery
   private static readonly HOTSPOT_COUNTIES = [
-    'Nairobi County',
-    'Kiambu County', 
-    'Kajiado County',
-    'Machakos County'
+    'Nairobi',
+    'Kiambu', 
+    'Kajiado',
+    'Machakos'
   ];
 
-  /**
-   * Calculate delivery cost between two locations using static rules
-   * Formula: Total Cost = Base Cost + County Cost + Constituency Cost + Ward Cost
-   */
+  // Get all counties
+  static async getCounties(): Promise<{ data: Array<{ id: string; name: string; is_hotspot: boolean }>; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('counties')
+        .select('id, name, is_hotspot')
+        .order('name');
+      return { data: data || [], error };
+    } catch (error) {
+      return { data: [], error };
+    }
+  }
+
+  // Get county by name
+  static async getCountyByName(name: string): Promise<{ data: { id: string; name: string; is_hotspot: boolean } | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('counties')
+        .select('id, name, is_hotspot')
+        .eq('name', name)
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Get constituencies by county
+  static async getConstituenciesByCounty(countyId: string): Promise<{ data: Array<{ id: string; name: string }>; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('constituencies')
+        .select('id, name')
+        .eq('county_id', countyId)
+        .order('name');
+      return { data: data || [], error };
+    } catch (error) {
+      return { data: [], error };
+    }
+  }
+
+  // Get constituency by name
+  static async getConstituencyByName(name: string, countyId: string): Promise<{ data: { id: string; name: string } | null; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('constituencies')
+        .select('id, name')
+        .eq('name', name)
+        .eq('county_id', countyId)
+        .single();
+      return { data, error };
+    } catch (error) {
+      return { data: null, error };
+    }
+  }
+
+  // Get wards by constituency
+  static async getWardsByConstituency(constituencyId: string): Promise<{ data: Array<{ id: string; name: string }>; error: any }> {
+    try {
+      const { data, error } = await supabase
+        .from('wards')
+        .select('id, name')
+        .eq('constituency_id', constituencyId)
+        .order('name');
+      return { data: data || [], error };
+    } catch (error) {
+      return { data: [], error };
+    }
+  }
+
+  // Calculate delivery cost between two locations
   static async calculateDeliveryCost(
     fromLocation: DeliveryLocation,
     toLocation: DeliveryLocation
   ): Promise<{ data: DeliveryCostCalculation | null; error: any }> {
     try {
-      const baseCost = this.BASE_COST;
+      // Get base cost from database
+      const { data: baseCostData } = await supabase
+        .from('delivery_base_cost')
+        .select('base_cost')
+        .eq('is_active', true)
+        .single();
+
+      const baseCost = baseCostData?.base_cost || this.BASE_COST;
       let countyCost = 0;
       let constituencyCost = 0;
       let wardCost = 0;
 
-      // Calculate county cost - different counties have different costs
+      // Calculate county cost
       if (fromLocation.county !== toLocation.county) {
-        // Base county cost
-        countyCost = this.COUNTY_COST_MULTIPLIER;
+        const { data: countyData } = await supabase
+          .from('delivery_county_costs')
+          .select('cost')
+          .or(`and(from_county_id.eq.${fromLocation.county},to_county_id.eq.${toLocation.county}),and(from_county_id.eq.${toLocation.county},to_county_id.eq.${fromLocation.county})`)
+          .eq('is_active', true)
+          .single();
         
-        // Additional cost for major counties
-        if (this.MAJOR_COUNTIES.includes(toLocation.county)) {
-          countyCost += 50;
-        }
-        
-        // Additional cost if from major county
-        if (this.MAJOR_COUNTIES.includes(fromLocation.county)) {
-          countyCost += 25;
-        }
+        countyCost = countyData?.cost || 100;
       }
 
-      // Calculate constituency cost - only if same county
-      if (fromLocation.constituency && toLocation.constituency && 
-          fromLocation.county === toLocation.county &&
+      // Calculate constituency cost (same county, different constituency)
+      if (fromLocation.county === toLocation.county && 
+          fromLocation.constituency && toLocation.constituency &&
           fromLocation.constituency !== toLocation.constituency) {
-        constituencyCost = this.CONSTITUENCY_COST_MULTIPLIER;
+        constituencyCost = 50;
       }
 
-      // Calculate ward cost - only if same constituency and county is hotspot
-      if (fromLocation.ward && toLocation.ward && 
-          fromLocation.constituency === toLocation.constituency &&
+      // Calculate ward cost (same constituency, different ward, hotspot area)
+      if (fromLocation.constituency === toLocation.constituency &&
+          fromLocation.ward && toLocation.ward &&
           fromLocation.ward !== toLocation.ward &&
-          this.HOTSPOT_COUNTIES.includes(fromLocation.county)) {
-        wardCost = this.WARD_COST_MULTIPLIER;
+          this.HOTSPOT_COUNTIES.some(c => fromLocation.county?.includes(c))) {
+        wardCost = 25;
       }
 
       const totalCost = baseCost + countyCost + constituencyCost + wardCost;
 
-      const calculation: DeliveryCostCalculation = {
-        baseCost,
-        countyCost,
-        constituencyCost,
-        wardCost,
-        totalCost,
-        breakdown: {
-          base: baseCost,
-          county: countyCost,
-          constituency: constituencyCost,
-          ward: wardCost
-        }
+      return {
+        data: {
+          baseCost,
+          countyCost,
+          constituencyCost,
+          wardCost,
+          totalCost,
+          breakdown: { base: baseCost, county: countyCost, constituency: constituencyCost, ward: wardCost }
+        },
+        error: null
       };
-
-      return { data: calculation, error: null };
     } catch (error) {
-      console.error('Error calculating delivery cost:', error);
-      // Return default cost if calculation fails
-      const defaultCost = {
-        baseCost: this.BASE_COST,
-        countyCost: 0,
-        constituencyCost: 0,
-        wardCost: 0,
-        totalCost: this.BASE_COST,
-        breakdown: {
-          base: this.BASE_COST,
-          county: 0,
-          constituency: 0,
-          ward: 0
-        }
+      return {
+        data: { baseCost: this.BASE_COST, countyCost: 0, constituencyCost: 0, wardCost: 0, totalCost: this.BASE_COST, breakdown: { base: this.BASE_COST, county: 0, constituency: 0, ward: 0 } },
+        error: null
       };
-      return { data: defaultCost, error: null };
     }
   }
 
-  /**
-   * Calculate delivery cost for a product to a customer location
-   * Uses a default pickup location (Nairobi) for simplicity
-   */
+  // Get delivery cost for a product
   static async getProductDeliveryCost(
     productId: string,
     customerLocation: DeliveryLocation
   ): Promise<{ data: DeliveryCostCalculation | null; error: any }> {
     try {
-      // Default pickup location (Nairobi) - you can modify this based on your needs
+      const { data: product } = await supabase
+        .from('products')
+        .select('pickup_county, pickup_constituency, pickup_ward')
+        .eq('id', productId)
+        .single();
+
       const pickupLocation: DeliveryLocation = {
-        county: 'Nairobi County',
-        constituency: 'Westlands',
-        ward: 'Kitisuru'
+        county: product?.pickup_county || 'Nairobi',
+        constituency: product?.pickup_constituency,
+        ward: product?.pickup_ward
       };
 
-      return await this.calculateDeliveryCost(pickupLocation, customerLocation);
+      return this.calculateDeliveryCost(pickupLocation, customerLocation);
     } catch (error) {
-      console.error('Error calculating product delivery cost:', error);
       return { data: null, error };
     }
   }
 
-  /**
-   * Format delivery cost for display
-   */
+  // Format delivery cost
   static formatDeliveryCost(cost: DeliveryCostCalculation): string {
     return `Ksh ${cost.totalCost.toFixed(0)}`;
   }
 
-  /**
-   * Get delivery cost breakdown for display
-   */
-  static getDeliveryCostBreakdown(cost: DeliveryCostCalculation): string {
-    const parts = [];
-    
-    if (cost.breakdown.base > 0) {
-      parts.push(`Base: Ksh ${cost.breakdown.base}`);
-    }
-    if (cost.breakdown.county > 0) {
-      parts.push(`County: Ksh ${cost.breakdown.county}`);
-    }
-    if (cost.breakdown.constituency > 0) {
-      parts.push(`Constituency: Ksh ${cost.breakdown.constituency}`);
-    }
-    if (cost.breakdown.ward > 0) {
-      parts.push(`Ward: Ksh ${cost.breakdown.ward}`);
-    }
-
-    return parts.join(' + ');
+  // Validate delivery location
+  static async validateDeliveryLocation(location: DeliveryLocation): Promise<{ isValid: boolean; message: string }> {
+    if (!location.county) return { isValid: false, message: 'County is required' };
+    return { isValid: true, message: 'Valid location' };
   }
 
-  // Get delivery cost for multiple products (for checkout) - grouped by vendor
+  // Get cart delivery cost grouped by vendor
   static async getCartDeliveryCost(
     products: Array<{ id: string; quantity: number; vendor_id?: string }>,
     customerLocation: DeliveryLocation
   ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number; vendor_id?: string }>; vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> } | null; error: any }> {
-    try {
-      const breakdown: Array<{ productId: string; cost: number; vendor_id?: string }> = [];
-      const vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> = [];
-      let totalCost = 0;
+    const vendorGroups = new Map<string, typeof products>();
+    
+    for (const product of products) {
+      const vendorId = product.vendor_id || 'default';
+      if (!vendorGroups.has(vendorId)) vendorGroups.set(vendorId, []);
+      vendorGroups.get(vendorId)!.push(product);
+    }
 
-      // Group products by vendor
-      const vendorGroups = new Map<string, Array<{ id: string; quantity: number; vendor_id?: string }>>();
+    let totalCost = 0;
+    const breakdown: Array<{ productId: string; cost: number; vendor_id?: string }> = [];
+    const vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> = [];
+
+    for (const [vendorId, vendorProducts] of vendorGroups) {
+      const { data: deliveryCost } = await this.getProductDeliveryCost(vendorProducts[0].id, customerLocation);
+      const vendorDeliveryCost = deliveryCost?.totalCost || this.BASE_COST;
+      totalCost += vendorDeliveryCost;
+
+      vendorBreakdown.push({ vendor_id: vendorId, cost: vendorDeliveryCost, productCount: vendorProducts.length });
       
-      for (const product of products) {
-        const vendorId = product.vendor_id || 'default'; // Use 'default' for products without vendor
-        if (!vendorGroups.has(vendorId)) {
-          vendorGroups.set(vendorId, []);
-        }
-        vendorGroups.get(vendorId)!.push(product);
-      }
-
-      // Calculate delivery cost once per vendor
-      for (const [vendorId, vendorProducts] of vendorGroups) {
-        if (vendorProducts.length === 0) continue;
-
-        // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
-        const firstProduct = vendorProducts[0];
-        const { data: deliveryCost, error } = await this.getProductDeliveryCost(firstProduct.id, customerLocation);
-        
-        if (error || !deliveryCost) {
-          console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);
-          continue;
-        }
-
-        // Charge delivery cost only once per vendor, regardless of number of products
-        const vendorDeliveryCost = deliveryCost.totalCost;
-        totalCost += vendorDeliveryCost;
-
-        // Add to vendor breakdown
-        vendorBreakdown.push({
-          vendor_id: vendorId,
-          cost: vendorDeliveryCost,
-          productCount: vendorProducts.length
-        });
-
-        // Add individual product breakdown (showing 0 cost for additional products from same vendor)
-        for (let i = 0; i < vendorProducts.length; i++) {
-          const product = vendorProducts[i];
-          const productCost = i === 0 ? vendorDeliveryCost : 0; // Only first product pays delivery cost
-          
-          breakdown.push({
-            productId: product.id,
-            cost: productCost,
-            vendor_id: product.vendor_id
-          });
-        }
-      }
-
-      return { data: { totalCost, breakdown, vendorBreakdown }, error: null };
-    } catch (error) {
-      console.error('Error calculating cart delivery cost:', error);
-      return { data: null, error };
+      vendorProducts.forEach((product, i) => {
+        breakdown.push({ productId: product.id, cost: i === 0 ? vendorDeliveryCost : 0, vendor_id: product.vendor_id });
+      });
     }
-  }
 
-  // Get delivery cost for cart items (with product information) - grouped by vendor
-  static async getCartItemsDeliveryCost(
-    cartItems: Array<{ product: { id: string; vendor_id?: string }; quantity: number }>,
-    customerLocation: DeliveryLocation
-  ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number; vendor_id?: string }>; vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> } | null; error: any }> {
-    try {
-      const breakdown: Array<{ productId: string; cost: number; vendor_id?: string }> = [];
-      const vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> = [];
-      let totalCost = 0;
-
-      // Group cart items by vendor
-      const vendorGroups = new Map<string, Array<{ product: { id: string; vendor_id?: string }; quantity: number }>>();
-      
-      for (const cartItem of cartItems) {
-        const vendorId = cartItem.product.vendor_id || 'default'; // Use 'default' for products without vendor
-        if (!vendorGroups.has(vendorId)) {
-          vendorGroups.set(vendorId, []);
-        }
-        vendorGroups.get(vendorId)!.push(cartItem);
-      }
-
-      // Calculate delivery cost once per vendor
-      for (const [vendorId, vendorCartItems] of vendorGroups) {
-        if (vendorCartItems.length === 0) continue;
-
-        // Calculate delivery cost for the first product of this vendor (since all products from same vendor have same pickup location)
-        const firstCartItem = vendorCartItems[0];
-        const { data: deliveryCost, error } = await this.getProductDeliveryCost(firstCartItem.product.id, customerLocation);
-        
-        if (error || !deliveryCost) {
-          console.error(`Error calculating delivery cost for vendor ${vendorId}:`, error);
-          continue;
-        }
-
-        // Charge delivery cost only once per vendor, regardless of number of products
-        const vendorDeliveryCost = deliveryCost.totalCost;
-        totalCost += vendorDeliveryCost;
-
-        // Add to vendor breakdown
-        vendorBreakdown.push({
-          vendor_id: vendorId,
-          cost: vendorDeliveryCost,
-          productCount: vendorCartItems.length
-        });
-
-        // Add individual product breakdown (showing 0 cost for additional products from same vendor)
-        for (let i = 0; i < vendorCartItems.length; i++) {
-          const cartItem = vendorCartItems[i];
-          const productCost = i === 0 ? vendorDeliveryCost : 0; // Only first product pays delivery cost
-          
-          breakdown.push({
-            productId: cartItem.product.id,
-            cost: productCost,
-            vendor_id: cartItem.product.vendor_id
-          });
-        }
-      }
-
-      return { data: { totalCost, breakdown, vendorBreakdown }, error: null };
-    } catch (error) {
-      console.error('Error calculating cart items delivery cost:', error);
-      return { data: null, error };
-    }
-  }
-
-  // Validate delivery location (simplified validation)
-  static async validateDeliveryLocation(location: DeliveryLocation): Promise<{ isValid: boolean; message: string }> {
-    try {
-      if (!location.county) {
-        return { isValid: false, message: 'County is required' };
-      }
-
-      if (!location.whatsapp_number) {
-        return { isValid: false, message: 'WhatsApp number is required for delivery' };
-      }
-
-      return { isValid: true, message: 'Valid delivery location' };
-    } catch (error) {
-      return { isValid: false, message: 'Error validating location' };
-    }
+    return { data: { totalCost, breakdown, vendorBreakdown }, error: null };
   }
 }

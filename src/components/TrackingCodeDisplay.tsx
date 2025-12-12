@@ -8,8 +8,7 @@ import {
   Check, 
   Truck,
   MapPin,
-  Phone,
-  ExternalLink
+  Phone
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +24,13 @@ interface TrackingData {
   deliveryAddress?: string;
   vendorWhatsapp?: string;
   customerWhatsapp?: string;
+}
+
+interface TrackingUpdate {
+  type?: string;
+  fikisha_tracking_code?: string;
+  fikisha_order_id?: string;
+  product?: any;
 }
 
 export const TrackingCodeDisplay: React.FC<TrackingCodeDisplayProps> = ({ orderId }) => {
@@ -57,17 +63,6 @@ export const TrackingCodeDisplay: React.FC<TrackingCodeDisplayProps> = ({ orderI
               constituency,
               ward
             )
-          ),
-          order_items:order_items(
-            product:products(
-              vendor_id,
-              vendor:profiles(
-                whatsapp_number,
-                county,
-                constituency,
-                ward
-              )
-            )
           )
         `)
         .eq('order_id', orderId)
@@ -84,8 +79,8 @@ export const TrackingCodeDisplay: React.FC<TrackingCodeDisplayProps> = ({ orderI
       let fikishaOrderId = '';
       
       if (deliveryOrder.tracking_updates && Array.isArray(deliveryOrder.tracking_updates)) {
-        const fikishaUpdate = deliveryOrder.tracking_updates.find(
-          (update: any) => update.type === 'sent_to_fikisha'
+        const fikishaUpdate = (deliveryOrder.tracking_updates as TrackingUpdate[]).find(
+          (update) => update.type === 'sent_to_fikisha'
         );
         if (fikishaUpdate) {
           trackingCode = fikishaUpdate.fikisha_tracking_code || '';
@@ -93,15 +88,39 @@ export const TrackingCodeDisplay: React.FC<TrackingCodeDisplayProps> = ({ orderI
         }
       }
 
-      const vendorProfile = deliveryOrder.order_items?.[0]?.product?.vendor;
-      const customerProfile = deliveryOrder.order?.user;
+      // Get order items with vendor info
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select(`
+          *,
+          products (
+            vendor_id
+          )
+        `)
+        .eq('order_id', orderId)
+        .limit(1);
+
+      let vendorWhatsapp = '';
+      if (orderItems && orderItems.length > 0 && orderItems[0].products) {
+        const vendorId = (orderItems[0].products as any).vendor_id;
+        if (vendorId) {
+          const { data: vendorProfile } = await supabase
+            .from('profiles')
+            .select('whatsapp_number')
+            .eq('id', vendorId)
+            .single();
+          vendorWhatsapp = vendorProfile?.whatsapp_number || '';
+        }
+      }
+
+      const customerProfile = (deliveryOrder.order as any)?.user;
 
       setTrackingData({
         trackingCode,
         fikishaOrderId,
         status: deliveryOrder.status,
         deliveryAddress: deliveryOrder.delivery_location_address,
-        vendorWhatsapp: vendorProfile?.whatsapp_number,
+        vendorWhatsapp,
         customerWhatsapp: customerProfile?.whatsapp_number || customerProfile?.phone_number
       });
 

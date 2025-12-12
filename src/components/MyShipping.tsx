@@ -17,19 +17,23 @@ import { supabase } from "@/integrations/supabase/client";
 interface ShippingRecord {
   id: string;
   order_id: string;
+  carrier: string;
   tracking_number?: string;
+  tracking_url?: string;
   status: string;
-  shipping_address: string;
-  estimated_delivery?: string;
-  actual_delivery?: string;
+  shipping_method: string;
+  estimated_delivery_date?: string;
+  actual_delivery_date?: string;
   created_at: string;
+  updated_at: string;
   order?: {
     id: string;
+    order_number: string;
     total_amount: number;
     items?: Array<{
       product_name: string;
       quantity: number;
-      price: number;
+      unit_price: number;
     }>;
   };
 }
@@ -50,22 +54,42 @@ const MyShipping = ({ user }: MyShippingProps) => {
 
   const loadShippingRecords = async () => {
     try {
+      // First get order IDs for the user
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (ordersError) {
+        console.error('Error loading orders:', ordersError);
+        return;
+      }
+
+      if (!orders || orders.length === 0) {
+        setShippingRecords([]);
+        setLoading(false);
+        return;
+      }
+
+      const orderIds = orders.map(o => o.id);
+
       // Load shipping records with order details
       const { data, error } = await supabase
         .from('shipping')
         .select(`
           *,
-          order:orders!shipping_order_id_fkey (
+          order:orders (
             id,
+            order_number,
             total_amount,
             items:order_items (
               product_name,
               quantity,
-              price
+              unit_price
             )
           )
         `)
-        .eq('user_id', user.id)
+        .in('order_id', orderIds)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -73,7 +97,23 @@ const MyShipping = ({ user }: MyShippingProps) => {
         return;
       }
 
-      setShippingRecords(data || []);
+      // Transform the data to match our interface
+      const transformedData: ShippingRecord[] = (data || []).map((record: any) => ({
+        id: record.id,
+        order_id: record.order_id,
+        carrier: record.carrier,
+        tracking_number: record.tracking_number,
+        tracking_url: record.tracking_url,
+        status: record.status,
+        shipping_method: record.shipping_method,
+        estimated_delivery_date: record.estimated_delivery_date,
+        actual_delivery_date: record.actual_delivery_date,
+        created_at: record.created_at,
+        updated_at: record.updated_at,
+        order: record.order
+      }));
+
+      setShippingRecords(transformedData);
     } catch (error) {
       console.error('Error loading shipping data:', error);
     } finally {
@@ -164,7 +204,7 @@ const MyShipping = ({ user }: MyShippingProps) => {
                     {getStatusIcon(record.status)}
                     <div>
                       <h3 className="font-semibold text-gray-800">
-                        Order #{record.order_id.slice(-8)}
+                        Order #{record.order?.order_number || record.order_id.slice(-8)}
                       </h3>
                       {record.tracking_number && (
                         <p className="text-sm text-gray-600">
@@ -195,7 +235,7 @@ const MyShipping = ({ user }: MyShippingProps) => {
                           {record.order.items.slice(0, 3).map((item, index) => (
                             <div key={index} className="flex justify-between text-sm text-gray-600">
                               <span>{item.product_name} (x{item.quantity})</span>
-                              <span>KES {(item.price * item.quantity).toLocaleString()}</span>
+                              <span>KES {(item.unit_price * item.quantity).toLocaleString()}</span>
                             </div>
                           ))}
                           {record.order.items.length > 3 && (
@@ -217,8 +257,8 @@ const MyShipping = ({ user }: MyShippingProps) => {
                     <div className="flex items-start space-x-3">
                       <MapPin className="w-5 h-5 text-gray-500 mt-0.5" />
                       <div>
-                        <p className="text-sm font-medium text-gray-800">Delivery Address</p>
-                        <p className="text-sm text-gray-600">{record.shipping_address}</p>
+                        <p className="text-sm font-medium text-gray-800">Carrier</p>
+                        <p className="text-sm text-gray-600">{record.carrier}</p>
                       </div>
                     </div>
                   </div>
@@ -238,7 +278,7 @@ const MyShipping = ({ user }: MyShippingProps) => {
                       </div>
                     </div>
 
-                    {record.estimated_delivery && (
+                    {record.estimated_delivery_date && (
                       <div className="flex items-start space-x-3">
                         <Clock className="w-5 h-5 text-gray-500 mt-0.5" />
                         <div>
@@ -246,7 +286,7 @@ const MyShipping = ({ user }: MyShippingProps) => {
                             {record.status === 'delivered' ? 'Delivered On' : 'Estimated Delivery'}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {new Date(record.actual_delivery || record.estimated_delivery).toLocaleDateString('en-US', {
+                            {new Date(record.actual_delivery_date || record.estimated_delivery_date).toLocaleDateString('en-US', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'

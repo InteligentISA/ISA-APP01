@@ -17,16 +17,28 @@ const MyShipping = () => {
       setLoading(true);
       setError(null);
       try {
+        // First get order IDs for the user
+        const { data: orders, error: ordersError } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('user_id', user.id);
+
+        if (ordersError) throw ordersError;
+
+        if (!orders || orders.length === 0) {
+          setShippingRecords([]);
+          setLoading(false);
+          return;
+        }
+
+        const orderIds = orders.map(o => o.id);
+
         // Fetch all shipping records for the user's orders
         const { data, error } = await supabase
           .from('shipping')
           .select('*')
-          .in('order_id', (
-            supabase
-              .from('orders')
-              .select('id')
-              .eq('user_id', user.id)
-          ));
+          .in('order_id', orderIds);
+          
         if (error) throw error;
         setShippingRecords(data || []);
       } catch (err: any) {
@@ -89,4 +101,4 @@ const MyShipping = () => {
   );
 };
 
-export default MyShipping; 
+export default MyShipping;

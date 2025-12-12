@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { UserProfile } from "@/types/user";
 import { PaymentData, PaymentStats, VendorApplication } from "@/types/admin";
 
 // Export types for use in other components
@@ -57,7 +56,20 @@ export class AdminService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform data to match VendorApplication interface
+      return (data || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.brand_name || profile.company || '',
+        business_description: '',
+        status: profile.status as 'pending' | 'approved' | 'rejected',
+        created_at: profile.created_at || '',
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        admin_notes: profile.admin_notes
+      }));
     } catch (error) {
       console.error('Error fetching pending vendor applications:', error);
       return [];
@@ -74,7 +86,19 @@ export class AdminService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      return (data || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.brand_name || profile.company || '',
+        business_description: '',
+        status: profile.status as 'pending' | 'approved' | 'rejected',
+        created_at: profile.created_at || '',
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        admin_notes: profile.admin_notes
+      }));
     } catch (error) {
       console.error('Error fetching approved vendor applications:', error);
       return [];
@@ -91,7 +115,19 @@ export class AdminService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      return (data || []).map(profile => ({
+        id: profile.id,
+        user_id: profile.id,
+        business_name: profile.brand_name || profile.company || '',
+        business_description: '',
+        status: profile.status as 'pending' | 'approved' | 'rejected',
+        created_at: profile.created_at || '',
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+        admin_notes: profile.admin_notes
+      }));
     } catch (error) {
       console.error('Error fetching rejected vendor applications:', error);
       return [];
@@ -136,7 +172,7 @@ export class AdminService {
     }
   }
 
-  static async getSuccessfulPayments() {
+  static async getSuccessfulPayments(): Promise<{ data: PaymentData[]; error: any }> {
     try {
       const { data, error } = await supabase
         .from('payments')
@@ -146,8 +182,7 @@ export class AdminService {
 
       if (error) throw error;
       
-      // Transform the data to match PaymentData interface
-      const transformedData: PaymentData[] = data?.map(payment => ({
+      const transformedData: PaymentData[] = (data || []).map(payment => ({
         id: payment.id,
         amount: payment.amount || 0,
         status: payment.status || '',
@@ -160,7 +195,7 @@ export class AdminService {
         products: [],
         transaction_id: '',
         mpesa_phone_number: ''
-      })) || [];
+      }));
 
       return { data: transformedData, error: null };
     } catch (error) {
