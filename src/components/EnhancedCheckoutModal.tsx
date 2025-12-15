@@ -5,9 +5,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { X, Check, MapPin, Phone, Truck, Store, Download } from 'lucide-react';
+import { X, Check, MapPin, Phone, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { OrderService } from '@/services/orderService';
 import { DeliveryCostService, DeliveryLocation } from '@/services/deliveryCostService';
@@ -15,7 +14,7 @@ import { CheckoutDeliveryCosts } from './CheckoutDeliveryCosts';
 import { UserProfileService, UserProfile } from '@/services/userProfileService';
 import PesapalPayModal from '@/components/payments/PesapalPayModal';
 import { useCurrency } from '@/hooks/useCurrency';
-import { CartItemWithProduct, Address, DeliveryMethod } from '@/types/order';
+import { CartItemWithProduct, Address } from '@/types/order';
 import { soundService } from '@/services/soundService';
 
 interface EnhancedCheckoutModalProps {
@@ -37,17 +36,11 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState<'delivery' | 'payment' | 'complete'>('delivery');
   
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('delivery');
-  const [deliveryAddress, setDeliveryAddress] = useState<Address>({
-    street: '',
-    city: '',
-    state: '',
-    zip: '',
-    country: 'Kenya'
-  });
   const [showPesapalPay, setShowPesapalPay] = useState(false);
   const [notes, setNotes] = useState('');
   const [totalDeliveryCost, setTotalDeliveryCost] = useState(0);
+  const [apartmentAddress, setApartmentAddress] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
   const [customerLocation, setCustomerLocation] = useState<DeliveryLocation | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -86,17 +79,17 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
 
   // Calculate delivery costs
   useEffect(() => {
-    if (deliveryMethod === 'delivery' && customerLocation) {
+    if (customerLocation) {
       calculateDeliveryCosts();
     }
-  }, [customerLocation, deliveryMethod, cartItems]);
+  }, [customerLocation, cartItems]);
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const deliveryFee = deliveryMethod === 'delivery' ? totalDeliveryCost : 0;
+  const deliveryFee = totalDeliveryCost;
   const totalAmount = subtotal + deliveryFee;
 
   const calculateDeliveryCosts = async () => {
-    if (deliveryMethod !== 'delivery' || !customerLocation || cartItems.length === 0) {
+    if (!customerLocation || cartItems.length === 0) {
       setTotalDeliveryCost(0);
       return;
     }
@@ -129,10 +122,19 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         return;
       }
 
-      if (deliveryMethod === 'delivery' && !customerLocation) {
+      if (!customerLocation) {
         toast({
           title: "Missing Information",
           description: "Please set your delivery location.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!apartmentAddress.trim()) {
+        toast({
+          title: "Missing Address",
+          description: "Please enter your apartment/estate name or nearest landmark.",
           variant: "destructive"
         });
         return;
@@ -150,16 +152,18 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
     setIsProcessing(true);
     try {
       const shippingAddress: Address = {
-        street: deliveryAddress.street || 'Address to be confirmed',
-        city: customerLocation?.county || deliveryAddress.city || 'Nairobi',
-        state: customerLocation?.county || deliveryAddress.state || 'Nairobi',
-        zip: deliveryAddress.zip || '00100',
+        street: apartmentAddress || 'Address to be confirmed',
+        city: customerLocation?.county || 'Nairobi',
+        state: customerLocation?.county || 'Nairobi',
+        zip: '00100',
         country: 'Kenya'
       };
 
       const locationNotes = customerLocation 
         ? `Delivery Location: ${customerLocation.county}${customerLocation.constituency ? `, ${customerLocation.constituency}` : ''}${customerLocation.ward ? `, ${customerLocation.ward}` : ''}${customerLocation.whatsapp_number ? ` | WhatsApp: ${customerLocation.whatsapp_number}` : ''}`
         : '';
+
+      const additionalNotes = additionalInfo ? `\nAdditional Instructions: ${additionalInfo}` : '';
 
       const order = await OrderService.createOrder(user.id, {
         items: cartItems.map(item => ({
@@ -170,9 +174,9 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
         billing_address: shippingAddress,
         customer_email: userProfile?.email || user?.email || '',
         customer_phone: userProfile?.phone_number || user?.phone_number || '',
-        notes: `${deliveryMethod === 'pickup' ? 'Pickup from vendor' : 'MyPlug Delivery'}\n${locationNotes}\n${notes}`,
+        notes: `MyPlug Delivery\nAddress: ${apartmentAddress}\n${locationNotes}${additionalNotes}\n${notes}`,
         payment_method: 'pesapal',
-        delivery_fee: deliveryMethod === 'delivery' ? totalDeliveryCost : 0
+        delivery_fee: totalDeliveryCost
       });
 
       await OrderService.updateOrderStatus(order.id, {
@@ -262,41 +266,49 @@ const EnhancedCheckoutModal: React.FC<EnhancedCheckoutModalProps> = ({
           <CardContent className="p-6 space-y-6">
             {currentStep === 'delivery' && (
               <>
-                {/* Delivery Method */}
+                {/* Delivery Location */}
+                <CheckoutDeliveryCosts
+                  cartItems={cartItems}
+                  customerLocation={customerLocation}
+                  onLocationUpdate={setCustomerLocation}
+                  className="mb-2"
+                />
+
+                <Separator />
+
+                {/* Detailed Address */}
                 <div>
                   <h3 className="text-lg font-semibold mb-4 flex items-center">
-                    <Truck className="w-5 h-5 mr-2" />
-                    Delivery Method
+                    <MapPin className="w-5 h-5 mr-2" />
+                    Delivery Address Details
                   </h3>
-                  <RadioGroup value={deliveryMethod} onValueChange={(value: DeliveryMethod) => setDeliveryMethod(value)}>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="delivery" id="delivery" />
-                      <Label htmlFor="delivery" className="flex-1 cursor-pointer">
-                        <div className="font-medium">MyPlug Delivery</div>
-                        <div className="text-sm text-muted-foreground">Delivered to your location</div>
-                      </Label>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="apartmentAddress">Apartment/Estate Name & Nearest Landmark *</Label>
+                      <Input
+                        id="apartmentAddress"
+                        value={apartmentAddress}
+                        onChange={(e) => setApartmentAddress(e.target.value)}
+                        placeholder="e.g., Sunrise Apartments, near Westgate Mall"
+                        className="mt-1"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enter your apartment/estate name and nearest landmark (school, hospital, etc.)
+                      </p>
                     </div>
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg">
-                      <RadioGroupItem value="pickup" id="pickup" />
-                      <Label htmlFor="pickup" className="flex-1 cursor-pointer">
-                        <div className="font-medium">Pickup from Vendor</div>
-                        <div className="text-sm text-muted-foreground">Free - Collect from vendor location</div>
-                      </Label>
+                    <div>
+                      <Label htmlFor="additionalInfo">Additional Delivery Instructions (Optional)</Label>
+                      <Textarea
+                        id="additionalInfo"
+                        value={additionalInfo}
+                        onChange={(e) => setAdditionalInfo(e.target.value)}
+                        placeholder="e.g., Wrap as a gift, leave at reception, call before delivery..."
+                        rows={3}
+                        className="mt-1"
+                      />
                     </div>
-                  </RadioGroup>
+                  </div>
                 </div>
-
-                {deliveryMethod === 'delivery' && (
-                  <>
-                    <Separator />
-                    <CheckoutDeliveryCosts
-                      cartItems={cartItems}
-                      customerLocation={customerLocation}
-                      onLocationUpdate={setCustomerLocation}
-                      className="mb-6"
-                    />
-                  </>
-                )}
 
                 <Separator />
 

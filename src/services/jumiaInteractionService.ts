@@ -53,7 +53,7 @@ export class JumiaInteractionService {
         .select()
         .single();
 
-      return { data, error };
+      return { data: data as JumiaProductInteraction, error };
     } catch (error) {
       return { data: null, error };
     }
@@ -69,7 +69,7 @@ export class JumiaInteractionService {
         .eq('interaction_type', 'like')
         .order('created_at', { ascending: false });
 
-      return { data: data || [], error };
+      return { data: (data || []) as JumiaProductInteraction[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -112,7 +112,7 @@ export class JumiaInteractionService {
       }
 
       const { data, error } = await query;
-      return { data: data || [], error };
+      return { data: (data || []) as JumiaProductInteraction[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -180,8 +180,10 @@ export class JumiaInteractionService {
         }
 
         const analytics = productMap.get(productId)!;
-        analytics[`total_${interaction.interaction_type}s` as keyof JumiaProductAnalytics] = 
-          (analytics[`total_${interaction.interaction_type}s` as keyof JumiaProductAnalytics] as number) + 1;
+        const countKey = `total_${interaction.interaction_type}s`;
+        if (countKey in analytics && typeof (analytics as any)[countKey] === 'number') {
+          (analytics as any)[countKey] = ((analytics as any)[countKey] as number) + 1;
+        }
       });
 
       // Sort by total interactions and return top products
@@ -230,8 +232,9 @@ export class JumiaInteractionService {
       const categoryCounts: Record<string, number> = {};
       
       data?.forEach(interaction => {
-        if (interaction.interaction_data?.category) {
-          const category = interaction.interaction_data.category;
+        const interactionData = interaction.interaction_data as Record<string, any> | null;
+        if (interactionData?.category) {
+          const category = interactionData.category as string;
           categoryCounts[category] = (categoryCounts[category] || 0) + 1;
         }
       });

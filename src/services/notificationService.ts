@@ -337,12 +337,8 @@ export class NotificationService {
     const pushNotification: PushNotificationData = {
       title: notification.title,
       body: notification.body,
-      icon: notification.icon,
       badge: notification.badge,
       image: notification.image,
-      tag: notification.tag,
-      requireInteraction: notification.requireInteraction,
-      silent: notification.silent,
       data: notification.data,
       click_action: notification.click_action
     };
@@ -477,9 +473,7 @@ export class NotificationService {
       data: {
         ...notification.data,
         priority: priority
-      },
-      requireInteraction: priority === 'urgent',
-      silent: priority === 'low'
+      }
     };
 
     await this.sendPushNotification(userId, priorityNotification);

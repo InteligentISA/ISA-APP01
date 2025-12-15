@@ -83,7 +83,7 @@ class MobileCacheService {
             path: `cache/${key}.json`,
             directory: Directory.Data
           });
-          cacheData = fileResult.data;
+          cacheData = typeof fileResult.data === 'string' ? fileResult.data : '';
         } catch (fileError) {
           // File doesn't exist
           return null;
@@ -267,7 +267,8 @@ class MobileCacheService {
               directory: Directory.Data
             });
             
-            const cacheItem: CacheItem = JSON.parse(fileResult.data);
+            const fileData = typeof fileResult.data === 'string' ? fileResult.data : '';
+            const cacheItem: CacheItem = JSON.parse(fileData);
             if (cacheItem.expiresAt && Date.now() > cacheItem.expiresAt) {
               await Filesystem.deleteFile({
                 path: `cache/${file.name}`,
