@@ -6,6 +6,8 @@ export interface Product {
   original_price?: number;
   category: string;
   subcategory?: string;
+  sub_subcategory?: string;
+  main_category?: string;
   brand?: string;
   images?: string[];
   main_image?: string;

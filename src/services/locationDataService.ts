@@ -133,8 +133,8 @@ export class LocationDataService {
         console.log(`Inserted ${insertedWards?.length || 0} wards`);
       }
 
-      // Set up default delivery costs
-      await this.setupDefaultDeliveryCosts(insertedCounties || []);
+      // Set up default delivery costs - cast to avoid type issues
+      await this.setupDefaultDeliveryCosts((insertedCounties || []) as County[]);
 
       console.log('Location data population completed successfully');
       return { success: true };

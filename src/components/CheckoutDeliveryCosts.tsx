@@ -10,19 +10,23 @@ import { useToast } from '@/hooks/use-toast';
 
 interface CartItem {
   id: string;
-  name: string;
-  price: number;
+  name?: string;
+  price?: number;
   quantity: number;
   image?: string;
+  product_id?: string;
   product?: {
     id: string;
+    name?: string;
+    price?: number;
     vendor_id?: string;
+    main_image?: string;
   };
 }
 
 interface CheckoutDeliveryCostsProps {
   cartItems: CartItem[];
-  customerLocation?: DeliveryLocation;
+  customerLocation?: DeliveryLocation | null;
   onLocationUpdate?: (location: DeliveryLocation) => void;
   className?: string;
 }
@@ -223,32 +227,31 @@ export function CheckoutDeliveryCosts({
               {cartItems.map((item, index) => {
                 const deliveryCost = getItemDeliveryCost(index);
                 const costBreakdown = deliveryCosts[index];
+                const itemName = item.name || item.product?.name || 'Product';
+                const itemImage = item.image || item.product?.main_image;
                 return (
                   <div key={item.id} className="flex items-center justify-between text-sm p-2 bg-white dark:bg-slate-600 rounded">
                     <div className="flex items-center gap-2">
-                      {item.image && (
+                      {itemImage && (
                         <img
-                          src={item.image}
-                          alt={item.name}
+                          src={itemImage}
+                          alt={itemName}
                           className="w-8 h-8 rounded object-cover"
                         />
                       )}
                       <div>
-                        <p className="font-medium text-gray-900">{item.name}</p>
-                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                        <p className="font-medium text-foreground">{itemName}</p>
+                        <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
                         {costBreakdown && (
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {DeliveryCostService.getDeliveryCostBreakdown(costBreakdown)}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         {DeliveryCostService.formatDeliveryCost({ totalCost: deliveryCost } as DeliveryCostCalculation)}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {item.quantity > 1 ? `${DeliveryCostService.formatDeliveryCost({ totalCost: deliveryCost / item.quantity } as DeliveryCostCalculation)} each` : ''}
                       </p>
                     </div>
                   </div>
@@ -259,27 +262,16 @@ export function CheckoutDeliveryCosts({
             <Separator />
 
             {/* Total Delivery Cost */}
-            <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded border-t">
+            <div className="flex items-center justify-between p-3 bg-primary/10 rounded border-t">
               <div className="flex items-center gap-2">
-                <Truck className="h-5 w-5 text-green-600" />
-                <span className="text-sm font-medium text-gray-900">Total Delivery Cost</span>
+                <Truck className="h-5 w-5 text-primary" />
+                <span className="text-sm font-medium">Total Delivery Cost</span>
               </div>
               <Badge variant="secondary" className="text-lg font-semibold">
                 {DeliveryCostService.formatDeliveryCost({ totalCost: totalDeliveryCost } as DeliveryCostCalculation)}
               </Badge>
             </div>
 
-            {/* Delivery Info */}
-            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-              <p className="font-medium mb-1">Delivery Information:</p>
-              <ul className="space-y-1">
-                <li>• Delivery cost is charged once per vendor, regardless of number of products</li>
-                <li>• Multiple products from the same vendor share a single delivery fee</li>
-                <li>• Estimated delivery time: 2-5 business days</li>
-                <li>• Delivery costs are calculated using county, constituency, and ward data</li>
-                <li>• Contact will be made via WhatsApp for door delivery coordination</li>
-              </ul>
-            </div>
           </div>
         )}
       </CardContent>

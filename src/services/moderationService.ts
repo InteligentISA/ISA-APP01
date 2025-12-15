@@ -317,7 +317,7 @@ export class ModerationService {
         return [];
       }
 
-      return data || [];
+      return (data || []) as ModerationLog[];
     } catch (error) {
       console.error('Error fetching moderation logs:', error);
       return [];
