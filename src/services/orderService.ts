@@ -45,7 +45,7 @@ export class OrderService {
       .order('added_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as CartItemWithProduct[];
   }
 
   static async addToCart(userId: string, request: AddToCartRequest): Promise<CartItem> {
@@ -131,7 +131,7 @@ export class OrderService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as WishlistItemWithProduct[];
   }
 
   static async addToWishlist(userId: string, product: { product_id: string, product_name: string, product_category: string }): Promise<WishlistItem> {
@@ -308,10 +308,10 @@ export class OrderService {
     return {
       ...order,
       items: orderItems,
-      payment,
-      shipping,
+      payment: payment as unknown as Payment,
+      shipping: shipping as unknown as Shipping,
       status_history: []
-    };
+    } as unknown as OrderWithDetails;
   }
 
   static async getOrders(userId: string, params?: OrderSearchParams): Promise<Order[]> {
@@ -351,7 +351,7 @@ export class OrderService {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as Order[];
   }
 
   static async getOrderById(orderId: string): Promise<OrderWithDetails> {
@@ -402,10 +402,10 @@ export class OrderService {
     return {
       ...order,
       items: items || [],
-      payment: payment || undefined,
-      shipping: shipping || undefined,
-      status_history: statusHistory || []
-    };
+      payment: payment as unknown as Payment | undefined,
+      shipping: shipping as unknown as Shipping | undefined,
+      status_history: (statusHistory || []) as unknown as OrderStatusHistory[]
+    } as unknown as OrderWithDetails;
   }
 
   static async updateOrderStatus(orderId: string, request: UpdateOrderStatusRequest): Promise<void> {
@@ -458,150 +458,31 @@ export class OrderService {
       notes: 'Payment processed successfully'
     });
 
-    return payment;
+    return payment as unknown as Payment;
   }
 
-  // M-Pesa Payment Processing
-  static async processMpesaPayment(orderId: string, phoneNumber: string, amount: number): Promise<Payment> {
-    // Import MpesaService dynamically to avoid circular dependencies
-    const { MpesaService } = await import('./mpesaService');
-    
-    try {
-      // Get order details
-      const order = await this.getOrderById(orderId);
-      
-      // Initiate M-Pesa payment
-      const mpesaResponse = await MpesaService.initiatePayment({
-        phoneNumber,
-        amount,
-        orderId,
-        description: `Payment for order ${order.order_number}`
-      });
-
-      if (!mpesaResponse.success) {
-        throw new Error(mpesaResponse.message);
-      }
-
-      // Update payment record with M-Pesa details
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .update({
-          status: 'processing',
-          transaction_id: mpesaResponse.transactionId,
-          mpesa_phone_number: phoneNumber,
-          mpesa_checkout_request_id: mpesaResponse.transactionId,
-          gateway_response: {
-            mpesa_checkout_request_id: mpesaResponse.transactionId,
-            phone_number: phoneNumber,
-            initiated_at: new Date().toISOString()
-          }
-        })
-        .eq('order_id', orderId)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return payment;
-    } catch (error) {
-      console.error('M-Pesa payment error:', error);
-      throw error;
-    }
+  // M-Pesa Payment Processing - Deprecated, use PesaPal instead
+  static async processMpesaPayment(_orderId: string, _phoneNumber: string, _amount: number): Promise<Payment> {
+    throw new Error('M-Pesa direct integration deprecated. Please use PesaPal payment gateway.');
   }
 
-  // Check M-Pesa payment status
-  static async checkMpesaPaymentStatus(orderId: string): Promise<Payment> {
-    const { MpesaService } = await import('./mpesaService');
-    
-    try {
-      // Get payment record
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('order_id', orderId)
-        .single();
-
-      if (error) throw error;
-
-      if (!payment.gateway_response?.mpesa_checkout_request_id) {
-        throw new Error('No M-Pesa checkout request found');
-      }
-
-      // Check payment status
-      const statusResponse = await MpesaService.checkPaymentStatus(
-        payment.gateway_response.mpesa_checkout_request_id
-      );
-
-      if (statusResponse.success) {
-        // Payment successful
-        const { data: updatedPayment, error: updateError } = await supabase
-          .from('payments')
-          .update({
-            status: 'succeeded',
-            transaction_id: statusResponse.transactionId,
-            mpesa_transaction_id: statusResponse.transactionId,
-            gateway_response: {
-              ...payment.gateway_response,
-              mpesa_transaction_id: statusResponse.transactionId,
-              completed_at: new Date().toISOString()
-            }
-          })
-          .eq('order_id', orderId)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-
-        // Update order status
-        await this.updateOrderStatus(orderId, {
-          order_id: orderId,
-          status: 'confirmed',
-          notes: 'M-Pesa payment completed successfully'
-        });
-
-        return updatedPayment;
-      } else {
-        // Payment failed or pending
-        const { data: updatedPayment, error: updateError } = await supabase
-          .from('payments')
-          .update({
-            status: statusResponse.errorCode === '1' ? 'processing' : 'failed',
-            gateway_response: {
-              ...payment.gateway_response,
-              last_check: new Date().toISOString(),
-              status_message: statusResponse.message
-            }
-          })
-          .eq('order_id', orderId)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-
-        return updatedPayment;
-      }
-    } catch (error) {
-      console.error('M-Pesa status check error:', error);
-      throw error;
-    }
+  // Check M-Pesa payment status - Deprecated
+  static async checkMpesaPaymentStatus(_orderId: string): Promise<Payment> {
+    throw new Error('M-Pesa direct integration deprecated. Please use PesaPal payment gateway.');
   }
 
   static async refundPayment(paymentId: string, amount: number): Promise<Payment> {
     const { data: payment, error } = await supabase
       .from('payments')
       .update({
-        status: 'refunded',
-        gateway_response: {
-          refund_amount: amount,
-          refunded_at: new Date().toISOString()
-        }
+        status: 'refunded'
       })
       .eq('id', paymentId)
       .select()
       .single();
 
     if (error) throw error;
-    return payment;
+    return payment as unknown as Payment;
   }
 
   // Shipping Management
@@ -655,7 +536,7 @@ export class OrderService {
         order.items?.some((item: any) => item.vendor_id === vendorId)
       );
 
-      return vendorOrders;
+      return vendorOrders as unknown as OrderWithDetails[];
     } catch (error) {
       console.error('Error fetching vendor orders:', error);
       return [];
@@ -682,7 +563,7 @@ export class OrderService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as OrderWithDetails[];
     } catch (error) {
       console.error('Error fetching user orders:', error);
       return [];

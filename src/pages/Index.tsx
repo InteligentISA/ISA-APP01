@@ -31,20 +31,19 @@ interface IndexProps {
 }
 
 const Index = ({ splashDestination }: IndexProps) => {
+  type ViewType = 'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect';
+  
   // Load last view from localStorage or use default
-  const getInitialView = () => {
+  const getInitialView = (): ViewType => {
     const savedView = localStorage.getItem('myplug_current_view');
-    if (savedView) {
-      try {
-        return savedView;
-      } catch {
-        return 'preloader';
-      }
+    const validViews: ViewType[] = ['preloader', 'welcome', 'onboarding', 'auth-welcome', 'auth-signup', 'auth-signin', 'vendor-signup', 'dashboard', 'vendor-dashboard', 'pending-approval', 'rejected-application', 'askmyplug', 'gifts', 'forgot-password', 'vendor-application', 'vendor-training', 'my-shipping', 'admin-redirect'];
+    if (savedView && validViews.includes(savedView as ViewType)) {
+      return savedView as ViewType;
     }
     return 'preloader';
   };
 
-  const [currentView, setCurrentView] = useState<'preloader' | 'welcome' | 'onboarding' | 'auth-welcome' | 'auth-signup' | 'auth-signin' | 'vendor-signup' | 'dashboard' | 'vendor-dashboard' | 'pending-approval' | 'rejected-application' | 'askmyplug' | 'gifts' | 'forgot-password' | 'vendor-application' | 'vendor-training' | 'my-shipping' | 'admin-redirect'>(getInitialView());
+  const [currentView, setCurrentView] = useState<ViewType>(getInitialView());
   const [user, setUser] = useState<any>(null);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [showProductDetail, setShowProductDetail] = useState(false);

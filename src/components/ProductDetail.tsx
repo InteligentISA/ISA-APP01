@@ -578,11 +578,9 @@ const ProductDetail = () => {
                 <ShareButton
                   contentType="product"
                   contentId={product.id}
-                  contentData={product}
-                  title={product.name}
-                  description={`KES ${product.price} - ${product.description || ''}`}
-                  image={product.main_image}
-                  size="md"
+                  contentTitle={product.name}
+                  contentImage={product.main_image}
+                  size="default"
                 />
               </div>
               <div className="flex items-center gap-4 mb-4">
