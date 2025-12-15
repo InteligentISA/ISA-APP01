@@ -198,10 +198,41 @@ export class DeliveryCostService {
     return `Ksh ${cost.totalCost.toFixed(0)}`;
   }
 
+  // Get delivery cost breakdown text
+  static getDeliveryCostBreakdown(cost: DeliveryCostCalculation): string {
+    const parts: string[] = [];
+    if (cost.breakdown.base > 0) parts.push(`Base: Ksh ${cost.breakdown.base}`);
+    if (cost.breakdown.county > 0) parts.push(`County: Ksh ${cost.breakdown.county}`);
+    if (cost.breakdown.constituency > 0) parts.push(`Constituency: Ksh ${cost.breakdown.constituency}`);
+    if (cost.breakdown.ward > 0) parts.push(`Ward: Ksh ${cost.breakdown.ward}`);
+    return parts.join(' + ');
+  }
+
+  // Get delivery time estimate based on county
+  static getDeliveryTimeEstimate(county: string): string {
+    if (this.HOTSPOT_COUNTIES.some(c => county?.toLowerCase().includes(c.toLowerCase()))) {
+      return 'Within 24 hours';
+    }
+    return 'Within 72 hours depending on your location';
+  }
+
   // Validate delivery location
   static async validateDeliveryLocation(location: DeliveryLocation): Promise<{ isValid: boolean; message: string }> {
     if (!location.county) return { isValid: false, message: 'County is required' };
     return { isValid: true, message: 'Valid location' };
+  }
+
+  // Get cart items delivery cost (for EnhancedCheckoutModal compatibility)
+  static async getCartItemsDeliveryCost(
+    cartItems: Array<{ product?: { id: string; vendor_id?: string }; quantity: number; product_id?: string }>,
+    customerLocation: DeliveryLocation
+  ): Promise<{ data: { totalCost: number; breakdown: Array<{ productId: string; cost: number; vendor_id?: string }>; vendorBreakdown: Array<{ vendor_id: string; cost: number; productCount: number }> } | null; error: any }> {
+    const products = cartItems.map(item => ({
+      id: item.product?.id || item.product_id || '',
+      quantity: item.quantity,
+      vendor_id: item.product?.vendor_id
+    }));
+    return this.getCartDeliveryCost(products, customerLocation);
   }
 
   // Get cart delivery cost grouped by vendor

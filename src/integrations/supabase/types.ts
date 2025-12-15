@@ -272,6 +272,8 @@ export type Database = {
       counties: {
         Row: {
           created_at: string
+          delivery_time_hours: number | null
+          has_ward_data: boolean | null
           id: string
           is_hotspot: boolean
           name: string
@@ -279,6 +281,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivery_time_hours?: number | null
+          has_ward_data?: boolean | null
           id?: string
           is_hotspot?: boolean
           name: string
@@ -286,10 +290,54 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivery_time_hours?: number | null
+          has_ward_data?: boolean | null
           id?: string
           is_hotspot?: boolean
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      customer_addresses: {
+        Row: {
+          additional_info: string | null
+          address_label: string
+          constituency: string
+          county: string
+          created_at: string | null
+          id: string
+          is_default: boolean | null
+          updated_at: string | null
+          user_id: string
+          ward: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          additional_info?: string | null
+          address_label?: string
+          constituency: string
+          county: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          ward?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          additional_info?: string | null
+          address_label?: string
+          constituency?: string
+          county?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          ward?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
@@ -361,6 +409,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      delivery_costs_config: {
+        Row: {
+          base_cost: number
+          constituency_cost: number
+          county_cost: number
+          created_at: string | null
+          fast_delivery_counties: string[] | null
+          fast_delivery_hours: number | null
+          id: string
+          is_active: boolean | null
+          standard_delivery_hours: number | null
+          updated_at: string | null
+          ward_applicable_counties: string[] | null
+          ward_cost: number
+        }
+        Insert: {
+          base_cost?: number
+          constituency_cost?: number
+          county_cost?: number
+          created_at?: string | null
+          fast_delivery_counties?: string[] | null
+          fast_delivery_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          standard_delivery_hours?: number | null
+          updated_at?: string | null
+          ward_applicable_counties?: string[] | null
+          ward_cost?: number
+        }
+        Update: {
+          base_cost?: number
+          constituency_cost?: number
+          county_cost?: number
+          created_at?: string | null
+          fast_delivery_counties?: string[] | null
+          fast_delivery_hours?: number | null
+          id?: string
+          is_active?: boolean | null
+          standard_delivery_hours?: number | null
+          updated_at?: string | null
+          ward_applicable_counties?: string[] | null
+          ward_cost?: number
+        }
+        Relationships: []
       }
       delivery_county_costs: {
         Row: {

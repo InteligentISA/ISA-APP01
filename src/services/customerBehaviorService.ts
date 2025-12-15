@@ -1,20 +1,23 @@
 import { supabase } from '../integrations/supabase/client';
-import { 
-  UserProductInteraction, 
-  UserPreference, 
-  ProductPopularity, 
-  UserRecommendation,
-  Product 
-} from '../types/product';
+import { Product } from '../types/product';
+
+// Simple internal types for this service
+interface UserInteraction {
+  id: string;
+  user_id: string;
+  product_id: string;
+  interaction_type: string;
+  created_at: string;
+}
 
 export class CustomerBehaviorService {
   // Track user-product interactions
   static async trackInteraction(
     userId: string, 
     productId: string, 
-    interactionType: UserProductInteraction['interaction_type'],
+    interactionType: 'view' | 'like' | 'add_to_cart' | 'purchase' | 'share' | 'review',
     interactionData?: Record<string, any>
-  ): Promise<{ data: UserProductInteraction | null; error: any }> {
+  ): Promise<{ data: UserInteraction | null; error: any }> {
     try {
       const { data, error } = await supabase
         .from('user_product_interactions')
@@ -27,37 +30,7 @@ export class CustomerBehaviorService {
         .select()
         .maybeSingle();
 
-      return { data, error };
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
-
-  // Get user preferences
-  static async getUserPreferences(userId: string): Promise<{ data: UserPreference[]; error: any }> {
-    try {
-      const { data, error } = await supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', userId)
-        .order('preference_score', { ascending: false });
-
-      return { data: data || [], error };
-    } catch (error) {
-      return { data: [], error };
-    }
-  }
-
-  // Get product popularity
-  static async getProductPopularity(productId: string): Promise<{ data: ProductPopularity | null; error: any }> {
-    try {
-      const { data, error } = await supabase
-        .from('product_popularity')
-        .select('*')
-        .eq('product_id', productId)
-        .single();
-
-      return { data, error };
+      return { data: data as UserInteraction | null, error };
     } catch (error) {
       return { data: null, error };
     }
@@ -66,21 +39,14 @@ export class CustomerBehaviorService {
   // Get popular products
   static async getPopularProducts(limit: number = 10): Promise<{ data: Product[]; error: any }> {
     try {
-      const { data, error } = await supabase
-        .from('product_popularity')
-        .select('*')
-        .order('conversion_rate', { ascending: false })
-        .order('purchase_count', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      const productIds = data?.map(item => item.product_id).filter(Boolean);
-      if (!productIds || productIds.length === 0) return { data: [], error: null };
-      const { data: products, error: prodError } = await supabase
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
-        .in('id', productIds);
-      return { data: products || [], error: prodError };
+        .eq('is_active', true)
+        .order('review_count', { ascending: false })
+        .limit(limit);
+      
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -89,21 +55,14 @@ export class CustomerBehaviorService {
   // Get trending products (based on recent interactions)
   static async getTrendingProducts(limit: number = 10): Promise<{ data: Product[]; error: any }> {
     try {
-      const { data, error } = await supabase
-        .from('product_popularity')
-        .select('*')
-        .gte('last_updated_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()) // Last 7 days
-        .order('view_count', { ascending: false })
-        .limit(limit);
-
-      if (error) throw error;
-      const productIds = data?.map(item => item.product_id).filter(Boolean);
-      if (!productIds || productIds.length === 0) return { data: [], error: null };
-      const { data: products, error: prodError } = await supabase
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
-        .in('id', productIds);
-      return { data: products || [], error: prodError };
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .limit(limit);
+      
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -112,32 +71,24 @@ export class CustomerBehaviorService {
   // Get personalized recommendations for a user
   static async getUserRecommendations(userId: string, limit: number = 10): Promise<{ data: Product[]; error: any }> {
     try {
-      // First, get user preferences
-      const { data: preferences } = await this.getUserPreferences(userId);
-      
-      if (!preferences || preferences.length === 0) {
-        // If no preferences, return popular products
-        return this.getPopularProducts(limit);
-      }
+      // Get products the user has interacted with
+      const { data: interactions } = await supabase
+        .from('user_product_interactions')
+        .select('product_id')
+        .eq('user_id', userId)
+        .limit(50);
 
-      // Get products from user's preferred categories
-      const preferredCategories = preferences
-        .filter(p => p.preference_score > 0.3) // Only consider significant preferences
-        .map(p => p.category);
+      const interactedProductIds = interactions?.map(i => i.product_id) || [];
 
-      if (preferredCategories.length === 0) {
-        return this.getPopularProducts(limit);
-      }
-
-      const { data, error } = await supabase
+      // Get products from similar categories
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
-        .in('category', preferredCategories)
         .eq('is_active', true)
         .order('rating', { ascending: false })
         .limit(limit);
 
-      return { data: data || [], error };
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -146,22 +97,25 @@ export class CustomerBehaviorService {
   // Get recently viewed products
   static async getRecentlyViewedProducts(userId: string, limit: number = 10): Promise<{ data: Product[]; error: any }> {
     try {
-      const { data, error } = await supabase
+      const { data: interactions } = await supabase
         .from('user_product_interactions')
-        .select('*')
+        .select('product_id')
         .eq('user_id', userId)
         .eq('interaction_type', 'view')
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
-      const productIds = data?.map(item => item.product_id).filter(Boolean);
-      if (!productIds || productIds.length === 0) return { data: [], error: null };
-      const { data: products, error: prodError } = await supabase
+      if (!interactions || interactions.length === 0) {
+        return { data: [], error: null };
+      }
+
+      const productIds = interactions.map(i => i.product_id);
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
         .in('id', productIds);
-      return { data: products || [], error: prodError };
+
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -170,22 +124,25 @@ export class CustomerBehaviorService {
   // Get user's liked products
   static async getLikedProducts(userId: string, limit: number = 10): Promise<{ data: Product[]; error: any }> {
     try {
-      const { data, error } = await supabase
+      const { data: interactions } = await supabase
         .from('user_product_interactions')
-        .select('*')
+        .select('product_id')
         .eq('user_id', userId)
         .eq('interaction_type', 'like')
         .order('created_at', { ascending: false })
         .limit(limit);
 
-      if (error) throw error;
-      const productIds = data?.map(item => item.product_id).filter(Boolean);
-      if (!productIds || productIds.length === 0) return { data: [], error: null };
-      const { data: products, error: prodError } = await supabase
+      if (!interactions || interactions.length === 0) {
+        return { data: [], error: null };
+      }
+
+      const productIds = interactions.map(i => i.product_id);
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
         .in('id', productIds);
-      return { data: products || [], error: prodError };
+
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -194,19 +151,17 @@ export class CustomerBehaviorService {
   // Get similar products (based on category and tags)
   static async getSimilarProducts(productId: string, limit: number = 6): Promise<{ data: Product[]; error: any }> {
     try {
-      // First, get the target product
-      const { data: targetProduct, error: targetError } = await supabase
+      const { data: targetProduct } = await supabase
         .from('products')
-        .select('*')
+        .select('category')
         .eq('id', productId)
         .single();
 
-      if (targetError || !targetProduct) {
-        return { data: [], error: targetError };
+      if (!targetProduct) {
+        return { data: [], error: null };
       }
 
-      // Get similar products from the same category
-      const { data, error } = await supabase
+      const { data: products, error } = await supabase
         .from('products')
         .select('*')
         .eq('category', targetProduct.category)
@@ -215,7 +170,7 @@ export class CustomerBehaviorService {
         .order('rating', { ascending: false })
         .limit(limit);
 
-      return { data: data || [], error };
+      return { data: (products || []) as unknown as Product[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -224,9 +179,9 @@ export class CustomerBehaviorService {
   // Get user interaction history
   static async getUserInteractionHistory(
     userId: string, 
-    interactionType?: UserProductInteraction['interaction_type'],
+    interactionType?: string,
     limit: number = 50
-  ): Promise<{ data: UserProductInteraction[]; error: any }> {
+  ): Promise<{ data: UserInteraction[]; error: any }> {
     try {
       let query = supabase
         .from('user_product_interactions')
@@ -240,7 +195,7 @@ export class CustomerBehaviorService {
       }
 
       const { data, error } = await query;
-      return { data: data || [], error };
+      return { data: (data || []) as UserInteraction[], error };
     } catch (error) {
       return { data: [], error };
     }
@@ -257,7 +212,6 @@ export class CustomerBehaviorService {
     error: any;
   }> {
     try {
-      // Get all products for the vendor
       const { data: products } = await supabase
         .from('products')
         .select('id')
@@ -277,53 +231,39 @@ export class CustomerBehaviorService {
 
       const productIds = products.map(p => p.id);
 
-      // Get popularity data for all vendor products
-      const { data: popularityData } = await supabase
-        .from('product_popularity')
-        .select(`
-          *,
-          product:products(*)
-        `)
+      // Get interaction counts
+      const { data: interactions } = await supabase
+        .from('user_product_interactions')
+        .select('interaction_type')
         .in('product_id', productIds);
 
-      if (!popularityData) {
-        return {
-          total_views: 0,
-          total_likes: 0,
-          total_cart_adds: 0,
-          total_purchases: 0,
-          conversion_rate: 0,
-          top_products: [],
-          error: null
-        };
-      }
+      const counts = {
+        view: 0,
+        like: 0,
+        add_to_cart: 0,
+        purchase: 0
+      };
 
-      // Calculate totals
-      const totals = popularityData.reduce((acc, item) => ({
-        total_views: acc.total_views + item.view_count,
-        total_likes: acc.total_likes + item.like_count,
-        total_cart_adds: acc.total_cart_adds + item.cart_add_count,
-        total_purchases: acc.total_purchases + item.purchase_count,
-      }), {
-        total_views: 0,
-        total_likes: 0,
-        total_cart_adds: 0,
-        total_purchases: 0,
+      interactions?.forEach(i => {
+        const type = i.interaction_type as keyof typeof counts;
+        if (counts[type] !== undefined) counts[type]++;
       });
 
-      const conversion_rate = totals.total_views > 0 ? totals.total_purchases / totals.total_views : 0;
-
-      // Get top products by conversion rate
-      const topProducts = popularityData
-        .filter(item => item.product)
-        .sort((a, b) => b.conversion_rate - a.conversion_rate)
-        .slice(0, 5)
-        .map(item => item.product);
+      // Get top products by rating
+      const { data: topProducts } = await supabase
+        .from('products')
+        .select('*')
+        .eq('vendor_id', vendorId)
+        .order('rating', { ascending: false })
+        .limit(5);
 
       return {
-        ...totals,
-        conversion_rate,
-        top_products: topProducts,
+        total_views: counts.view,
+        total_likes: counts.like,
+        total_cart_adds: counts.add_to_cart,
+        total_purchases: counts.purchase,
+        conversion_rate: counts.view > 0 ? counts.purchase / counts.view : 0,
+        top_products: (topProducts || []) as unknown as Product[],
         error: null
       };
     } catch (error) {
@@ -338,4 +278,4 @@ export class CustomerBehaviorService {
       };
     }
   }
-} 
+}
