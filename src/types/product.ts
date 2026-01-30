@@ -14,7 +14,7 @@ export interface Product {
   stock_quantity: number;
   sku?: string;
   tags?: string[];
-  specifications?: Record<string, any>;
+  specifications?: any;
   rating: number;
   review_count: number;
   is_featured: boolean;
@@ -42,7 +42,7 @@ export interface Product {
   
   // Warranty
   warranty_period?: number;
-  warranty_unit?: 'months' | 'years';
+  warranty_unit?: string;
   
   // Materials (for household items)
   materials?: string[];
@@ -97,7 +97,7 @@ export interface Product {
     brand_name?: string;
   };
   // Approval workflow fields
-  status?: 'pending' | 'approved' | 'rejected';
+  status?: string;
   rejection_reason?: string;
   // Return policy fields
   return_eligible?: boolean;

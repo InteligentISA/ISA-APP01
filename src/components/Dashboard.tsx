@@ -356,7 +356,6 @@ const Dashboard = ({ user, onLogout, onNavigateToAskMyPlug, onNavigateToGifts, o
                 onShowProfile={() => setShowProfile(true)}
                 onShowSettings={() => setShowSettings(true)}
                 onShowStyleQuiz={() => setShowStyleQuiz(true)}
-                onShowSubscriptions={() => setShowSubscriptions(true)}
                 onShowShipping={() => setShowShipping(true)}
                 onShowWallet={() => setShowWallet(true)}
                 onShowOrders={() => navigate('/my-orders')}

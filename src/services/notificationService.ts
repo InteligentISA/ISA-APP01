@@ -337,7 +337,7 @@ export class NotificationService {
     const pushNotification: PushNotificationData = {
       title: notification.title,
       body: notification.body,
-      badge: notification.badge,
+      badge: notification.badge ? parseInt(notification.badge, 10) || undefined : undefined,
       image: notification.image,
       data: notification.data,
       click_action: notification.click_action

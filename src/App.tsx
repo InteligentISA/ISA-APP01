@@ -11,8 +11,6 @@ import MyOrdersPage from "./pages/MyOrders";
 import AuthWrapper from "./components/AuthProvider";
 import { useAuth } from "./hooks/useAuth";
 import ProductDetail from "./components/ProductDetail";
-import CustomerPremium from "./components/CustomerPremium";
-import VendorSubscription from "./components/VendorSubscription";
 import AdminBlockedScreen from "./components/AdminBlockedScreen";
 import SupportCenter from "./components/SupportCenter";
 import SplashScreen from "./components/SplashScreen";
@@ -102,8 +100,6 @@ const AppContent = ({ splashDestination }: AppContentProps) => {
       <Routes>
         <Route path="/" element={<Index splashDestination={splashDestination} />} />
         <Route path="/product/:productId" element={<ProductDetail />} />
-        <Route path="/premium" element={<CustomerPremium />} />
-        <Route path="/vendor-subscription" element={<VendorSubscription />} />
         <Route path="/my-orders" element={<MyOrdersPage />} />
         <Route path="/support" element={<SupportCenter />} />
         <Route path="/shared/:shareCode" element={<SharedContent />} />

@@ -14,11 +14,8 @@ import {
   User, 
   Settings, 
   LogOut, 
-  Crown, 
   Palette, 
   Star, 
-  CreditCard,
-  Gift,
   ChevronDown,
   Truck,
   Award,
@@ -32,7 +29,6 @@ interface ProfileDropdownProps {
   onShowProfile: () => void;
   onShowSettings: () => void;
   onShowStyleQuiz: () => void;
-  onShowSubscriptions: () => void;
   onShowShipping: () => void;
   onShowWallet: () => void;
   onShowOrders: () => void;
@@ -44,7 +40,6 @@ const ProfileDropdown = ({
   onShowProfile, 
   onShowSettings, 
   onShowStyleQuiz, 
-  onShowSubscriptions, 
   onShowShipping, 
   onShowWallet, 
   onShowOrders,
@@ -102,11 +97,6 @@ const ProfileDropdown = ({
           </Avatar>
           <div className="hidden lg:flex flex-col items-start">
             <span className="text-sm font-medium">{user?.name || user?.email || 'User'}</span>
-            {subscription && (
-              <Badge variant="secondary" className={`text-xs ${getPlanBadgeColor(subscription.plan_type)}`}>
-                {subscription.plan_type.toUpperCase()}
-              </Badge>
-            )}
           </div>
           <ChevronDown className="w-4 h-4" />
         </Button>
@@ -125,12 +115,6 @@ const ProfileDropdown = ({
             <p className="font-medium text-gray-900">{user?.name || 'User'}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
             <div className="flex items-center space-x-2 mt-1">
-              {subscription && (
-                <Badge className={`text-xs ${getPlanBadgeColor(subscription.plan_type)}`}>
-                  <Crown className="w-3 h-3 mr-1" />
-                  {subscription.plan_type.toUpperCase()}
-                </Badge>
-              )}
               {userPoints && userPoints.available_points >= 1000 && (
                 <Badge className="text-xs bg-yellow-500 text-black">
                   <Award className="w-3 h-3 mr-1" />
@@ -162,16 +146,6 @@ const ProfileDropdown = ({
         <DropdownMenuItem onClick={onShowProfile} className="flex items-center space-x-2 cursor-pointer">
           <User className="w-4 h-4" />
           <span>My Profile</span>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem onClick={onShowSubscriptions} className="flex items-center space-x-2 cursor-pointer">
-          <Crown className="w-4 h-4" />
-          <span>Subscriptions & Plans</span>
-          {!subscription && (
-            <Badge variant="outline" className="ml-auto text-xs">
-              Upgrade
-            </Badge>
-          )}
         </DropdownMenuItem>
 
         <DropdownMenuItem onClick={onShowStyleQuiz} className="flex items-center space-x-2 cursor-pointer">
