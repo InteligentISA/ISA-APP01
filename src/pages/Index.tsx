@@ -22,8 +22,6 @@ import { UserProfileService } from "@/services/userProfileService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { isPremiumUser } from "@/lib/utils";
-import TierUpgradeModal from "@/components/TierUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 
 interface IndexProps {
@@ -69,9 +67,6 @@ const Index = ({ splashDestination }: IndexProps) => {
   const { user: authUser, loading: authLoading, userProfile } = useAuth();
   const { toast } = useToast();
   const [resetEmail, setResetEmail] = useState("");
-  const [showTierModal, setShowTierModal] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState<"weekly" | "monthly" | "annual" | null>(null);
-  const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState<string>('');
 
   const checkVendorApplicationProgress = async (userId: string) => {
@@ -485,25 +480,6 @@ const Index = ({ splashDestination }: IndexProps) => {
     setCurrentView('auth-welcome');
   };
 
-  const handleUpgrade = async (plan: "weekly" | "monthly" | "annual") => {
-    setPendingPlan(plan);
-    // Here, you would trigger your payment flow (e.g., Mpesa, Airtel, Stripe, etc.)
-    // For demo, we'll just update the plan in Supabase directly
-    // Set plan_expiry based on plan
-    let expiry = new Date();
-    if (plan === "weekly") expiry.setDate(expiry.getDate() + 7);
-    if (plan === "monthly") expiry.setMonth(expiry.getMonth() + 1);
-    if (plan === "annual") expiry.setFullYear(expiry.getFullYear() + 1);
-    await supabase
-      .from('profiles')
-      .update({ plan, plan_expiry: expiry.toISOString().slice(0, 10) } as any)
-      .eq('id', user.id);
-    // Optionally, refetch user profile here
-    setUser({ ...user, plan, plan_expiry: expiry.toISOString().slice(0, 10) });
-    setShowTierModal(false);
-    setPendingPlan(null);
-    setCurrentView('gifts');
-  };
 
   const handleRefreshApprovalStatus = async () => {
     if (user?.id) {
@@ -631,21 +607,6 @@ const Index = ({ splashDestination }: IndexProps) => {
     }
   };
 
-  const handlePayAndUpgrade = async (
-    plan: "weekly" | "monthly" | "annual",
-    paymentMethod: "mpesa" | "airtel_money",
-    phoneNumber: string
-  ) => {
-    setUpgradeLoading(true);
-    // TODO: Integrate with PesaPal for premium upgrades
-    toast({
-      title: "Payment Integration Required",
-      description: "Premium upgrades now use PesaPal. Please contact support.",
-      variant: "destructive"
-    });
-    setUpgradeLoading(false);
-    setShowTierModal(false);
-  };
 
   return (
     <ThemeProvider defaultTheme="light">
@@ -740,8 +701,8 @@ const Index = ({ splashDestination }: IndexProps) => {
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
           likedItems={likedItems}
-          maxChats={isPremiumUser(user) ? 100 : 20}
-          onUpgrade={() => setShowTierModal(true)}
+          maxChats={100}
+          onUpgrade={() => {}}
         />
       )}
       {currentView === 'gifts' && (
@@ -835,12 +796,6 @@ const Index = ({ splashDestination }: IndexProps) => {
         />
       )}
       */}
-        <TierUpgradeModal
-          isOpen={showTierModal}
-          onClose={() => setShowTierModal(false)}
-          onPay={(plan, paymentMethod, phoneNumber) => { void handlePayAndUpgrade(plan, paymentMethod, phoneNumber); }}
-          loading={upgradeLoading}
-        />
       </div>
     </ThemeProvider>
   );

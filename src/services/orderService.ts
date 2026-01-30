@@ -191,7 +191,6 @@ export class OrderService {
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        order_number: orderNumber,
         user_id: userId,
         subtotal,
         tax_amount: taxAmount,
@@ -202,8 +201,9 @@ export class OrderService {
         customer_email: request.customer_email,
         customer_phone: request.customer_phone,
         notes: request.notes,
-        fulfillment_method: isPickup ? 'pickup' : 'delivery'
-      })
+        fulfillment_method: isPickup ? 'pickup' : 'delivery',
+        order_number: orderNumber
+      } as any)
       .select()
       .single();
     if (orderError) throw orderError;
@@ -508,7 +508,7 @@ export class OrderService {
       notes: `Shipped via ${carrier}, tracking: ${trackingNumber}`
     });
 
-    return data;
+    return data as any;
   }
 
   // Vendor-specific methods

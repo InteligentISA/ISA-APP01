@@ -14,7 +14,6 @@ import {
   X,
   Menu,
   ChevronDown,
-  Crown,
   RotateCcw,
   HeadphonesIcon
 } from "lucide-react";
@@ -58,7 +57,6 @@ const VendorSidebar = ({
     { id: 'returns', label: 'Returns', icon: RotateCcw },
     { id: 'wallet', label: 'Wallet', icon: Wallet },
     { id: 'support', label: 'Customer Support', icon: HeadphonesIcon },
-    { id: 'subscription', label: 'Subscription', icon: Crown },
     { 
       id: 'settings', 
       label: 'Settings', 

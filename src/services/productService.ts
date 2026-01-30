@@ -342,7 +342,7 @@ export class ProductService {
       }
 
       const result = await ImageUploadService.deleteImage(filePath);
-      return result;
+      return result as { error: any };
     } catch (error) {
       return { error };
     }
