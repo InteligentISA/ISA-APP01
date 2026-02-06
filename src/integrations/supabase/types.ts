@@ -784,6 +784,36 @@ export type Database = {
           },
         ]
       }
+      homepage_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          is_approved: boolean
+          rating: number
+          review_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          rating: number
+          review_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          rating?: number
+          review_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       jumia_product_interactions: {
         Row: {
           created_at: string | null
