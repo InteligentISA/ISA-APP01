@@ -1,1 +1,13 @@
 project_id = "cwaeldxeuqxzcohnflun"
+
+[functions.myplug-chat]
+verify_jwt = false
+
+[functions.gift-finder]
+verify_jwt = false
+
+[functions.myplug-pay]
+verify_jwt = false
+
+[functions.push-notifications]
+verify_jwt = false
