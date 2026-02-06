@@ -14,8 +14,6 @@ import {
   SidebarTrigger,
   SidebarInset
 } from "@/components/ui/sidebar";
-import { AIService } from "@/services/aiService";
-import { ProductService } from '@/services/productService';
 import TierUpgradeModal from "@/components/TierUpgradeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { ConversationService } from "@/services/conversationService";
@@ -253,61 +251,40 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
       ]);
     }
 
-    // Call AIService for MyPlug response
+    // Call MyPlug chat edge function (GPT-powered)
     try {
-      const aiResult = await AIService.processMessage(
-        currentMessage,
-        user,
-        messages.map(m => ({
-          role: m.type === 'user' ? 'user' : 'assistant',
-          content: m.content,
-          timestamp: m.timestamp
-        }))
-      );
+      const { data: chatResult, error: chatError } = await supabase.functions.invoke('myplug-chat', {
+        body: {
+          message: currentMessage,
+          userId: user?.id,
+          conversationHistory: messages.map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content
+          }))
+        }
+      });
 
-      // NEW: Use structuredCategoryInfo for precise product search
-      let ownProducts: any[] = [];
-      if (aiResult.structuredCategoryInfo && (aiResult.structuredCategoryInfo.main_category || aiResult.structuredCategoryInfo.subcategory)) {
-        const filters: any = {};
-        if (aiResult.structuredCategoryInfo.main_category) filters.category = aiResult.structuredCategoryInfo.main_category;
-        if (aiResult.structuredCategoryInfo.subcategory) filters.subcategory = aiResult.structuredCategoryInfo.subcategory;
-        if (aiResult.structuredCategoryInfo.sub_subcategory) filters.sub_subcategory = aiResult.structuredCategoryInfo.sub_subcategory;
-        if (aiResult.structuredCategoryInfo.min_price !== undefined) filters.minPrice = aiResult.structuredCategoryInfo.min_price;
-        if (aiResult.structuredCategoryInfo.max_price !== undefined) filters.maxPrice = aiResult.structuredCategoryInfo.max_price;
-        const { data } = await ProductService.getProducts({ filters, limit: 15 });
-        ownProducts = data;
-      }
+      if (chatError) throw chatError;
 
-      // If aiResult contains products and jumiaProducts, combine and limit
-      let combinedProducts: any[] = [];
-      if (ownProducts.length > 0 || (aiResult as any).jumiaProducts) {
-        const jumia = (aiResult as any).jumiaProducts || [];
-        combinedProducts = [...ownProducts, ...jumia.slice(0, Math.max(0, 15 - ownProducts.length))];
-        setProductResults(combinedProducts);
-        setJumiaResults(jumia.slice(0, Math.max(0, 15 - ownProducts.length)));
-      } else if ((aiResult as any).products || (aiResult as any).jumiaProducts) {
-        const own = (aiResult as any).products || [];
-        const jumia = (aiResult as any).jumiaProducts || [];
-        combinedProducts = [...own, ...jumia.slice(0, Math.max(0, 15 - own.length))];
-        setProductResults(combinedProducts);
-        setJumiaResults(jumia.slice(0, Math.max(0, 15 - own.length)));
-      } else {
-        setProductResults([]);
-        setJumiaResults([]);
-      }
+      // Set products from edge function response
+      const products = chatResult?.products || [];
+      setProductResults(products);
+      setJumiaResults([]);
+
       const myplugResponse: Message = {
         id: Date.now() + 1,
         type: 'myplug',
-        content: aiResult.response,
+        content: chatResult?.response || "I couldn't process that. Could you try again?",
         timestamp: new Date()
       };
       setMessages(prev => [...prev, myplugResponse]);
       setChatCount(prev => prev + 1);
     } catch (err) {
+      console.error('MyPlug chat error:', err);
       setMessages(prev => [...prev, {
         id: Date.now() + 1,
         type: 'myplug',
-        content: "Sorry, I'm having trouble connecting to the AI service.",
+        content: "Sorry, I'm having trouble connecting right now. Please try again.",
         timestamp: new Date()
       }]);
       setProductResults([]);

@@ -3,10 +3,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('VITE_OPENAI_API_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -18,122 +18,146 @@ serve(async (req) => {
   try {
     const { age, gender, relationship, occasion, hobbies, budgetMin, budgetMax } = await req.json();
 
-    if (!age || !gender || !hobbies || !budgetMin || !budgetMax) {
+    if (!age || !hobbies || !budgetMin || !budgetMax) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY not configured');
+    if (!OPENAI_API_KEY) {
+      console.error('VITE_OPENAI_API_KEY not configured');
+      throw new Error('OpenAI API key not configured');
     }
 
-    // Build gift finder prompt
-    const prompt = `You are MyPlug, a gift recommendation specialist for an online e-commerce store in Kenya.
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-RECIPIENT PROFILE:
-- Age: ${age}
-- Gender: ${gender}
+    // Use GPT to generate gift suggestions with structured product queries
+    const prompt = `You are MyPlug, a gift recommendation specialist for an e-commerce store in Kenya.
+
+RECIPIENT:
+- Age: ${age}, Gender: ${gender || 'any'}
 - Relationship: ${relationship || 'Not specified'}
 - Occasion: ${occasion || 'General gift'}
-- Hobbies & Interests: ${hobbies}
+- Interests: ${hobbies}
 - Budget: KES ${budgetMin} - ${budgetMax}
 
-YOUR TASK: Suggest 5-8 specific gift products that would be perfect for this recipient.
+AVAILABLE CATEGORIES:
+Electronics, Fashion, Swimwear, Home & Garden, Sports & Outdoors, Books & Media, Toys & Games, Health & Wellness, Baby & Kids, Pet Supplies, Beauty & Personal Care, Alcoholic Beverages, Tools & Home Improvement, Travel & Luggage, Groceries, Office & Industrial, Automotive
 
-RESPONSE FORMAT: For each gift, provide:
-1. Exact category path: main_category > sub_category > sub_sub_category
-2. Why it's perfect (2-3 sentences relating to their interests/occasion)
-3. Estimated price within budget
+YOUR TASK: Suggest 5-8 gift ideas. For EACH gift, output a product query in this exact format:
 
-AVAILABLE CATEGORIES: 
-- Electronics > Mobile Phones & Tablets > (Smartphones, Tablets, Phone Accessories)
-- Electronics > Computers & Laptops > (Laptops, Computer Accessories)
-- Electronics > Audio & Video > (Headphones, Speakers, TVs & Monitors)
-- Electronics > Gaming > (Gaming Consoles, Gaming Accessories)
-- Fashion > Men's Clothing, Women's Clothing, Shoes, Accessories
-- Swimwear > Women's Swimwear, Men's Swimwear, Kids' Swimwear, Accessories
-- Home & Garden > Furniture, Decor, Kitchen, Garden
-- Sports & Outdoors > Fitness, Team Sports, Outdoor Activities, Water Sports
-- Books & Media > Books, Music, Movies & TV, Gaming
-- Toys & Games > Educational Toys, Action Figures, Dolls, Building Sets, Arts & Crafts
-- Health & Wellness > Vitamins & Supplements, Medical Devices, Fitness Equipment
-- Beauty & Personal Care > Skincare, Makeup, Hair Care, Fragrances
-- Pet Supplies > Dogs, Cats, Other Pets, Pet Accessories
-- Alcoholic Beverages > Beer, Wine, Spirits, Gift Sets & Accessories
+GIFT_QUERY_START{"main_category":"exact category","sub_category":"exact subcategory","keywords":"search terms","reason":"why this is perfect (1 sentence)"}GIFT_QUERY_END
 
-Format each suggestion as:
-**Gift [number]: [Product Type]**
-Category: [main] > [sub] > [sub_sub]
-Price Range: KES [estimate]
-Why: [explanation]
+Be specific and match gifts to the recipient's interests and occasion. Keep reasons concise.`;
 
-Be specific, thoughtful, and match gifts to interests and occasion.`;
+    console.log('Calling OpenAI API for gift suggestions...');
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'You are MyPlug, a gift recommendation specialist. Be concise and action-oriented.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 800,
+        temperature: 0.8
+      })
+    });
 
-    // Call Gemini API
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [{ text: prompt }]
-          }]
-        })
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text();
+      console.error('OpenAI API error:', openaiResponse.status, errorText);
+      if (openaiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: 'AI service is temporarily busy. Please try again.' }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    );
-
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${geminiResponse.status}`);
+      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
     }
 
-    const geminiData = await geminiResponse.json();
-    const suggestions = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || 'Unable to generate suggestions';
+    const openaiData = await openaiResponse.json();
+    const suggestions = openaiData.choices?.[0]?.message?.content?.trim() || 'Unable to generate suggestions';
 
-    // Parse suggested categories and search for actual products
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-    const categoryMatches = suggestions.matchAll(/Category:\s*([^>]+)>\s*([^>]+)>\s*([^\n]+)/gi);
-    const allProducts = [];
+    console.log('Gift suggestions received, querying products...');
 
-    for (const match of categoryMatches) {
-      const [_, mainCat, subCat, subSubCat] = match;
+    // Parse gift queries and search for products
+    const giftMatches = [...suggestions.matchAll(/GIFT_QUERY_START(\{[\s\S]*?\})GIFT_QUERY_END/g)];
+    const allProducts: any[] = [];
+    const giftReasons: string[] = [];
 
+    for (const match of giftMatches) {
       try {
+        const giftQuery = JSON.parse(match[1]);
+        giftReasons.push(giftQuery.reason || '');
+
         let query = supabase
           .from('products')
           .select('*')
           .eq('is_active', true)
-          .eq('banned', false)
+          .eq('status', 'approved')
           .gte('price', budgetMin)
           .lte('price', budgetMax);
 
-        if (mainCat) query = query.eq('main_category', mainCat.trim());
-        if (subCat) query = query.eq('subcategory', subCat.trim());
-        if (subSubCat) query = query.eq('sub_subcategory', subSubCat.trim());
+        if (giftQuery.main_category) {
+          query = query.eq('main_category', giftQuery.main_category);
+        }
+        if (giftQuery.sub_category) {
+          query = query.eq('subcategory', giftQuery.sub_category);
+        }
 
-        query = query.limit(2);
+        query = query.limit(3);
 
         const { data: products } = await query;
-        if (products) {
+        
+        if (products && products.length > 0) {
           allProducts.push(...products);
+        } else if (giftQuery.keywords) {
+          // Fallback: text search with keywords
+          const { data: searchProducts } = await supabase
+            .from('products')
+            .select('*')
+            .eq('is_active', true)
+            .eq('status', 'approved')
+            .gte('price', budgetMin)
+            .lte('price', budgetMax)
+            .or(`name.ilike.%${giftQuery.keywords}%,description.ilike.%${giftQuery.keywords}%`)
+            .limit(3);
+          
+          if (searchProducts) {
+            allProducts.push(...searchProducts);
+          }
         }
-      } catch (error) {
-        console.error('Error searching products:', error);
+      } catch (e) {
+        console.error('Error parsing gift query:', e);
       }
     }
 
+    // Deduplicate products by id
+    const uniqueProducts = allProducts.filter((product, index, self) =>
+      index === self.findIndex(p => p.id === product.id)
+    );
+
+    console.log(`Found ${uniqueProducts.length} unique gift products`);
+
+    // Clean response text (remove query markers)
+    const cleanSuggestions = suggestions
+      .replace(/GIFT_QUERY_START\{[\s\S]*?\}GIFT_QUERY_END/g, '')
+      .trim();
+
     return new Response(
       JSON.stringify({
-        suggestions,
-        products: allProducts,
+        suggestions: cleanSuggestions,
+        products: uniqueProducts,
+        giftReasons,
         recipientAge: age,
         occasion: occasion || 'General gift',
-        budget: `KES ${budgetMin.toLocaleString()} - ${budgetMax.toLocaleString()}`
+        budget: `KES ${Number(budgetMin).toLocaleString()} - ${Number(budgetMax).toLocaleString()}`
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Heart, ShoppingCart, Star, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { AIService } from "@/services/aiService";
-import { ProductService } from "@/services/productService";
+import { supabase } from "@/integrations/supabase/client";
 import ProductImageLoader from "@/components/ProductImage";
 
 interface GiftsSectionProps {
@@ -45,28 +44,33 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
     setLoading(true);
     setSuggestedProducts([]);
     
-    const prompt = `Find gifts for: Age ${age}, Gender: ${gender || 'any'}, Relationship: ${relationship || 'anyone'}, Occasion: ${occasion || 'general'}, Interests: ${interests}, Budget: KES ${budgetMin} - ${budgetMax}`;
-    
     try {
-      const aiResult = await AIService.processMessage(prompt, user, []);
-      let searchTerm = interests;
-      
-      const { data: products } = await ProductService.searchProducts(searchTerm, 12);
-      
-      if (products && products.length > 0) {
-        const filtered = products.filter((p: any) => {
-          const price = p.price || 0;
-          return price >= Number(budgetMin) && price <= Number(budgetMax);
-        });
-        setSuggestedProducts(filtered.length > 0 ? filtered : products);
+      const { data: result, error } = await supabase.functions.invoke('gift-finder', {
+        body: {
+          age: Number(age),
+          gender: gender || 'any',
+          relationship: relationship || 'anyone',
+          occasion: occasion || 'general',
+          hobbies: interests,
+          budgetMin: Number(budgetMin),
+          budgetMax: Number(budgetMax)
+        }
+      });
+
+      if (error) throw error;
+
+      const products = result?.products || [];
+      if (products.length > 0) {
+        setSuggestedProducts(products);
       } else {
         toast({
           title: "No products found",
-          description: "ISA couldn't find any matching products. Try different criteria!",
+          description: "MyPlug couldn't find matching products. Try different criteria!",
           variant: "destructive"
         });
       }
     } catch (err) {
+      console.error('Gift finder error:', err);
       toast({
         title: "Error",
         description: "Unable to fetch gift suggestions. Please try again.",
@@ -103,7 +107,7 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
             Find the Perfect Gift
           </h2>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-            Let ISA help you discover thoughtful gifts that will make someone's day special ✨
+            Let MyPlug help you discover thoughtful gifts that will make someone's day special ✨
           </p>
         </div>
 
@@ -218,7 +222,7 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
               disabled={loading}
               className="w-full bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600"
             >
-              {loading ? "Finding gifts..." : "Let ISA Suggest"}
+              {loading ? "Finding gifts..." : "Let MyPlug Suggest"}
             </Button>
           </CardContent>
         </Card>
@@ -228,7 +232,7 @@ const GiftsSection = ({ user, onBack, onAddToCart, onToggleLike, onViewProduct, 
           <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700 max-w-2xl mx-auto">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Your suggestions will appear here</h3>
             <p className="text-gray-600 dark:text-gray-300">
-              Fill in the form and let ISA find amazing gifts!
+              Fill in the form and let MyPlug find amazing gifts!
             </p>
           </div>
         )}
