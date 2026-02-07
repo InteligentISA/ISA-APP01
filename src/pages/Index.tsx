@@ -700,6 +700,7 @@ const Index = ({ splashDestination }: IndexProps) => {
           onBack={handleBackToDashboard}
           onAddToCart={handleAddToCart}
           onToggleLike={handleToggleLike}
+          onViewProduct={handleViewProduct}
           likedItems={likedItems}
           maxChats={100}
           onUpgrade={() => {}}
