@@ -3585,8 +3585,10 @@ export type Database = {
         | { Args: never; Returns: boolean }
         | { Args: { user_id: string }; Returns: boolean }
       is_admin_active: { Args: { _user_id?: string }; Returns: boolean }
+      is_admin_for_reviews: { Args: never; Returns: boolean }
       is_admin_user: { Args: { _user_id?: string }; Returns: boolean }
       is_main_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_main_admin_for_roles: { Args: never; Returns: boolean }
       is_user_suspended: { Args: { user_uuid: string }; Returns: boolean }
       is_vendor_order:
         | { Args: { order_id: number }; Returns: boolean }
