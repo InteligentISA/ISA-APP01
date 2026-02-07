@@ -32,7 +32,21 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-    // Use GPT to generate gift suggestions with structured product queries
+    // First, get available categories and subcategories from the database
+    const { data: availableCategories } = await supabase
+      .from('products')
+      .select('main_category, subcategory, category')
+      .eq('is_active', true)
+      .eq('status', 'approved')
+      .gte('price', budgetMin)
+      .lte('price', budgetMax);
+
+    const uniqueCategories = [...new Set((availableCategories || []).map(p => 
+      `${p.main_category} > ${p.subcategory}`
+    ))].join('\n');
+
+    console.log('Available categories in budget range:', uniqueCategories);
+
     const prompt = `You are MyPlug, a gift recommendation specialist for an e-commerce store in Kenya.
 
 RECIPIENT:
@@ -42,14 +56,20 @@ RECIPIENT:
 - Interests: ${hobbies}
 - Budget: KES ${budgetMin} - ${budgetMax}
 
-AVAILABLE CATEGORIES:
-Electronics, Fashion, Swimwear, Home & Garden, Sports & Outdoors, Books & Media, Toys & Games, Health & Wellness, Baby & Kids, Pet Supplies, Beauty & Personal Care, Alcoholic Beverages, Tools & Home Improvement, Travel & Luggage, Groceries, Office & Industrial, Automotive
+AVAILABLE PRODUCT CATEGORIES IN BUDGET (use ONLY these exact names):
+${uniqueCategories}
+
+CRITICAL RULES:
+- Gender matters! If recipient is female, suggest women's products. If male, suggest men's products. If kids, suggest kids' products.
+- Do NOT suggest inappropriate items (e.g., don't suggest women's bikini for a male recipient).
+- Use the EXACT main_category and subcategory names from the list above.
+- Match gifts to the recipient's interests and occasion.
 
 YOUR TASK: Suggest 5-8 gift ideas. For EACH gift, output a product query in this exact format:
 
-GIFT_QUERY_START{"main_category":"exact category","sub_category":"exact subcategory","keywords":"search terms","reason":"why this is perfect (1 sentence)"}GIFT_QUERY_END
+GIFT_QUERY_START{"main_category":"exact category from list","subcategory":"exact subcategory from list","keywords":"search terms","reason":"why this is perfect (1 sentence)"}GIFT_QUERY_END
 
-Be specific and match gifts to the recipient's interests and occasion. Keep reasons concise.`;
+Be specific and practical.`;
 
     console.log('Calling OpenAI API for gift suggestions...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -61,11 +81,11 @@ Be specific and match gifts to the recipient's interests and occasion. Keep reas
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are MyPlug, a gift recommendation specialist. Be concise and action-oriented.' },
+          { role: 'system', content: 'You are MyPlug, a gift recommendation specialist. Be concise and use ONLY the exact category names provided.' },
           { role: 'user', content: prompt }
         ],
         max_tokens: 800,
-        temperature: 0.8
+        temperature: 0.7
       })
     });
 
@@ -84,7 +104,7 @@ Be specific and match gifts to the recipient's interests and occasion. Keep reas
     const openaiData = await openaiResponse.json();
     const suggestions = openaiData.choices?.[0]?.message?.content?.trim() || 'Unable to generate suggestions';
 
-    console.log('Gift suggestions received, querying products...');
+    console.log('Gift suggestions received:', suggestions);
 
     // Parse gift queries and search for products
     const giftMatches = [...suggestions.matchAll(/GIFT_QUERY_START(\{[\s\S]*?\})GIFT_QUERY_END/g)];
@@ -95,7 +115,9 @@ Be specific and match gifts to the recipient's interests and occasion. Keep reas
       try {
         const giftQuery = JSON.parse(match[1]);
         giftReasons.push(giftQuery.reason || '');
+        console.log('Searching for gift:', JSON.stringify(giftQuery));
 
+        // Try exact match first
         let query = supabase
           .from('products')
           .select('*')
@@ -105,36 +127,82 @@ Be specific and match gifts to the recipient's interests and occasion. Keep reas
           .lte('price', budgetMax);
 
         if (giftQuery.main_category) {
-          query = query.eq('main_category', giftQuery.main_category);
+          query = query.ilike('main_category', giftQuery.main_category);
         }
-        if (giftQuery.sub_category) {
-          query = query.eq('subcategory', giftQuery.sub_category);
+        if (giftQuery.subcategory) {
+          query = query.ilike('subcategory', giftQuery.subcategory);
         }
 
-        query = query.limit(3);
-
-        const { data: products } = await query;
+        query = query.limit(5);
+        const { data: products, error: queryError } = await query;
         
+        if (queryError) {
+          console.error('Query error:', queryError);
+        }
+
         if (products && products.length > 0) {
+          console.log(`Found ${products.length} products for ${giftQuery.main_category} > ${giftQuery.subcategory}`);
           allProducts.push(...products);
-        } else if (giftQuery.keywords) {
-          // Fallback: text search with keywords
-          const { data: searchProducts } = await supabase
+        } else {
+          // Fallback 1: Try just main_category
+          console.log('No exact match, trying main_category only...');
+          const { data: catProducts } = await supabase
             .from('products')
             .select('*')
             .eq('is_active', true)
             .eq('status', 'approved')
             .gte('price', budgetMin)
             .lte('price', budgetMax)
-            .or(`name.ilike.%${giftQuery.keywords}%,description.ilike.%${giftQuery.keywords}%`)
-            .limit(3);
-          
-          if (searchProducts) {
-            allProducts.push(...searchProducts);
+            .ilike('main_category', giftQuery.main_category || '')
+            .limit(5);
+
+          if (catProducts && catProducts.length > 0) {
+            console.log(`Fallback: found ${catProducts.length} in main_category`);
+            allProducts.push(...catProducts);
+          } else if (giftQuery.keywords) {
+            // Fallback 2: text search with keywords
+            console.log('Trying keyword search:', giftQuery.keywords);
+            const keywords = giftQuery.keywords.split(' ').filter((w: string) => w.length > 2);
+            const searchConditions = keywords.map((kw: string) => 
+              `name.ilike.%${kw}%,description.ilike.%${kw}%`
+            ).join(',');
+            
+            const { data: searchProducts } = await supabase
+              .from('products')
+              .select('*')
+              .eq('is_active', true)
+              .eq('status', 'approved')
+              .gte('price', budgetMin)
+              .lte('price', budgetMax)
+              .or(searchConditions)
+              .limit(5);
+            
+            if (searchProducts && searchProducts.length > 0) {
+              console.log(`Keyword search found ${searchProducts.length} products`);
+              allProducts.push(...searchProducts);
+            }
           }
         }
       } catch (e) {
         console.error('Error parsing gift query:', e);
+      }
+    }
+
+    // If still no products at all, do a broad search in budget range
+    if (allProducts.length === 0) {
+      console.log('No products from AI queries, fetching popular items in budget...');
+      const { data: fallbackProducts } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .eq('status', 'approved')
+        .gte('price', budgetMin)
+        .lte('price', budgetMax)
+        .order('review_count', { ascending: false })
+        .limit(10);
+      
+      if (fallbackProducts) {
+        allProducts.push(...fallbackProducts);
       }
     }
 
