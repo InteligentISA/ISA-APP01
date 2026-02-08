@@ -15,14 +15,6 @@ export class SharingService {
         ? new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()
         : null;
 
-      console.log('Creating share with data:', {
-        user_id: userId,
-        content_type: contentType,
-        content_id: contentId,
-        metadata,
-        expires_at: expiresAt
-      });
-
       const { data, error } = await supabase
         .from('shared_content')
         .insert({
@@ -35,10 +27,7 @@ export class SharingService {
         .select('share_code, expires_at')
         .single();
 
-      if (error) {
-        console.error('Supabase error details:', error);
-        throw error;
-      }
+      if (error) throw error;
 
       const baseUrl = `${window.location.origin}/shared/${data.share_code}`;
       const shareUrl = MetaTagsService.addUTMParameters(baseUrl, 'share', 'app');
@@ -63,24 +52,18 @@ export class SharingService {
         .single();
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          return null; // Not found
-        }
+        if (error.code === 'PGRST116') return null;
         throw error;
       }
 
-      // Check if expired
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        return null;
-      }
+      if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
 
-      // Increment view count
       await supabase
         .from('shared_content')
         .update({ view_count: data.view_count + 1 })
         .eq('id', data.id);
 
-      return data;
+      return data as unknown as SharedContent;
     } catch (error) {
       console.error('Error getting shared content:', error);
       throw error;
@@ -96,7 +79,7 @@ export class SharingService {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as unknown as SharedContent[];
     } catch (error) {
       console.error('Error getting user shares:', error);
       throw error;
@@ -120,7 +103,6 @@ export class SharingService {
 
   static async shareProduct(userId: string, productId: string): Promise<ShareResult> {
     try {
-      // Get product details for metadata - try with basic fields first
       let product = null;
       try {
         const { data, error } = await supabase
@@ -129,28 +111,9 @@ export class SharingService {
           .eq('id', productId)
           .single();
         
-        if (error) {
-          console.warn('Error fetching product details:', error);
-        } else {
-          product = data;
-        }
+        if (!error) product = data;
       } catch (fetchError) {
         console.warn('Failed to fetch product details:', fetchError);
-      }
-
-      // Try to get vendor name separately if the above worked
-      let vendorName = null;
-      if (product) {
-        try {
-          const { data: vendorData } = await supabase
-            .from('products')
-            .select('vendor_name')
-            .eq('id', productId)
-            .single();
-          vendorName = vendorData?.vendor_name;
-        } catch (vendorError) {
-          console.warn('Failed to fetch vendor name:', vendorError);
-        }
       }
 
       const metadata: ProductShareMetadata = {
@@ -159,7 +122,7 @@ export class SharingService {
         product_image: product?.main_image || '/placeholder.svg',
         product_category: product?.category || 'General',
         product_description: product?.description,
-        vendor_name: vendorName
+        vendor_name: null
       };
 
       return await this.createShare(userId, 'product', productId, metadata);
@@ -171,14 +134,12 @@ export class SharingService {
 
   static async shareConversation(userId: string, conversationId: string): Promise<ShareResult> {
     try {
-      // Get conversation details for metadata
       const { data: conversation } = await supabase
         .from('chat_conversations')
         .select('title, preview, created_at')
         .eq('id', conversationId)
         .single();
 
-      // Get message count
       const { count: messageCount } = await supabase
         .from('chat_messages')
         .select('*', { count: 'exact', head: true })
@@ -200,27 +161,14 @@ export class SharingService {
 
   static async shareWishlist(userId: string): Promise<ShareResult> {
     try {
-      // Get wishlist items for metadata - try different table names
-      let wishlistItems = [];
+      let wishlistItems: any[] = [];
       try {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('user_likes')
-          .select(`
-            id,
-            product:products(
-              id,
-              name,
-              price,
-              main_image
-            )
-          `)
+          .select(`id, product:products(id, name, price, main_image)`)
           .eq('user_id', userId);
 
-        if (error) {
-          console.warn('Error fetching wishlist from user_likes:', error);
-        } else {
-          wishlistItems = data || [];
-        }
+        if (!error) wishlistItems = data || [];
       } catch (error) {
         console.warn('Failed to fetch wishlist items:', error);
       }
@@ -230,14 +178,10 @@ export class SharingService {
         name: item.product?.name || 'Unknown Product',
         price: item.product?.price || 0,
         image_url: item.product?.main_image || '/placeholder.svg',
-        vendor_name: null // Will be null for now
+        vendor_name: null
       })) || [];
 
-      const metadata: WishlistShareMetadata = {
-        items_count: items.length,
-        items
-      };
-
+      const metadata: WishlistShareMetadata = { items_count: items.length, items };
       return await this.createShare(userId, 'wishlist', userId, metadata);
     } catch (error) {
       console.error('Error sharing wishlist:', error);
@@ -247,49 +191,30 @@ export class SharingService {
 
   static async shareCart(userId: string): Promise<ShareResult> {
     try {
-      // Get cart items for metadata
-      let cartItems = [];
+      let cartItems: any[] = [];
       try {
         const { data, error } = await supabase
           .from('cart_items')
-          .select(`
-            id,
-            quantity,
-            product:products(
-              id,
-              name,
-              price,
-              main_image
-            )
-          `)
+          .select(`id, quantity, product:products(id, name, price, main_image)`)
           .eq('user_id', userId);
 
-        if (error) {
-          console.warn('Error fetching cart items:', error);
-        } else {
-          cartItems = data || [];
-        }
+        if (!error) cartItems = data || [];
       } catch (error) {
         console.warn('Failed to fetch cart items:', error);
       }
 
       const items = cartItems?.map(item => ({
-        id: item.product?.id || item.id,
-        name: item.product?.name || 'Unknown Product',
-        price: item.product?.price || 0,
+        id: (item as any).product?.id || item.id,
+        name: (item as any).product?.name || 'Unknown Product',
+        price: (item as any).product?.price || 0,
         quantity: item.quantity || 1,
-        image_url: item.product?.main_image || '/placeholder.svg',
-        vendor_name: null // Will be null for now
+        image_url: (item as any).product?.main_image || '/placeholder.svg',
+        vendor_name: null
       })) || [];
 
       const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-      const metadata: CartShareMetadata = {
-        items_count: items.length,
-        items,
-        total_amount: totalAmount
-      };
-
+      const metadata: CartShareMetadata = { items_count: items.length, items, total_amount: totalAmount };
       return await this.createShare(userId, 'cart', userId, metadata);
     } catch (error) {
       console.error('Error sharing cart:', error);
@@ -300,10 +225,9 @@ export class SharingService {
   static async copyToClipboard(text: string): Promise<boolean> {
     try {
       if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
+        await navigator.clipboard.writeText(text);
+        return true;
       } else {
-        // Fallback for older browsers
         const textArea = document.createElement('textarea');
         textArea.value = text;
         textArea.style.position = 'fixed';
@@ -327,14 +251,10 @@ export class SharingService {
     const encodedTitle = encodeURIComponent(title || 'Check this out on MyPlug');
     
     switch (platform) {
-      case 'facebook':
-        return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
-      case 'twitter':
-        return `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
-      case 'whatsapp':
-        return `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
-      default:
-        return url;
+      case 'facebook': return `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+      case 'twitter': return `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+      case 'whatsapp': return `https://wa.me/?text=${encodedTitle}%20${encodedUrl}`;
+      default: return url;
     }
   }
 }

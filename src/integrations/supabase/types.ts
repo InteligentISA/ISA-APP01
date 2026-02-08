@@ -791,6 +791,9 @@ export type Database = {
           is_approved: boolean
           rating: number
           review_text: string
+          reviewer_name: string | null
+          reviewer_occupation: string | null
+          reviewer_type: string | null
           updated_at: string
           user_id: string
         }
@@ -800,6 +803,9 @@ export type Database = {
           is_approved?: boolean
           rating: number
           review_text: string
+          reviewer_name?: string | null
+          reviewer_occupation?: string | null
+          reviewer_type?: string | null
           updated_at?: string
           user_id: string
         }
@@ -809,6 +815,9 @@ export type Database = {
           is_approved?: boolean
           rating?: number
           review_text?: string
+          reviewer_name?: string | null
+          reviewer_occupation?: string | null
+          reviewer_type?: string | null
           updated_at?: string
           user_id?: string
         }

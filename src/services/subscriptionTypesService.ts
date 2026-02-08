@@ -54,47 +54,30 @@ export interface UserActiveSubscription {
 }
 
 export class SubscriptionTypesService {
-  /**
-   * Get all active subscription types
-   */
   static async getSubscriptionTypes(): Promise<SubscriptionType[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('subscription_types')
       .select('*')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching subscription types:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error fetching subscription types:', error); throw error; }
     return data || [];
   }
 
-  /**
-   * Get all active subscription plans
-   */
   static async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('subscription_plans')
       .select('*')
       .eq('is_active', true)
       .order('sort_order', { ascending: true });
 
-    if (error) {
-      console.error('Error fetching subscription plans:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error fetching subscription plans:', error); throw error; }
     return data || [];
   }
 
-  /**
-   * Get plan details with included subscription types
-   */
   static async getPlanWithTypes(planId: string) {
-    const { data: plan, error: planError } = await supabase
+    const { data: plan, error: planError } = await (supabase as any)
       .from('subscription_plans')
       .select('*')
       .eq('id', planId)
@@ -102,31 +85,18 @@ export class SubscriptionTypesService {
 
     if (planError) throw planError;
 
-    const { data: types, error: typesError } = await supabase
+    const { data: types, error: typesError } = await (supabase as any)
       .from('subscription_plan_types')
-      .select(`
-        is_included,
-        subscription_types (
-          id,
-          name,
-          display_name,
-          description,
-          icon_name
-        )
-      `)
+      .select(`is_included, subscription_types (id, name, display_name, description, icon_name)`)
       .eq('plan_id', planId)
       .eq('is_included', true);
 
     if (typesError) throw typesError;
-
     return { plan, types };
   }
 
-  /**
-   * Get user's active plan subscription
-   */
   static async getUserPlanSubscription(userId: string): Promise<UserPlanSubscription | null> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_plan_subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -135,87 +105,44 @@ export class SubscriptionTypesService {
       .limit(1)
       .maybeSingle();
 
-    if (error) {
-      console.error('Error fetching user plan subscription:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error fetching user plan subscription:', error); throw error; }
     return data;
   }
 
-  /**
-   * Get user's active subscription types
-   */
   static async getUserActiveSubscriptions(userId: string): Promise<UserActiveSubscription[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_active_subscriptions')
-      .select(`
-        *,
-        subscription_types (
-          id,
-          name,
-          display_name,
-          description,
-          icon_name
-        )
-      `)
+      .select(`*, subscription_types (id, name, display_name, description, icon_name)`)
       .eq('user_id', userId)
       .eq('is_active', true);
 
-    if (error) {
-      console.error('Error fetching user active subscriptions:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error fetching user active subscriptions:', error); throw error; }
     return data || [];
   }
 
-  /**
-   * Subscribe user to a plan
-   */
   static async subscribeToPlan(
-    userId: string,
-    planId: string,
-    billingCycle: 'monthly' | 'yearly',
-    paymentMethod: string,
-    transactionId: string
+    userId: string, planId: string, billingCycle: 'monthly' | 'yearly',
+    paymentMethod: string, transactionId: string
   ): Promise<UserPlanSubscription> {
     const plan = await this.getPlanDetails(planId);
     const price = billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly;
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_plan_subscriptions')
       .insert({
-        user_id: userId,
-        plan_id: planId,
-        billing_cycle: billingCycle,
-        price_paid: price,
-        currency: plan.currency,
-        status: 'active',
-        payment_method: paymentMethod,
-        transaction_id: transactionId,
+        user_id: userId, plan_id: planId, billing_cycle: billingCycle,
+        price_paid: price, currency: plan.currency, status: 'active',
+        payment_method: paymentMethod, transaction_id: transactionId,
       })
       .select()
       .single();
 
-    if (error) {
-      console.error('Error subscribing to plan:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error subscribing to plan:', error); throw error; }
     return data;
   }
 
-  /**
-   * Toggle a subscription type on/off
-   */
-  static async toggleSubscriptionType(
-    userId: string,
-    typeId: string,
-    isActive: boolean
-  ): Promise<void> {
-    // Check if subscription already exists
-    const { data: existing } = await supabase
+  static async toggleSubscriptionType(userId: string, typeId: string, isActive: boolean): Promise<void> {
+    const { data: existing } = await (supabase as any)
       .from('user_active_subscriptions')
       .select('*')
       .eq('user_id', userId)
@@ -223,8 +150,7 @@ export class SubscriptionTypesService {
       .maybeSingle();
 
     if (existing) {
-      // Update existing subscription
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_active_subscriptions')
         .update({
           is_active: isActive,
@@ -233,85 +159,47 @@ export class SubscriptionTypesService {
         })
         .eq('id', existing.id);
 
-      if (error) {
-        console.error('Error updating subscription type:', error);
-        throw error;
-      }
+      if (error) { console.error('Error updating subscription type:', error); throw error; }
     } else if (isActive) {
-      // Create new subscription
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('user_active_subscriptions')
-        .insert({
-          user_id: userId,
-          type_id: typeId,
-          is_active: true,
-        });
+        .insert({ user_id: userId, type_id: typeId, is_active: true });
 
-      if (error) {
-        console.error('Error creating subscription type:', error);
-        throw error;
-      }
+      if (error) { console.error('Error creating subscription type:', error); throw error; }
     }
   }
 
-  /**
-   * Cancel user's plan subscription
-   */
   static async cancelPlanSubscription(userId: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('user_plan_subscriptions')
-      .update({
-        status: 'cancelled',
-        auto_renew: false,
-      })
+      .update({ status: 'cancelled', auto_renew: false })
       .eq('user_id', userId)
       .eq('status', 'active');
 
-    if (error) {
-      console.error('Error cancelling plan subscription:', error);
-      throw error;
-    }
+    if (error) { console.error('Error cancelling plan subscription:', error); throw error; }
   }
 
-  /**
-   * Get plan details by ID
-   */
   static async getPlanDetails(planId: string): Promise<SubscriptionPlan> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('subscription_plans')
       .select('*')
       .eq('id', planId)
       .single();
 
-    if (error) {
-      console.error('Error fetching plan details:', error);
-      throw error;
-    }
-
+    if (error) { console.error('Error fetching plan details:', error); throw error; }
     return data;
   }
 
-  /**
-   * Check if user has access to a specific subscription type
-   */
   static async hasSubscriptionType(userId: string, typeName: string): Promise<boolean> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('user_active_subscriptions')
-      .select(`
-        *,
-        subscription_types!inner (name)
-      `)
+      .select(`*, subscription_types!inner (name)`)
       .eq('user_id', userId)
       .eq('is_active', true)
       .eq('subscription_types.name', typeName)
       .maybeSingle();
 
-    if (error) {
-      console.error('Error checking subscription type access:', error);
-      return false;
-    }
-
+    if (error) { console.error('Error checking subscription type access:', error); return false; }
     return data !== null;
   }
 }
-

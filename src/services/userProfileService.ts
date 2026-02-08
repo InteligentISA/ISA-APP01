@@ -67,7 +67,7 @@ export class UserProfileService {
         return null;
       }
 
-      return data;
+      return data as unknown as UserProfile;
     } catch (error) {
       console.error('Error fetching user profile:', error);
       return null;
@@ -163,7 +163,7 @@ export class UserProfileService {
         return null;
       }
 
-      return data;
+      return data as unknown as UserProfile;
     } catch (error) {
       console.error('Error fetching user profile by email:', error);
       return null;

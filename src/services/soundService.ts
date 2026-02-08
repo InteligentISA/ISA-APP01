@@ -349,7 +349,7 @@ export class SoundService {
 
   // Method to preload sounds for better performance
   public async preloadSounds(soundTypes: SoundType[] = []): Promise<void> {
-    const soundsToPreload = soundTypes.length > 0 ? soundTypes : [
+    const soundsToPreload: SoundType[] = soundTypes.length > 0 ? soundTypes : [
       'like', 'unlike', 'addToCart', 'removeFromCart', 'checkout', 
       'success', 'error', 'notification', 'message', 'points',
       'orderUpdate', 'payment', 'returnRequest'

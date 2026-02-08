@@ -170,7 +170,7 @@ export class SubscriptionService {
         return null;
       }
 
-      return data;
+      return data as unknown as UserSubscription;
     } catch (error) {
       console.error('Error in getUserSubscription:', error);
       return null;
@@ -238,7 +238,7 @@ export class SubscriptionService {
       return { 
         success: true, 
         message: 'Subscription created successfully',
-        subscription: data
+        subscription: data as unknown as UserSubscription
       };
     } catch (error) {
       console.error('Error in createSubscription:', error);
