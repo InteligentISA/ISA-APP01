@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, Plus, History, Home, Moon, Sun } from "lucide-react";
+import { Send, Plus, History, Home, Moon, Sun, ShoppingCart as CartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem,
   SidebarMenuButton, SidebarProvider, SidebarTrigger, SidebarInset
 } from "@/components/ui/sidebar";
 import TierUpgradeModal from "@/components/TierUpgradeModal";
 import ChatProductCard from "@/components/ChatProductCard";
+import ChatProductDetailPopup from "@/components/ChatProductDetailPopup";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useSidebar } from "@/components/ui/sidebar";
 
 interface ChatMessage {
   id: string;
@@ -30,9 +30,11 @@ interface AskMyPlugProps {
   maxChats: number;
   onUpgrade: () => void;
   onViewProduct?: (product: any) => void;
+  onOpenCart?: () => void;
 }
 
-const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats, onUpgrade, onViewProduct }: AskMyPlugProps) => {
+// Inner component that can use useSidebar
+const AskMyPlugInner = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxChats, onUpgrade, onViewProduct, onOpenCart }: AskMyPlugProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [conversations, setConversations] = useState<any[]>([]);
@@ -43,10 +45,11 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
   const [chatCount, setChatCount] = useState(user?.chat_count || 0);
   const [showTierModal, setShowTierModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [selectedPopupProduct, setSelectedPopupProduct] = useState<any>(null);
+  const [showProductPopup, setShowProductPopup] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  const { setOpen } = useSidebar();
 
-  // Load dark mode preference
   useEffect(() => {
     const saved = localStorage.getItem('myplug_dark_mode');
     if (saved) setIsDarkMode(JSON.parse(saved));
@@ -56,40 +59,29 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
     localStorage.setItem('myplug_dark_mode', JSON.stringify(isDarkMode));
   }, [isDarkMode]);
 
-  // Load conversations on mount
-  useEffect(() => {
-    loadConversations();
-  }, []);
+  useEffect(() => { loadConversations(); }, []);
 
-  // Load the most recent conversation on mount
   useEffect(() => {
     if (conversations.length > 0 && !currentConversationId) {
       loadConversation(conversations[0].id);
     }
   }, [conversations]);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
   const loadConversations = async () => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) return;
-
       const { data, error } = await supabase
         .from('chat_conversations')
         .select('*')
         .eq('user_id', authUser.id)
         .order('updated_at', { ascending: false });
-
       if (!error && data) setConversations(data);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    }
+    } catch (error) { console.error('Error loading conversations:', error); }
   };
 
   const loadConversation = async (conversationId: string) => {
@@ -97,14 +89,12 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
       setIsLoading(true);
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) return;
-
       const { data, error } = await supabase
         .from('chat_messages')
         .select('*')
         .eq('conversation_id', conversationId)
         .eq('user_id', authUser.id)
         .order('created_at', { ascending: true });
-
       if (!error && data) {
         const loaded: ChatMessage[] = data.map(msg => ({
           id: msg.id,
@@ -116,18 +106,16 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
         setMessages(loaded);
         setCurrentConversationId(conversationId);
       }
-    } catch (error) {
-      console.error('Error loading conversation:', error);
-    } finally {
-      setIsLoading(false);
-    }
+      // Collapse sidebar on mobile after selecting
+      setOpen(false);
+    } catch (error) { console.error('Error loading conversation:', error); }
+    finally { setIsLoading(false); }
   };
 
   const saveMessageToDb = async (conversationId: string, msg: ChatMessage) => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) return;
-
       await supabase.from('chat_messages').insert({
         conversation_id: conversationId,
         user_id: authUser.id,
@@ -135,40 +123,25 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
         content: msg.content,
         metadata: msg.products ? { products: msg.products } : null
       });
-    } catch (error) {
-      console.error('Error saving message:', error);
-    }
+    } catch (error) { console.error('Error saving message:', error); }
   };
 
   const createOrUpdateConversation = async (title: string, preview: string): Promise<string | null> => {
     try {
       const { data: { user: authUser } } = await supabase.auth.getUser();
       if (!authUser) return null;
-
       if (currentConversationId) {
-        // Update existing
         await supabase.from('chat_conversations')
           .update({ preview: preview.substring(0, 500), updated_at: new Date().toISOString() })
           .eq('id', currentConversationId);
         return currentConversationId;
       }
-
-      // Create new
       const { data, error } = await supabase.from('chat_conversations')
-        .insert({
-          user_id: authUser.id,
-          title: title.substring(0, 100),
-          preview: preview.substring(0, 500)
-        })
-        .select()
-        .single();
-
+        .insert({ user_id: authUser.id, title: title.substring(0, 100), preview: preview.substring(0, 500) })
+        .select().single();
       if (error) throw error;
       return data.id;
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      return null;
-    }
+    } catch (error) { console.error('Error creating conversation:', error); return null; }
   };
 
   const handleSendMessage = async () => {
@@ -179,45 +152,30 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
       return;
     }
 
-    const userMsg: ChatMessage = {
-      id: crypto.randomUUID(),
-      type: 'user',
-      content: currentMessage,
-      timestamp: new Date()
-    };
-
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), type: 'user', content: currentMessage, timestamp: new Date() };
     setMessages(prev => [...prev, userMsg]);
     const messageText = currentMessage;
     setCurrentMessage("");
     setIsSending(true);
 
     try {
-      // Ensure conversation exists
       let convId = currentConversationId;
       if (!convId) {
         convId = await createOrUpdateConversation(
-          messageText.length > 50 ? messageText.slice(0, 50) + '...' : messageText,
-          messageText
+          messageText.length > 50 ? messageText.slice(0, 50) + '...' : messageText, messageText
         );
-        if (convId) {
-          setCurrentConversationId(convId);
-        }
+        if (convId) setCurrentConversationId(convId);
       } else {
         await createOrUpdateConversation('', messageText);
       }
 
-      // Save user message
       if (convId) await saveMessageToDb(convId, userMsg);
 
-      // Call edge function
       const { data: chatResult, error: chatError } = await supabase.functions.invoke('myplug-chat', {
         body: {
           message: messageText,
           userId: user?.id,
-          conversationHistory: messages.map(m => ({
-            role: m.type === 'user' ? 'user' : 'assistant',
-            content: m.content
-          }))
+          conversationHistory: messages.map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content }))
         }
       });
 
@@ -234,46 +192,35 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
 
       setMessages(prev => [...prev, assistantMsg]);
       setChatCount(prev => prev + 1);
-
-      // Save assistant message
       if (convId) await saveMessageToDb(convId, assistantMsg);
-
-      // Refresh conversations list
       await loadConversations();
     } catch (err) {
       console.error('MyPlug chat error:', err);
-      const errorMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        type: 'myplug',
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(), type: 'myplug',
         content: "Sorry, I'm having trouble connecting right now. Please try again.",
         timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMsg]);
-    } finally {
-      setIsSending(false);
-    }
+      }]);
+    } finally { setIsSending(false); }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }
   };
 
   const startNewChat = () => {
     setMessages([]);
     setCurrentConversationId(null);
+    setOpen(false);
   };
 
   const handleViewProduct = (product: any) => {
-    if (onViewProduct) {
-      onViewProduct(product);
-    }
+    setSelectedPopupProduct(product);
+    setShowProductPopup(true);
   };
 
   return (
-    <SidebarProvider>
+    <>
       <div className={`min-h-screen flex w-full transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
         <Sidebar className={`border-r md:w-80 w-full transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
           <SidebarHeader className={`p-3 sm:p-4 border-b transition-colors duration-300 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
@@ -313,12 +260,8 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <div className={`font-medium text-xs sm:text-sm truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                            {conv.title}
-                          </div>
-                          <div className={`text-xs truncate mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {conv.preview}
-                          </div>
+                          <div className={`font-medium text-xs sm:text-sm truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{conv.title}</div>
+                          <div className={`text-xs truncate mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{conv.preview}</div>
                         </div>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -360,7 +303,6 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                 <div className="space-y-4 max-w-4xl mx-auto pb-4">
                   {messages.map((message) => (
                     <div key={message.id}>
-                      {/* Message bubble */}
                       <div className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] sm:max-w-md px-3 sm:px-4 py-2 sm:py-3 rounded-2xl ${
                           message.type === 'user'
@@ -382,7 +324,6 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                         </div>
                       </div>
 
-                      {/* Product cards - displayed below assistant message */}
                       {message.products && message.products.length > 0 && (
                         <div className="mt-3 space-y-3">
                           <p className={`text-sm font-medium px-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -406,7 +347,6 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
                     </div>
                   ))}
 
-                  {/* Loading indicator */}
                   {isSending && (
                     <div className="flex justify-start">
                       <div className={`px-4 py-3 rounded-2xl ${isDarkMode ? 'bg-gray-800 border border-gray-600' : 'bg-white border border-gray-200'}`}>
@@ -454,12 +394,31 @@ const AskMyPlug = ({ onBack, user, onAddToCart, onToggleLike, likedItems, maxCha
           </div>
         </SidebarInset>
       </div>
+      
       <TierUpgradeModal
         isOpen={showTierModal}
         onClose={() => setShowTierModal(false)}
         onPay={() => { setShowTierModal(false); if (onUpgrade) onUpgrade(); }}
         loading={false}
       />
+
+      {/* Product Detail Popup */}
+      <ChatProductDetailPopup
+        product={selectedPopupProduct}
+        isOpen={showProductPopup}
+        onClose={() => setShowProductPopup(false)}
+        onAddToCart={onAddToCart}
+        onToggleLike={(p) => onToggleLike(p.id || p)}
+        isLiked={selectedPopupProduct ? likedItems.includes(selectedPopupProduct.id) : false}
+      />
+    </>
+  );
+};
+
+const AskMyPlug = (props: AskMyPlugProps) => {
+  return (
+    <SidebarProvider>
+      <AskMyPlugInner {...props} />
     </SidebarProvider>
   );
 };

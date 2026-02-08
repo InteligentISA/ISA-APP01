@@ -17,7 +17,7 @@ export class SupportService {
       .eq('id', user.id)
       .single();
 
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await (supabase as any)
       .from('support_tickets')
       .insert({
         user_id: user.id,
@@ -35,12 +35,9 @@ export class SupportService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: [], error: 'Not authenticated' };
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('support_tickets')
-      .select(`
-        *,
-        user:profiles(first_name, last_name, email)
-      `)
+      .select(`*, user:profiles(first_name, last_name, email)`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
@@ -48,12 +45,9 @@ export class SupportService {
   }
 
   static async getTicketMessages(ticketId: string): Promise<{ data: SupportMessage[]; error: any }> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('support_messages')
-      .select(`
-        *,
-        user:profiles(first_name, last_name)
-      `)
+      .select(`*, user:profiles(first_name, last_name)`)
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
 
@@ -64,7 +58,7 @@ export class SupportService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    const { data: msg, error } = await supabase
+    const { data: msg, error } = await (supabase as any)
       .from('support_messages')
       .insert({
         ticket_id: ticketId,
@@ -82,7 +76,7 @@ export class SupportService {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { data: null, error: 'Not authenticated' };
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('live_chat_sessions')
       .insert({
         user_id: user.id,
@@ -96,7 +90,7 @@ export class SupportService {
 
   static async getUserTickets(userId: string): Promise<SupportTicket[]> {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('support_tickets')
         .select('*')
         .eq('user_id', userId)
